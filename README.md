@@ -1,6 +1,6 @@
 # GTNH Journey
 
-Current development version: `0.1.0-pre1`.
+Current development version: `0.1.0-pre5`.
 
 GT New Horizons 1.7.10 addon that automatically researches item states the player genuinely obtains and allows server-authoritative infinite retrieval through the existing NEI frontend.
 
@@ -36,7 +36,10 @@ GT New Horizons 1.7.10 addon that automatically researches item states the playe
 - GT electric items use Journey endpoints: partial charge => BASE; verified max charge => BASE + FULL.
 - IC2 `IElectricItem` stacks use the same BASE/FULL model through the IC2 electric API/manager, not a generic `charge`-NBT heuristic.
 - CoFH `IEnergyContainerItem` stacks use the same BASE/FULL model through the CoFH energy API; arbitrary `Energy` NBT on foreign items remains exact.
-- Tinkers Construct `ToolCore` wear (`InfiTool.Damage/Broken`) is treated as runtime wear while materials, modifiers and other tool payload remain meaningful identity.
+- OpenComputers Hover Boots use their own public charge API and follow the same BASE/FULL endpoint model.
+- Tinkers Construct `ToolCore` runtime wear/progression fields are normalized while materials, modifiers and other meaningful tool payload remain part of identity.
+- Botania magnet rings ignore the verified per-tick `cooldown` field in research identity and retrieval templates.
+- Draconic Evolution `ToolBase` items ignore only the auto-created five-empty-profile initialization payload; real profile contents remain exact.
 - Unknown mod NBT remains exact by default. Compatibility rules fail closed rather than merging unknown states.
 
 ### Persistence and recovery
@@ -68,6 +71,7 @@ Journey deliberately reuses GTNH's existing NEI item panel instead of adding a s
 - `J` toggles **Journey / Researched** view.
 - `N` toggles **Newest** view.
 - Exact synchronized NBT variants are injected only while `J`/`N` is active and are removed from normal NEI view.
+- Native BASE item/meta entries are not re-injected, avoiding duplicate normal items in Journey/Newest.
 - Normal NEI search and recipe/usage browsing remain available.
 - In Journey/Newest view: left click requests a full stack; right click requests one item.
 - In ordinary NEI: Ctrl + left click requests a full researched stack; Ctrl + right click requests one.
@@ -82,15 +86,14 @@ The NEI built-in infinite/cheat item path is intentionally **not** used because 
 - `/journey stats`
 - `/journey debug`
 - `/journey trace [on|off]` - opt-in live unlock chat/log trace for this server session
-- `/journey dump` - writes an attachable diagnostic file into `logs/`
+- `/journey dump` - writes an attachable diagnostic file into `logs/`; pre5 also reports semantic-policy matches and unknown exact-NBT states preserved fail-closed
 - `/journey hotspots [limit]`
 - `/journey list [page]`
 - `/journey newest [limit]`
 - `/journey get <index> [amount]`
 - `/journey forget <index>`
 - `/journey undo`
-- `/journey inspect` - inspect the held stack's normalized identity/GT/IC2 endpoint classification
-- `/journey inspect` also reports CoFH, verified GT-tool and TCon-tool classification for compatibility debugging.
+- `/journey inspect` - reports normalized identity, wire/sync information, GT/IC2/CoFH/OpenComputers charge classification, GT/TCon ownership, Botania magnet state, Draconic tool state and semantic endpoint count
 - `/journey rescan`
 - `/journey prune-missing confirm`
 - `/journey clear confirm`
@@ -113,14 +116,13 @@ Security/network hard limits intentionally remain compile-time constants.
 
 ## Development verification
 
-Offline regression layers:
+The real GTNH/Forge Gradle build is the release gate. CI runs formatting followed by the full build:
 
 ```bash
-./tools/run-core-tests.sh
-./tools/run-adapter-tests.sh
-./tools/run-main-smoke.sh
+gradle spotlessApply --stacktrace
+gradle build --stacktrace
 ```
 
-They compile with `javac --release 8`. The offline tests/fixtures live outside standard Gradle test source sets so they cannot shadow real Forge/GTNH classes during the actual mod build. A real Forge/GTNH Gradle build still requires dependency network access and is the gate before the first live Prism test.
+`gradle build` includes the JUnit 5 regression suite for pure Journey state logic, including J/N view toggles, charge endpoint classification and semantic diagnostic classification. The resulting production, dev and sources jars are uploaded by GitHub Actions.
 
-See `docs/first-live-test.md` for the first-world test matrix.
+See `docs/first-live-test.md` for the live-world test matrix.
