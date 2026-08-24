@@ -5,18 +5,20 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import net.minecraft.item.ItemStack;
+
 import codechicken.nei.LayoutManager;
 import codechicken.nei.api.API;
 import codechicken.nei.api.ItemInfo;
 import dev.gtnhjourney.minecraft.ItemStackKeyFactory;
 import dev.gtnhjourney.research.ResearchKey;
-import net.minecraft.item.ItemStack;
 
 /**
  * Compatibility boundary for the one NEI-internal operation the public API does not expose: removing
  * ItemStack variants previously injected by Journey. All other integration stays on NEI's public API.
  */
 final class JourneyNEIVariantBridge {
+
     private static final List<ItemStack> ownedVariants = new ArrayList<ItemStack>();
     private static final Set<ResearchKey> ownedKeys = new LinkedHashSet<ResearchKey>();
 

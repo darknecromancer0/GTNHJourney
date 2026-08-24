@@ -2,7 +2,12 @@ package dev.gtnhjourney.nei;
 
 /** Client-side mode for the NEI item panel. */
 public final class JourneyViewState {
-    public enum Mode { ALL, RESEARCHED, NEWEST }
+
+    public enum Mode {
+        ALL,
+        RESEARCHED,
+        NEWEST
+    }
 
     private static volatile Mode mode = Mode.ALL;
     private static volatile long revision;

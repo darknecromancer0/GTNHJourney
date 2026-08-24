@@ -6,9 +6,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import net.minecraft.item.ItemStack;
+
 import dev.gtnhjourney.minecraft.ItemStackKeyFactory;
 import dev.gtnhjourney.research.ResearchKey;
-import net.minecraft.item.ItemStack;
 
 /** Exact client ItemStack templates used by the NEI frontend. Server sync is the only writer. */
 public final class ClientStackMirror {
@@ -83,7 +84,9 @@ public final class ClientStackMirror {
 
     public static synchronized List<ItemStack> snapshot() {
         List<ItemStack> out = new ArrayList<ItemStack>();
-        for (Map.Entry<ResearchKey, ItemStack> entry : stacks.entrySet()) out.add(entry.getValue().copy());
+        for (Map.Entry<ResearchKey, ItemStack> entry : stacks.entrySet()) out.add(
+            entry.getValue()
+                .copy());
         return Collections.unmodifiableList(out);
     }
 
@@ -93,7 +96,9 @@ public final class ClientStackMirror {
         List<ItemStack> all = new ArrayList<ItemStack>();
         for (Map.Entry<ResearchKey, ItemStack> entry : stacks.entrySet()) all.add(entry.getValue());
         List<ItemStack> out = new ArrayList<ItemStack>(Math.min(limit, all.size()));
-        for (int i = all.size() - 1; i >= 0 && out.size() < limit; i--) out.add(all.get(i).copy());
+        for (int i = all.size() - 1; i >= 0 && out.size() < limit; i--) out.add(
+            all.get(i)
+                .copy());
         return Collections.unmodifiableList(out);
     }
 
@@ -102,10 +107,21 @@ public final class ClientStackMirror {
         return stack == null ? null : stack.copy();
     }
 
-    public static synchronized boolean isSyncing() { return syncing; }
-    public static synchronized int serverAvailableTotal() { return serverAvailableTotal; }
-    public static synchronized int expectedSyncedTotal() { return expectedSyncedTotal; }
-    public static synchronized int serverOnlyCount() { return Math.max(0, serverAvailableTotal - expectedSyncedTotal); }
+    public static synchronized boolean isSyncing() {
+        return syncing;
+    }
+
+    public static synchronized int serverAvailableTotal() {
+        return serverAvailableTotal;
+    }
+
+    public static synchronized int expectedSyncedTotal() {
+        return expectedSyncedTotal;
+    }
+
+    public static synchronized int serverOnlyCount() {
+        return Math.max(0, serverAvailableTotal - expectedSyncedTotal);
+    }
 
     /** Clears all server-provided client state, e.g. when disconnecting from a server. */
     public static synchronized void clear() {

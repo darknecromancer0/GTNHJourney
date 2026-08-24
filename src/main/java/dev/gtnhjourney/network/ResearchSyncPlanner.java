@@ -8,6 +8,7 @@ import dev.gtnhjourney.research.ResearchKey;
 
 /** Pure, deterministic chunk planner shared by runtime sync and offline tests. */
 public final class ResearchSyncPlanner {
+
     private ResearchSyncPlanner() {}
 
     /**
@@ -32,6 +33,7 @@ public final class ResearchSyncPlanner {
     }
 
     public static final class Plan {
+
         private final int sourceTotal;
         private final int syncableTotal;
         private final int oversizedTotal;
@@ -44,9 +46,20 @@ public final class ResearchSyncPlanner {
             this.chunks = chunks;
         }
 
-        public int getSourceTotal() { return sourceTotal; }
-        public int getSyncableTotal() { return syncableTotal; }
-        public int getOversizedTotal() { return oversizedTotal; }
-        public List<List<Integer>> getChunks() { return chunks; }
+        public int getSourceTotal() {
+            return sourceTotal;
+        }
+
+        public int getSyncableTotal() {
+            return syncableTotal;
+        }
+
+        public int getOversizedTotal() {
+            return oversizedTotal;
+        }
+
+        public List<List<Integer>> getChunks() {
+            return chunks;
+        }
     }
 }

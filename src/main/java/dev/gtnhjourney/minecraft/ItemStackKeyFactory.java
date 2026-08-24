@@ -1,9 +1,10 @@
 package dev.gtnhjourney.minecraft;
 
+import net.minecraft.item.ItemStack;
+
 import cpw.mods.fml.common.registry.GameRegistry;
 import cpw.mods.fml.common.registry.GameRegistry.UniqueIdentifier;
 import dev.gtnhjourney.research.ResearchKey;
-import net.minecraft.item.ItemStack;
 
 /** Converts a real Minecraft stack into the exact v0.1 Journey identity. */
 public final class ItemStackKeyFactory {
@@ -14,7 +15,9 @@ public final class ItemStackKeyFactory {
         try {
             return fromUnchecked(stack);
         } catch (LinkageError optionalIntegrationFailure) {
-            throw new IllegalArgumentException("item identity failed because an optional integration is unavailable", optionalIntegrationFailure);
+            throw new IllegalArgumentException(
+                "item identity failed because an optional integration is unavailable",
+                optionalIntegrationFailure);
         }
     }
 
@@ -26,16 +29,23 @@ public final class ItemStackKeyFactory {
         // Semantic normalization may legitimately transform an electric stack into its base/empty representation.
         // Registry id and metadata therefore belong to the normalized stack too, not to the pre-normalization input.
         GtChargeStatePolicy.State gtChargeState = ResearchCompatibilityOptions.normalizeGtChargeEndpoints()
-            ? GtChargeStatePolicy.classify(stack) : GtChargeStatePolicy.State.EXACT;
+            ? GtChargeStatePolicy.classify(stack)
+            : GtChargeStatePolicy.State.EXACT;
         ItemStack identityStack;
         if (gtChargeState != GtChargeStatePolicy.State.EXACT) {
             identityStack = GtChargeStatePolicy.identityStack(stack);
         } else {
             Ic2ChargeStatePolicy.State ic2ChargeState = ResearchCompatibilityOptions.normalizeIc2ChargeEndpoints()
-                ? Ic2ChargeStatePolicy.classify(stack) : Ic2ChargeStatePolicy.State.EXACT;
-            identityStack = ic2ChargeState != Ic2ChargeStatePolicy.State.EXACT
-                ? Ic2ChargeStatePolicy.identityStack(stack)
-                : CofhChargeStatePolicy.identityStack(stack);
+                ? Ic2ChargeStatePolicy.classify(stack)
+                : Ic2ChargeStatePolicy.State.EXACT;
+            if (ic2ChargeState != Ic2ChargeStatePolicy.State.EXACT) {
+                identityStack = Ic2ChargeStatePolicy.identityStack(stack);
+            } else {
+                OpenComputersChargeStatePolicy.State ocChargeState = OpenComputersChargeStatePolicy.classify(stack);
+                identityStack = ocChargeState != OpenComputersChargeStatePolicy.State.EXACT
+                    ? OpenComputersChargeStatePolicy.identityStack(stack)
+                    : CofhChargeStatePolicy.identityStack(stack);
+            }
         }
         if (identityStack == null || identityStack.getItem() == null) {
             throw new IllegalArgumentException("semantic identity produced no item");
@@ -68,7 +78,11 @@ public final class ItemStackKeyFactory {
         // declares classic durability semantics and no subtypes. GT meta-items explicitly have subtypes, so their
         // tool/part IDs remain intact.
         try {
-            if (stack.getItem().isDamageable() && !stack.getItem().getHasSubtypes()) return 0;
+            if (stack.getItem()
+                .isDamageable()
+                && !stack.getItem()
+                    .getHasSubtypes())
+                return 0;
         } catch (RuntimeException ignored) {}
         return stack.getItemDamage();
     }

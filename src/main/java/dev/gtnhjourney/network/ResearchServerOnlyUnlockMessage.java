@@ -9,14 +9,25 @@ import io.netty.buffer.ByteBuf;
 
 /** Lightweight notice for a researched state intentionally withheld from client ItemStack sync due to NBT size. */
 public final class ResearchServerOnlyUnlockMessage implements IMessage {
+
     public ResearchServerOnlyUnlockMessage() {}
-    @Override public void fromBytes(ByteBuf buf) {}
-    @Override public void toBytes(ByteBuf buf) {}
+
+    @Override
+    public void fromBytes(ByteBuf buf) {}
+
+    @Override
+    public void toBytes(ByteBuf buf) {}
 
     public static final class Handler implements IMessageHandler<ResearchServerOnlyUnlockMessage, IMessage> {
-        @Override public IMessage onMessage(ResearchServerOnlyUnlockMessage message, MessageContext ctx) {
+
+        @Override
+        public IMessage onMessage(ResearchServerOnlyUnlockMessage message, MessageContext ctx) {
             ClientNetworkQueue.enqueue(new Runnable() {
-                @Override public void run() { ClientStackMirror.addServerOnlyUnlock(); }
+
+                @Override
+                public void run() {
+                    ClientStackMirror.addServerOnlyUnlock();
+                }
             });
             return null;
         }

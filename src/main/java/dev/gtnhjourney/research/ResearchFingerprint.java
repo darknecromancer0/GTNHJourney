@@ -7,11 +7,13 @@ import java.util.Arrays;
 
 /** Fixed-size SHA-256 token for network lookup of a full ResearchKey. */
 public final class ResearchFingerprint implements Comparable<ResearchFingerprint> {
+
     public static final int BYTE_LENGTH = 32;
     private final byte[] bytes;
 
     private ResearchFingerprint(byte[] bytes) {
-        if (bytes == null || bytes.length != BYTE_LENGTH) throw new IllegalArgumentException("fingerprint must be 32 bytes");
+        if (bytes == null || bytes.length != BYTE_LENGTH)
+            throw new IllegalArgumentException("fingerprint must be 32 bytes");
         this.bytes = bytes.clone();
     }
 
@@ -54,7 +56,8 @@ public final class ResearchFingerprint implements Comparable<ResearchFingerprint
 
     @Override
     public boolean equals(Object obj) {
-        return this == obj || obj instanceof ResearchFingerprint && Arrays.equals(bytes, ((ResearchFingerprint) obj).bytes);
+        return this == obj
+            || obj instanceof ResearchFingerprint && Arrays.equals(bytes, ((ResearchFingerprint) obj).bytes);
     }
 
     @Override

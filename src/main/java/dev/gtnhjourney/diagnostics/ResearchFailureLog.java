@@ -8,6 +8,7 @@ import java.util.Map;
 
 /** Bounded in-memory ledger of third-party observation failures for first-run diagnostics. */
 public final class ResearchFailureLog {
+
     public static final int MAX_UNIQUE = 128;
     private static final Map<String, MutableEntry> ENTRIES = new LinkedHashMap<String, MutableEntry>();
     private static int droppedUnique;
@@ -40,8 +41,13 @@ public final class ResearchFailureLog {
         return Collections.unmodifiableList(out);
     }
 
-    public static synchronized int droppedUnique() { return droppedUnique; }
-    public static synchronized int uniqueCount() { return ENTRIES.size(); }
+    public static synchronized int droppedUnique() {
+        return droppedUnique;
+    }
+
+    public static synchronized int uniqueCount() {
+        return ENTRIES.size();
+    }
 
     public static synchronized void clear() {
         ENTRIES.clear();
@@ -49,23 +55,39 @@ public final class ResearchFailureLog {
     }
 
     private static final class MutableEntry {
+
         final String item;
         final String failure;
         int occurrences = 1;
-        MutableEntry(String item, String failure) { this.item = item; this.failure = failure; }
+
+        MutableEntry(String item, String failure) {
+            this.item = item;
+            this.failure = failure;
+        }
     }
 
     public static final class Entry {
+
         private final String item;
         private final String failure;
         private final int occurrences;
+
         Entry(String item, String failure, int occurrences) {
             this.item = item;
             this.failure = failure;
             this.occurrences = occurrences;
         }
-        public String getItem() { return item; }
-        public String getFailure() { return failure; }
-        public int getOccurrences() { return occurrences; }
+
+        public String getItem() {
+            return item;
+        }
+
+        public String getFailure() {
+            return failure;
+        }
+
+        public int getOccurrences() {
+            return occurrences;
+        }
     }
 }

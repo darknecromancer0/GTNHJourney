@@ -8,8 +8,11 @@ import dev.gtnhjourney.client.ClientResearchMirror;
 import dev.gtnhjourney.client.ClientStackMirror;
 import dev.gtnhjourney.config.JourneyConfig;
 
-/** Keeps dynamic Journey filters/subsets and temporary exact NBT variants synchronized with server/client view state. */
+/**
+ * Keeps dynamic Journey filters/subsets and temporary exact NBT variants synchronized with server/client view state.
+ */
 public final class JourneyNEIRefreshTracker {
+
     private long seenResearchRevision = Long.MIN_VALUE;
     private long seenViewRevision = Long.MIN_VALUE;
 
@@ -32,8 +35,8 @@ public final class JourneyNEIRefreshTracker {
                 variantsChanged = JourneyNEIVariantBridge.replaceWith(ClientStackMirror.snapshot());
                 break;
             case NEWEST_ONLY:
-                variantsChanged = JourneyNEIVariantBridge.replaceWith(
-                    ClientStackMirror.snapshotNewest(JourneyConfig.newestLimit()));
+                variantsChanged = JourneyNEIVariantBridge
+                    .replaceWith(ClientStackMirror.snapshotNewest(JourneyConfig.newestLimit()));
                 break;
             case NONE:
             default:

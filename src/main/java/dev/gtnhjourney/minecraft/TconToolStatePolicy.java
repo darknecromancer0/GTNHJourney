@@ -4,6 +4,7 @@ import net.minecraft.item.ItemStack;
 
 /** Ownership check for Tinkers' Construct 1.7.10 ToolCore runtime durability state. */
 public final class TconToolStatePolicy {
+
     private static final Class<?> TOOL_CORE = load("tconstruct.library.tools.ToolCore");
 
     private TconToolStatePolicy() {}
@@ -17,8 +18,12 @@ public final class TconToolStatePolicy {
     }
 
     private static Class<?> load(String name) {
-        try { return Class.forName(name, false, TconToolStatePolicy.class.getClassLoader()); }
-        catch (ClassNotFoundException ignored) { return null; }
-        catch (LinkageError ignored) { return null; }
+        try {
+            return Class.forName(name, false, TconToolStatePolicy.class.getClassLoader());
+        } catch (ClassNotFoundException ignored) {
+            return null;
+        } catch (LinkageError ignored) {
+            return null;
+        }
     }
 }

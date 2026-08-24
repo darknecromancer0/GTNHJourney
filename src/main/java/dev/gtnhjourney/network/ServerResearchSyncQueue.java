@@ -7,14 +7,18 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import cpw.mods.fml.common.eventhandler.SubscribeEvent;
-import cpw.mods.fml.common.gameevent.TickEvent;
-import dev.gtnhjourney.config.JourneyConfig;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 
-/** Streams large login/rescan research snapshots over multiple server ticks instead of bursting every packet at once. */
+import cpw.mods.fml.common.eventhandler.SubscribeEvent;
+import cpw.mods.fml.common.gameevent.TickEvent;
+import dev.gtnhjourney.config.JourneyConfig;
+
+/**
+ * Streams large login/rescan research snapshots over multiple server ticks instead of bursting every packet at once.
+ */
 public final class ServerResearchSyncQueue {
+
     private static final int MAX_CHUNKS_PER_TICK = 6;
     private static final AtomicInteger EPOCH = new AtomicInteger();
     private static final Map<UUID, Session> ACTIVE = new LinkedHashMap<UUID, Session>();
@@ -51,12 +55,16 @@ public final class ServerResearchSyncQueue {
     }
 
     public static void clear() {
-        synchronized (ACTIVE) { ACTIVE.clear(); }
+        synchronized (ACTIVE) {
+            ACTIVE.clear();
+        }
     }
 
     public static void cancel(EntityPlayerMP player) {
         if (player == null) return;
-        synchronized (ACTIVE) { ACTIVE.remove(player.getUniqueID()); }
+        synchronized (ACTIVE) {
+            ACTIVE.remove(player.getUniqueID());
+        }
     }
 
     @SubscribeEvent
@@ -64,7 +72,9 @@ public final class ServerResearchSyncQueue {
         if (event.phase != TickEvent.Phase.END) return;
         int budget = MAX_CHUNKS_PER_TICK;
         List<Session> sessions;
-        synchronized (ACTIVE) { sessions = new ArrayList<Session>(ACTIVE.values()); }
+        synchronized (ACTIVE) {
+            sessions = new ArrayList<Session>(ACTIVE.values());
+        }
 
         for (Session session : sessions) {
             if (budget <= 0) break;
@@ -94,7 +104,9 @@ public final class ServerResearchSyncQueue {
     }
 
     private static boolean isCurrent(Session session) {
-        synchronized (ACTIVE) { return ACTIVE.get(session.playerId) == session; }
+        synchronized (ACTIVE) {
+            return ACTIVE.get(session.playerId) == session;
+        }
     }
 
     private static void removeIfCurrent(Session session) {
@@ -108,6 +120,7 @@ public final class ServerResearchSyncQueue {
     }
 
     private static final class Session {
+
         final EntityPlayerMP player;
         final UUID playerId;
         final int epoch;
@@ -117,13 +130,8 @@ public final class ServerResearchSyncQueue {
         final List<ItemStack> deferredUnlocks = new ArrayList<ItemStack>();
         int cursor;
 
-        private Session(
-            EntityPlayerMP player,
-            int epoch,
-            int availableTotal,
-            int syncableTotal,
-            List<List<ItemStack>> chunks
-        ) {
+        private Session(EntityPlayerMP player, int epoch, int availableTotal, int syncableTotal,
+            List<List<ItemStack>> chunks) {
             this.player = player;
             this.playerId = player.getUniqueID();
             this.epoch = epoch;
@@ -144,11 +152,14 @@ public final class ServerResearchSyncQueue {
                 ResearchSyncBudget.MAX_ENTRIES_PER_CHUNK,
                 ResearchSyncBudget.TARGET_CHUNK_BYTES,
                 ResearchSyncBudget.MAX_SINGLE_ENTRY_BYTES);
-            List<List<ItemStack>> chunks = new ArrayList<List<ItemStack>>(plan.getChunks().size());
+            List<List<ItemStack>> chunks = new ArrayList<List<ItemStack>>(
+                plan.getChunks()
+                    .size());
             for (List<Integer> indexChunk : plan.getChunks()) {
                 List<ItemStack> chunk = new ArrayList<ItemStack>(indexChunk.size());
                 for (Integer index : indexChunk) {
-                    ItemStack copy = source.get(index.intValue()).copy();
+                    ItemStack copy = source.get(index.intValue())
+                        .copy();
                     copy.stackSize = 1;
                     chunk.add(copy);
                 }

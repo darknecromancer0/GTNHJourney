@@ -6,11 +6,15 @@ import net.minecraft.nbt.NBTTagCompound;
 
 /** Normalizes only verified transient GT generated-tool state in the template Journey will later recreate. */
 public final class ResearchTemplateNormalizer {
+
     private ResearchTemplateNormalizer() {}
 
     public static NBTTagCompound normalize(ItemStack stack) {
         if (stack == null || !stack.hasTagCompound()) return null;
-        NBTTagCompound out = (NBTTagCompound) stack.getTagCompound().copy();
+        NBTTagCompound out = (NBTTagCompound) stack.getTagCompound()
+            .copy();
+        BotaniaTransientStatePolicy.normalize(stack, out);
+        DraconicTransientStatePolicy.normalize(stack, out);
         if (ResearchCompatibilityOptions.resetGtToolTemplateState() && GtToolStatePolicy.isVerifiedTool(stack)) {
             NBTBase rawToolStats = out.getTag("GT.ToolStats");
             if (rawToolStats instanceof NBTTagCompound) {
@@ -25,9 +29,14 @@ public final class ResearchTemplateNormalizer {
                 NBTTagCompound infiTool = (NBTTagCompound) rawInfiTool;
                 if (infiTool.hasKey("Damage")) infiTool.setInteger("Damage", 0);
                 if (infiTool.hasKey("Broken")) infiTool.setBoolean("Broken", false);
+                infiTool.removeTag("RenderBroken");
+                infiTool.removeTag("ToolEXP");
+                infiTool.removeTag("HeadEXP");
+                infiTool.removeTag("ExtraRedstone");
             }
         }
-        return out;
+        return out.func_150296_c()
+            .isEmpty() ? null : out;
     }
 
     /** Tag-only fallback is deliberately exact because the owning item class is unknown. */

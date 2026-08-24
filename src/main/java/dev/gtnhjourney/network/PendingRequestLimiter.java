@@ -6,6 +6,7 @@ import java.util.UUID;
 
 /** Small pure-Java guard preventing one client from filling the global retrieval queue. */
 public final class PendingRequestLimiter {
+
     private final int maxPendingPerPlayer;
     private final Map<UUID, Integer> pending = new HashMap<UUID, Integer>();
 

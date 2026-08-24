@@ -11,12 +11,24 @@ import dev.gtnhjourney.research.ResearchKey;
 
 /** Finds base item/meta variants that are producing unusually many semantic NBT research states. */
 public final class ResearchHotspotAnalyzer {
+
     public static final class Hotspot {
+
         private final String baseId;
         private final int states;
-        Hotspot(String baseId, int states) { this.baseId = baseId; this.states = states; }
-        public String getBaseId() { return baseId; }
-        public int getStates() { return states; }
+
+        Hotspot(String baseId, int states) {
+            this.baseId = baseId;
+            this.states = states;
+        }
+
+        public String getBaseId() {
+            return baseId;
+        }
+
+        public int getStates() {
+            return states;
+        }
     }
 
     private ResearchHotspotAnalyzer() {}
@@ -32,10 +44,16 @@ public final class ResearchHotspotAnalyzer {
         }
         List<Hotspot> out = new ArrayList<Hotspot>();
         for (Map.Entry<String, Integer> entry : counts.entrySet()) {
-            out.add(new Hotspot(entry.getKey(), entry.getValue().intValue()));
+            out.add(
+                new Hotspot(
+                    entry.getKey(),
+                    entry.getValue()
+                        .intValue()));
         }
         Collections.sort(out, new Comparator<Hotspot>() {
-            @Override public int compare(Hotspot a, Hotspot b) {
+
+            @Override
+            public int compare(Hotspot a, Hotspot b) {
                 int byCount = Integer.compare(b.states, a.states);
                 return byCount != 0 ? byCount : a.baseId.compareTo(b.baseId);
             }

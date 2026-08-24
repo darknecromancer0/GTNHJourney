@@ -10,22 +10,33 @@ import net.minecraft.item.ItemStack;
 /**
  * Optional CoFH RF item endpoint semantics without a hard dependency on CoFHCore.
  *
- * <p>The owning item must implement {@code cofh.api.energy.IEnergyContainerItem}. Current and maximum energy are read
+ * <p>
+ * The owning item must implement {@code cofh.api.energy.IEnergyContainerItem}. Current and maximum energy are read
  * through that API and the base endpoint is produced by extracting energy from a copy. Arbitrary NBT keys named
- * {@code Energy} are never interpreted by Journey.</p>
+ * {@code Energy} are never interpreted by Journey.
+ * </p>
  */
 public final class CofhChargeStatePolicy {
+
     private static final Api API = Api.load();
     /** Safety ceiling for pathological implementations. Normal RF items should need far fewer passes. */
     private static final int MAX_DRAIN_PASSES = 4096;
 
-    enum State { EXACT, BASE, FULL }
+    enum State {
+        EXACT,
+        BASE,
+        FULL
+    }
 
     private CofhChargeStatePolicy() {}
 
-    public static boolean isApiAvailable() { return API != null; }
+    public static boolean isApiAvailable() {
+        return API != null;
+    }
 
-    public static String describe(ItemStack observed) { return classify(observed).name(); }
+    public static String describe(ItemStack observed) {
+        return classify(observed).name();
+    }
 
     public static ItemStack identityStack(ItemStack observed) {
         if (observed == null) return null;
@@ -59,8 +70,9 @@ public final class CofhChargeStatePolicy {
     }
 
     static State classify(ItemStack observed) {
-        if (!ResearchCompatibilityOptions.normalizeCofhChargeEndpoints()
-            || observed == null || observed.getItem() == null || API == null) return State.EXACT;
+        if (!ResearchCompatibilityOptions.normalizeCofhChargeEndpoints() || observed == null
+            || observed.getItem() == null
+            || API == null) return State.EXACT;
         try {
             if (!API.energyItemClass.isInstance(observed.getItem())) return State.EXACT;
             int max = number(API.getMaxEnergyStored.invoke(observed.getItem(), observed));
@@ -111,6 +123,7 @@ public final class CofhChargeStatePolicy {
     }
 
     private static final class Api {
+
         final Class<?> energyItemClass;
         final Method extractEnergy;
         final Method getEnergyStored;

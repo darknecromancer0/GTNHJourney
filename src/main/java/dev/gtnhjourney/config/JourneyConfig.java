@@ -2,11 +2,13 @@ package dev.gtnhjourney.config;
 
 import java.io.File;
 
-import dev.gtnhjourney.minecraft.ResearchCompatibilityOptions;
 import net.minecraftforge.common.config.Configuration;
+
+import dev.gtnhjourney.minecraft.ResearchCompatibilityOptions;
 
 /** Small common config. Security hard limits intentionally remain compile-time constants. */
 public final class JourneyConfig {
+
     private static volatile int inventoryScanIntervalTicks = 2;
     private static volatile int newestLimit = 64;
     private static volatile int inventoryFullRescanIntervalTicks = 200;
@@ -94,12 +96,31 @@ public final class JourneyConfig {
         return newestLimit;
     }
 
-    public static int inventoryFullRescanIntervalTicks() { return inventoryFullRescanIntervalTicks; }
+    public static int inventoryFullRescanIntervalTicks() {
+        return inventoryFullRescanIntervalTicks;
+    }
 
-    public static boolean normalizeGtTransientIdentity() { return normalizeGtTransientIdentity; }
-    public static boolean resetGtToolTemplateState() { return resetGtToolTemplateState; }
-    public static boolean normalizeGtChargeEndpoints() { return normalizeGtChargeEndpoints; }
-    public static boolean normalizeIc2ChargeEndpoints() { return normalizeIc2ChargeEndpoints; }
-    public static boolean normalizeTconToolWear() { return normalizeTconToolWear; }
-    public static boolean normalizeCofhChargeEndpoints() { return normalizeCofhChargeEndpoints; }
+    public static boolean normalizeGtTransientIdentity() {
+        return normalizeGtTransientIdentity;
+    }
+
+    public static boolean resetGtToolTemplateState() {
+        return resetGtToolTemplateState;
+    }
+
+    public static boolean normalizeGtChargeEndpoints() {
+        return normalizeGtChargeEndpoints;
+    }
+
+    public static boolean normalizeIc2ChargeEndpoints() {
+        return normalizeIc2ChargeEndpoints;
+    }
+
+    public static boolean normalizeTconToolWear() {
+        return normalizeTconToolWear;
+    }
+
+    public static boolean normalizeCofhChargeEndpoints() {
+        return normalizeCofhChargeEndpoints;
+    }
 }

@@ -2,8 +2,8 @@ package dev.gtnhjourney;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.Mod;
-import cpw.mods.fml.common.SidedProxy;
 import cpw.mods.fml.common.Mod.EventHandler;
+import cpw.mods.fml.common.SidedProxy;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.event.FMLServerStartingEvent;
 import cpw.mods.fml.common.event.FMLServerStoppedEvent;
@@ -20,12 +20,12 @@ import dev.gtnhjourney.persistence.PlayerResearchService;
     name = GTNHJourney.NAME,
     version = GTNHJourney.VERSION,
     acceptedMinecraftVersions = "[1.7.10]",
-    acceptableRemoteVersions = "[" + GTNHJourney.VERSION + "]"
-)
+    acceptableRemoteVersions = "[" + GTNHJourney.VERSION + "]")
 public final class GTNHJourney {
+
     public static final String MODID = "gtnhjourney";
     public static final String NAME = "GTNH Journey";
-    public static final String VERSION = "0.1.0-pre1";
+    public static final String VERSION = "0.1.0-pre2";
     public static final String TARGET_GTNH = "2.9.0-beta-2";
     public static final String TARGET_NEI = "2.8.111-GTNH";
     public static final PlayerResearchService RESEARCH = new PlayerResearchService();
@@ -40,9 +40,15 @@ public final class GTNHJourney {
         JourneyNetwork.init();
         proxy.preInit(event);
         inventoryTracker = new InventoryResearchTracker(RESEARCH);
-        FMLCommonHandler.instance().bus().register(inventoryTracker);
-        FMLCommonHandler.instance().bus().register(new ServerRequestQueue(RESEARCH));
-        FMLCommonHandler.instance().bus().register(new ServerResearchSyncQueue());
+        FMLCommonHandler.instance()
+            .bus()
+            .register(inventoryTracker);
+        FMLCommonHandler.instance()
+            .bus()
+            .register(new ServerRequestQueue(RESEARCH));
+        FMLCommonHandler.instance()
+            .bus()
+            .register(new ServerResearchSyncQueue());
     }
 
     @EventHandler

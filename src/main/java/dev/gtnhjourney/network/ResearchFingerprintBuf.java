@@ -4,6 +4,7 @@ import dev.gtnhjourney.research.ResearchFingerprint;
 import io.netty.buffer.ByteBuf;
 
 final class ResearchFingerprintBuf {
+
     private ResearchFingerprintBuf() {}
 
     static void write(ByteBuf buf, ResearchFingerprint fingerprint) {

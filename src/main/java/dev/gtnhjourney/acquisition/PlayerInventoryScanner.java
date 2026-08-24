@@ -5,15 +5,27 @@ import net.minecraft.item.ItemStack;
 
 /** Enumerates only inventory surfaces that are proven to belong to the player, never arbitrary open GUI slots. */
 public final class PlayerInventoryScanner {
-    public interface StackVisitor { void visit(ItemStack stack); }
-    public interface SlotVisitor { void visit(String slotId, ItemStack stack); }
+
+    public interface StackVisitor {
+
+        void visit(ItemStack stack);
+    }
+
+    public interface SlotVisitor {
+
+        void visit(String slotId, ItemStack stack);
+    }
 
     private PlayerInventoryScanner() {}
 
     public static void scan(EntityPlayerMP player, final StackVisitor visitor) {
         if (player == null || visitor == null) return;
         scanSlots(player, new SlotVisitor() {
-            @Override public void visit(String slotId, ItemStack stack) { visitNonEmpty(visitor, stack); }
+
+            @Override
+            public void visit(String slotId, ItemStack stack) {
+                visitNonEmpty(visitor, stack);
+            }
         });
     }
 
@@ -28,7 +40,11 @@ public final class PlayerInventoryScanner {
         }
         visitSlot(visitor, "cursor", player.inventory.getItemStack());
         OptionalPlayerInventories.scanSlots(player, new OptionalPlayerInventories.SlotStackConsumer() {
-            @Override public void accept(String slotId, ItemStack stack) { visitSlot(visitor, slotId, stack); }
+
+            @Override
+            public void accept(String slotId, ItemStack stack) {
+                visitSlot(visitor, slotId, stack);
+            }
         });
     }
 

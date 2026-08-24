@@ -2,6 +2,7 @@ package dev.gtnhjourney.nei;
 
 /** Pure presentation rules for the small Journey controls embedded in NEI's item-panel header. */
 public final class JourneyButtonPresentation {
+
     private static final int RESEARCH_MIN_WIDTH = 96;
     // At 114px the second 16px button overlaps the centered "page/total" label. Keep a small safety gap.
     private static final int NEWEST_MIN_WIDTH = 132;
@@ -32,7 +33,8 @@ public final class JourneyButtonPresentation {
                 break;
         }
         if (serverOnlyCount <= 0) return base;
-        return base + " " + serverOnlyCount
+        return base + " "
+            + serverOnlyCount
             + " state(s) are server-only because their payload could not be safely synchronized.";
     }
 }

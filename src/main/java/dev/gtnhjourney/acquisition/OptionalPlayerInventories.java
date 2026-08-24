@@ -10,12 +10,22 @@ import net.minecraft.item.ItemStack;
 /**
  * Optional real-player inventory adapters that do not create hard mod dependencies.
  *
- * <p>Only inventories that are authoritative storage owned by the player belong here. GUI recipe outputs,
- * machine slots and arbitrary open containers are intentionally excluded.</p>
+ * <p>
+ * Only inventories that are authoritative storage owned by the player belong here. GUI recipe outputs,
+ * machine slots and arbitrary open containers are intentionally excluded.
+ * </p>
  */
 public final class OptionalPlayerInventories {
-    public interface StackConsumer { void accept(ItemStack stack); }
-    public interface SlotStackConsumer { void accept(String slotId, ItemStack stack); }
+
+    public interface StackConsumer {
+
+        void accept(ItemStack stack);
+    }
+
+    public interface SlotStackConsumer {
+
+        void accept(String slotId, ItemStack stack);
+    }
 
     private static volatile boolean baublesResolved;
     private static volatile Method baublesGetter;
@@ -25,7 +35,11 @@ public final class OptionalPlayerInventories {
     public static void scan(EntityPlayerMP player, final StackConsumer consumer) {
         if (player == null || consumer == null) return;
         scanSlots(player, new SlotStackConsumer() {
-            @Override public void accept(String slotId, ItemStack stack) { consumer.accept(stack); }
+
+            @Override
+            public void accept(String slotId, ItemStack stack) {
+                consumer.accept(stack);
+            }
         });
     }
 

@@ -4,15 +4,16 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.item.ItemStack;
+
+import cpw.mods.fml.common.eventhandler.SubscribeEvent;
+import cpw.mods.fml.common.gameevent.PlayerEvent;
+import cpw.mods.fml.common.gameevent.TickEvent;
 import dev.gtnhjourney.config.JourneyConfig;
 import dev.gtnhjourney.network.JourneyNetwork;
 import dev.gtnhjourney.network.ServerResearchSyncQueue;
 import dev.gtnhjourney.persistence.PlayerResearchService;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.item.ItemStack;
-import cpw.mods.fml.common.eventhandler.SubscribeEvent;
-import cpw.mods.fml.common.gameevent.PlayerEvent;
-import cpw.mods.fml.common.gameevent.TickEvent;
 
 /** Researches only stacks proven to be in, or entering, a real server-side player inventory. */
 public final class InventoryResearchTracker {
@@ -49,7 +50,9 @@ public final class InventoryResearchTracker {
     public void onLogout(PlayerEvent.PlayerLoggedOutEvent event) {
         if (!(event.player instanceof EntityPlayerMP)) return;
         EntityPlayerMP player = (EntityPlayerMP) event.player;
-        synchronized (scanCaches) { scanCaches.remove(player.getUniqueID()); }
+        synchronized (scanCaches) {
+            scanCaches.remove(player.getUniqueID());
+        }
         ServerResearchSyncQueue.cancel(player);
     }
 
@@ -57,14 +60,17 @@ public final class InventoryResearchTracker {
     public void onLogin(PlayerEvent.PlayerLoggedInEvent event) {
         if (!(event.player instanceof EntityPlayerMP)) return;
         final EntityPlayerMP player = (EntityPlayerMP) event.player;
-        // Import pre-existing inventory research first and prime slot signatures, then send one coherent client snapshot.
+        // Import pre-existing inventory research first and prime slot signatures, then send one coherent client
+        // snapshot.
         scanChanged(player, true, false);
         JourneyNetwork.sendFullSync(player, research.snapshotStacksInUnlockOrder(player));
     }
 
     /** Clears process-lifetime scan state between integrated/dedicated server sessions. */
     public void clearCaches() {
-        synchronized (scanCaches) { scanCaches.clear(); }
+        synchronized (scanCaches) {
+            scanCaches.clear();
+        }
     }
 
     private void scanChanged(final EntityPlayerMP player, boolean force, final boolean sendIncrementalUnlocks) {
@@ -72,7 +78,9 @@ public final class InventoryResearchTracker {
         cache.beginPass(force);
         try {
             PlayerInventoryScanner.scanSlots(player, new PlayerInventoryScanner.SlotVisitor() {
-                @Override public void visit(String slotId, ItemStack stack) {
+
+                @Override
+                public void visit(String slotId, ItemStack stack) {
                     if (!cache.shouldInspect(slotId, InventoryStackSignature.of(stack))) return;
                     if (sendIncrementalUnlocks) unlock(player, stack);
                     else research.unlock(player, stack);

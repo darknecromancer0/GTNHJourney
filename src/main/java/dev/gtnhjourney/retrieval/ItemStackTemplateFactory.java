@@ -1,10 +1,11 @@
 package dev.gtnhjourney.retrieval;
 
-import cpw.mods.fml.common.registry.GameRegistry;
-import dev.gtnhjourney.research.ResearchKey;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+
+import cpw.mods.fml.common.registry.GameRegistry;
+import dev.gtnhjourney.research.ResearchKey;
 
 /** Reconstructs only a server-persisted researched stack template. */
 public final class ItemStackTemplateFactory {
@@ -13,10 +14,14 @@ public final class ItemStackTemplateFactory {
 
     public static ItemStack create(ResearchKey key, NBTTagCompound originalTag, int requestedAmount) {
         if (key == null) return null;
-        int colon = key.getItemId().indexOf(':');
-        if (colon <= 0 || colon == key.getItemId().length() - 1) return null;
-        String modId = key.getItemId().substring(0, colon);
-        String name = key.getItemId().substring(colon + 1);
+        int colon = key.getItemId()
+            .indexOf(':');
+        if (colon <= 0 || colon == key.getItemId()
+            .length() - 1) return null;
+        String modId = key.getItemId()
+            .substring(0, colon);
+        String name = key.getItemId()
+            .substring(colon + 1);
         try {
             Item item = GameRegistry.findItem(modId, name);
             if (item == null) return null;

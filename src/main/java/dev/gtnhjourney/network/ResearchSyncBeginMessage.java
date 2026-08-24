@@ -10,6 +10,7 @@ import io.netty.buffer.ByteBuf;
 
 /** Starts an authoritative server research sync and establishes the identity rules used to decode its stacks. */
 public final class ResearchSyncBeginMessage implements IMessage {
+
     private int epoch;
     private int availableTotal;
     private int syncableTotal;
@@ -22,17 +23,9 @@ public final class ResearchSyncBeginMessage implements IMessage {
 
     public ResearchSyncBeginMessage() {}
 
-    public ResearchSyncBeginMessage(
-        int epoch,
-        int availableTotal,
-        int syncableTotal,
-        boolean normalizeGtTransientIdentity,
-        boolean resetGtToolTemplateState,
-        boolean normalizeGtChargeEndpoints,
-        boolean normalizeIc2ChargeEndpoints,
-        boolean normalizeTconToolWear,
-        boolean normalizeCofhChargeEndpoints
-    ) {
+    public ResearchSyncBeginMessage(int epoch, int availableTotal, int syncableTotal,
+        boolean normalizeGtTransientIdentity, boolean resetGtToolTemplateState, boolean normalizeGtChargeEndpoints,
+        boolean normalizeIc2ChargeEndpoints, boolean normalizeTconToolWear, boolean normalizeCofhChargeEndpoints) {
         this.epoch = epoch;
         this.availableTotal = Math.max(0, availableTotal);
         this.syncableTotal = Math.max(0, Math.min(this.availableTotal, syncableTotal));
@@ -69,6 +62,7 @@ public final class ResearchSyncBeginMessage implements IMessage {
     }
 
     public static final class Handler implements IMessageHandler<ResearchSyncBeginMessage, IMessage> {
+
         public IMessage onMessage(final ResearchSyncBeginMessage message, MessageContext ctx) {
             final int epoch = message.epoch;
             final int availableTotal = message.availableTotal;
@@ -80,7 +74,9 @@ public final class ResearchSyncBeginMessage implements IMessage {
             final boolean normalizeTconToolWear = message.normalizeTconToolWear;
             final boolean normalizeCofhChargeEndpoints = message.normalizeCofhChargeEndpoints;
             ClientNetworkQueue.enqueue(new Runnable() {
-                @Override public void run() {
+
+                @Override
+                public void run() {
                     ResearchCompatibilityOptions.configure(
                         normalizeGtTransientIdentity,
                         resetGtToolTemplateState,
