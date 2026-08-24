@@ -24,7 +24,7 @@ public final class JourneyNewestFilter implements ItemFilter {
         if (item == null || item.getItem() == null) return false;
         refreshIfNeeded();
         try {
-            return cached.contains(ItemStackKeyFactory.from(item));
+            return cached.contains(JourneyPresentationKeyResolver.keyOf(item));
         } catch (IllegalArgumentException ignored) {
             return false;
         }

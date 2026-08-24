@@ -5,6 +5,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import codechicken.nei.ItemList;
 import codechicken.nei.LayoutManager;
 import codechicken.nei.api.API;
 import codechicken.nei.api.ItemInfo;
@@ -27,17 +28,28 @@ final class JourneyNEIVariantBridge {
         Set<ResearchKey> requestedKeys = keysOf(exactResearchStacks);
         if (requestedKeys.equals(ownedKeys)) return false;
 
+        List<ItemStack> previousOwned = new ArrayList<ItemStack>(ownedVariants);
         removeOwnedVariantsInternal();
         if (exactResearchStacks != null) {
             synchronized (ItemInfo.itemVariants) {
                 for (ItemStack original : exactResearchStacks) {
                     if (original == null || original.getItem() == null) continue;
-                    ResearchKey key = safeKey(original);
-                    if (key == null || !requestedKeys.contains(key) || !JourneyVariantScope.shouldInjectVariant(key)) continue;
-                    ItemStack variant = original.copy();
-                    variant.stackSize = 1;
+                    ResearchKey key = authoritativeKey(original);
+                    if (key == null || !requestedKeys.contains(key)) continue;
+                    boolean nativeExactPresent = nativeExactPresent(original, key, previousOwned);
+                    if (!JourneyVariantScope.shouldInjectVariant(key, nativeExactPresent)) continue;
+
+                    ItemStack variant = JourneyPresentationSafety.forNei(original);
+                    if (variant == null || variant.getItem() == null) continue;
+                    ResearchKey presentationKey = authoritativeKey(variant);
+                    boolean remapped = presentationKey == null || !key.equals(presentationKey);
+                    if (remapped) JourneyPresentationKeyResolver.register(variant, key);
+
                     // Do not claim ownership of an entry somebody else already registered.
-                    if (ItemInfo.itemVariants.containsEntry(variant.getItem(), variant)) continue;
+                    if (ItemInfo.itemVariants.containsEntry(variant.getItem(), variant)) {
+                        if (remapped) JourneyPresentationKeyResolver.unregister(variant);
+                        continue;
+                    }
                     API.addItemVariant(variant.getItem(), variant);
                     ownedVariants.add(variant);
                 }
@@ -54,6 +66,7 @@ final class JourneyNEIVariantBridge {
         if (ownedVariants.isEmpty() && ownedKeys.isEmpty()) return false;
         removeOwnedVariantsInternal();
         ownedKeys.clear();
+        JourneyPresentationKeyResolver.clear();
         LayoutManager.markItemsDirty();
         return true;
     }
@@ -65,22 +78,44 @@ final class JourneyNEIVariantBridge {
                 try {
                     ItemInfo.itemVariants.remove(variant.getItem(), variant);
                 } catch (RuntimeException ignored) {}
+                JourneyPresentationKeyResolver.unregister(variant);
             }
         }
         ownedVariants.clear();
+    }
+
+    private static boolean nativeExactPresent(ItemStack original, ResearchKey key, List<ItemStack> previousOwned) {
+        try {
+            for (ItemStack candidate : ItemList.itemMap.get(original.getItem())) {
+                if (candidate == null || candidate.getItem() == null || containsIdentity(previousOwned, candidate)) continue;
+                try {
+                    if (key.equals(JourneyPresentationKeyResolver.keyOf(candidate))) return true;
+                } catch (IllegalArgumentException ignored) {
+                } catch (RuntimeException ignored) {
+                } catch (LinkageError ignored) {}
+            }
+        } catch (RuntimeException ignored) {
+        } catch (LinkageError ignored) {}
+        return false;
+    }
+
+    private static boolean containsIdentity(List<ItemStack> stacks, ItemStack candidate) {
+        if (stacks == null) return false;
+        for (ItemStack stack : stacks) if (stack == candidate) return true;
+        return false;
     }
 
     private static Set<ResearchKey> keysOf(List<ItemStack> stacks) {
         Set<ResearchKey> out = new LinkedHashSet<ResearchKey>();
         if (stacks == null) return out;
         for (ItemStack stack : stacks) {
-            ResearchKey key = safeKey(stack);
+            ResearchKey key = authoritativeKey(stack);
             if (key != null) out.add(key);
         }
         return out;
     }
 
-    private static ResearchKey safeKey(ItemStack stack) {
+    private static ResearchKey authoritativeKey(ItemStack stack) {
         if (stack == null || stack.getItem() == null) return null;
         try {
             return ItemStackKeyFactory.from(stack);

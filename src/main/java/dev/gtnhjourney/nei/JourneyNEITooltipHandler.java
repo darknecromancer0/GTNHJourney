@@ -10,7 +10,6 @@ import net.minecraft.util.EnumChatFormatting;
 import codechicken.nei.ItemPanels;
 import codechicken.nei.guihook.IContainerTooltipHandler;
 import dev.gtnhjourney.client.ClientResearchMirror;
-import dev.gtnhjourney.minecraft.ItemStackKeyFactory;
 import dev.gtnhjourney.research.ResearchKey;
 
 /** Adds research state and retrieval shortcuts to NEI tooltips without replacing NEI's native UI. */
@@ -40,7 +39,7 @@ public final class JourneyNEITooltipHandler implements IContainerTooltipHandler 
     private static boolean isResearched(ItemStack stack) {
         if (stack == null || stack.getItem() == null) return false;
         try {
-            ResearchKey key = ItemStackKeyFactory.from(stack);
+            ResearchKey key = JourneyPresentationKeyResolver.keyOf(stack);
             return ClientResearchMirror.contains(key);
         } catch (IllegalArgumentException ignored) {
             return false;

@@ -43,7 +43,12 @@ public final class InventoryResearchTracker {
 
     @SubscribeEvent
     public void onSmelted(PlayerEvent.ItemSmeltedEvent event) {
-        if (event.player instanceof EntityPlayerMP) unlock((EntityPlayerMP) event.player, event.smelting);
+        if (!(event.player instanceof EntityPlayerMP)) return;
+        EntityPlayerMP player = (EntityPlayerMP) event.player;
+        unlock(player, event.smelting);
+        // Some furnace/container paths move or merge the result before the next cached inventory pass. Revalidate the
+        // real player inventory immediately so ordinary pickup and shift-click do not depend on selecting the stack.
+        scanChanged(player, true, true);
     }
 
     @SubscribeEvent
