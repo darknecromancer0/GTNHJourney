@@ -78,12 +78,16 @@ public final class CofhChargeStatePolicy {
             int max = number(API.getMaxEnergyStored.invoke(observed.getItem(), observed));
             int current = number(API.getEnergyStored.invoke(observed.getItem(), observed));
             if (max <= 0 || current < 0) return State.EXACT;
+            boolean extractable = true;
             if (current > 0) {
                 // Prove the item is actually extractable without performing a full drain just to classify it.
                 int simulated = number(API.extractEnergy.invoke(observed.getItem(), observed, Integer.MAX_VALUE, true));
-                if (simulated <= 0) return State.EXACT;
+                extractable = simulated > 0;
             }
-            return current >= max ? State.FULL : State.BASE;
+            ChargeEndpointClassifier.State endpoint = ChargeEndpointClassifier.classify(current, max, extractable);
+            if (endpoint == ChargeEndpointClassifier.State.FULL) return State.FULL;
+            if (endpoint == ChargeEndpointClassifier.State.BASE) return State.BASE;
+            return State.EXACT;
         } catch (ReflectiveOperationException ignored) {
             return State.EXACT;
         } catch (RuntimeException ignored) {
