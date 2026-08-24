@@ -83,6 +83,15 @@ class Pre6RegressionContractTest {
         assertEquals(1234L, normalized.getLong("ToolEXP"));
         assertEquals(567L, normalized.getLong("HeadEXP"));
         assertEquals(18, normalized.getInteger("ExtraRedstone"));
+
+        NBTTagCompound legacy = new NBTTagCompound();
+        legacy.setInteger("ToolLevel", 2);
+        legacy.setBoolean("HarvestLevelModified", false);
+        NBTTagCompound repaired = (NBTTagCompound) normalize.invoke(null, legacy);
+        assertTrue(repaired.hasKey("ToolEXP"));
+        assertEquals(0L, repaired.getLong("ToolEXP"));
+        assertTrue(repaired.hasKey("HeadEXP"));
+        assertEquals(0L, repaired.getLong("HeadEXP"));
     }
 
     @Test
