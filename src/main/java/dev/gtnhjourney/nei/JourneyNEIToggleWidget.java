@@ -22,8 +22,7 @@ public final class JourneyNEIToggleWidget
     private final Button researchButton = new Button("J") {
         @Override
         public boolean onButtonPress(boolean rightclick) {
-            if (rightclick) JourneyViewState.setMode(JourneyViewState.Mode.ALL);
-            else JourneyViewState.toggle();
+            JourneyViewState.toggle();
             ItemList.updateFilter.restart();
             return true;
         }
@@ -44,18 +43,15 @@ public final class JourneyNEIToggleWidget
     private final Button newestButton = new Button("N") {
         @Override
         public boolean onButtonPress(boolean rightclick) {
-            if (rightclick) JourneyViewState.setMode(JourneyViewState.Mode.ALL);
-            else JourneyViewState.toggleNewest();
+            JourneyViewState.toggleNewest();
             ItemList.updateFilter.restart();
             return true;
         }
 
         @Override
         public String getButtonTip() {
-            return JourneyViewState.isNewest()
-                ? "Newest view: recent research only. Left click stays here; right click returns to all NEI items."
-                : "Newest view: show the " + JourneyConfig.newestLimit()
-                    + " most recently researched states. Right click returns to all NEI items.";
+            return JourneyViewState.isNewest() ? "Newest view: recent research only. Click to show all NEI items."
+                : "Newest view: show the " + JourneyConfig.newestLimit() + " most recently researched states.";
         }
 
         @Override
