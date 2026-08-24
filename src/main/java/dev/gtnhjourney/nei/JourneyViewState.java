@@ -2,12 +2,7 @@ package dev.gtnhjourney.nei;
 
 /** Client-side mode for the NEI item panel. */
 public final class JourneyViewState {
-
-    public enum Mode {
-        ALL,
-        RESEARCHED,
-        NEWEST
-    }
+    public enum Mode { ALL, RESEARCHED, NEWEST }
 
     private static volatile Mode mode = Mode.ALL;
     private static volatile long revision;
@@ -26,14 +21,16 @@ public final class JourneyViewState {
         return mode == Mode.NEWEST;
     }
 
+    /** Selects the researched view. Repeated activation is intentionally idempotent. */
     public static synchronized boolean toggle() {
-        setMode(mode == Mode.RESEARCHED ? Mode.ALL : Mode.RESEARCHED);
-        return mode == Mode.RESEARCHED;
+        setMode(Mode.RESEARCHED);
+        return true;
     }
 
+    /** Selects the newest view. Repeated activation is intentionally idempotent. */
     public static synchronized boolean toggleNewest() {
-        setMode(mode == Mode.NEWEST ? Mode.ALL : Mode.NEWEST);
-        return mode == Mode.NEWEST;
+        setMode(Mode.NEWEST);
+        return true;
     }
 
     public static synchronized void setEnabled(boolean value) {
