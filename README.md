@@ -1,5 +1,7 @@
 # GTNH Journey
 
+Current development version: `0.1.0-pre1`.
+
 GT New Horizons 1.7.10 addon that automatically researches item states the player genuinely obtains and allows server-authoritative infinite retrieval through the existing NEI frontend.
 
 ## Compatibility target
