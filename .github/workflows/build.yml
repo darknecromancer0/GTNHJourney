@@ -17,6 +17,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '9.3.1'
+      - name: Apply GTNH formatting
+        run: gradle spotlessApply --stacktrace
       - name: Forge build
         run: gradle build --stacktrace
       - name: Upload jars
