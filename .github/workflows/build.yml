@@ -29,6 +29,11 @@ jobs:
         run: gradle spotlessApply --stacktrace
       - name: Forge build
         run: gradle build --stacktrace
+      - name: Verify artifact version
+        run: |
+          VERSION=$(sed -n 's/.*public static final String VERSION = "\([^"]*\)";.*/\1/p' src/main/java/dev/gtnhjourney/GTNHJourney.java)
+          test -n "$VERSION"
+          test -f "build/libs/gtnhjourney-${VERSION}.jar"
       - name: Materialize verified pre2 source
         if: ${{ success() && github.event_name == 'pull_request' && hashFiles('.ci/pre2-production.patch.gz.b64') != '' }}
         run: |
