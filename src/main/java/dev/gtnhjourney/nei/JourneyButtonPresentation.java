@@ -2,7 +2,6 @@ package dev.gtnhjourney.nei;
 
 /** Pure presentation rules for the small Journey controls embedded in NEI's item-panel header. */
 public final class JourneyButtonPresentation {
-
     private static final int RESEARCH_MIN_WIDTH = 96;
     // At 114px the second 16px button overlaps the centered "page/total" label. Keep a small safety gap.
     private static final int NEWEST_MIN_WIDTH = 132;
@@ -22,19 +21,18 @@ public final class JourneyButtonPresentation {
         final String base;
         switch (effective) {
             case RESEARCHED:
-                base = "Journey view: researched only. Click to show all NEI items.";
+                base = "Journey view: researched only. Left click stays here; right click returns to all NEI items.";
                 break;
             case NEWEST:
                 base = "Newest view is active. Click J to switch to researched items.";
                 break;
             case ALL:
             default:
-                base = "Journey view: show only researched items.";
+                base = "Journey view: show only researched items. Right click returns to all NEI items.";
                 break;
         }
         if (serverOnlyCount <= 0) return base;
-        return base + " "
-            + serverOnlyCount
+        return base + " " + serverOnlyCount
             + " state(s) are server-only because their payload could not be safely synchronized.";
     }
 }
