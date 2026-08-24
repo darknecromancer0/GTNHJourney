@@ -8,6 +8,7 @@ import io.netty.buffer.ByteBuf;
 
 /** Fixed-size retrieval request. Full NBT never travels client -> server on a click. */
 public final class RetrieveRequestMessage implements IMessage {
+
     private ResearchFingerprint fingerprint;
     private int amount;
 
@@ -29,6 +30,7 @@ public final class RetrieveRequestMessage implements IMessage {
     }
 
     public static final class Handler implements IMessageHandler<RetrieveRequestMessage, IMessage> {
+
         public IMessage onMessage(RetrieveRequestMessage message, MessageContext ctx) {
             if (message != null && message.fingerprint != null && ctx.getServerHandler() != null) {
                 ServerRequestQueue.enqueue(ctx.getServerHandler().playerEntity, message.fingerprint, message.amount);

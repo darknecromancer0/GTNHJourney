@@ -3,26 +3,22 @@ package dev.gtnhjourney.nei;
 import java.util.List;
 import java.util.Map;
 
+import net.minecraft.client.gui.inventory.GuiContainer;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.EnumChatFormatting;
+
 import codechicken.nei.ItemPanels;
 import codechicken.nei.guihook.IContainerTooltipHandler;
 import dev.gtnhjourney.client.ClientResearchMirror;
 import dev.gtnhjourney.minecraft.ItemStackKeyFactory;
 import dev.gtnhjourney.research.ResearchKey;
-import net.minecraft.client.gui.inventory.GuiContainer;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.EnumChatFormatting;
 
 /** Adds research state and retrieval shortcuts to NEI tooltips without replacing NEI's native UI. */
 public final class JourneyNEITooltipHandler implements IContainerTooltipHandler {
 
     @Override
-    public List<String> handleItemTooltip(
-        GuiContainer gui,
-        ItemStack itemstack,
-        int mousex,
-        int mousey,
-        List<String> currenttip
-    ) {
+    public List<String> handleItemTooltip(GuiContainer gui, ItemStack itemstack, int mousex, int mousey,
+        List<String> currenttip) {
         if (isResearched(itemstack)) {
             currenttip.add(EnumChatFormatting.AQUA + JourneyTooltipText.researchedLine());
         }

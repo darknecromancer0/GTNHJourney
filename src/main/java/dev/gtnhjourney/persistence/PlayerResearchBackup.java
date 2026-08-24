@@ -6,11 +6,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import dev.gtnhjourney.research.ResearchKey;
 import net.minecraft.nbt.NBTTagCompound;
+
+import dev.gtnhjourney.research.ResearchKey;
 
 /** One deep-copied undo point for a player's destructive Journey operation. */
 final class PlayerResearchBackup {
+
     private final List<ResearchKey> oldestFirst;
     private final Map<ResearchKey, NBTTagCompound> templates;
 

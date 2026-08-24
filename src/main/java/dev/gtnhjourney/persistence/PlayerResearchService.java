@@ -2,15 +2,15 @@ package dev.gtnhjourney.persistence;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
 
-import dev.gtnhjourney.research.ResearchFingerprint;
-import dev.gtnhjourney.research.ResearchKey;
-import dev.gtnhjourney.research.ResearchRegistry;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
 import net.minecraftforge.common.DimensionManager;
+
+import dev.gtnhjourney.research.ResearchFingerprint;
+import dev.gtnhjourney.research.ResearchKey;
+import dev.gtnhjourney.research.ResearchRegistry;
 
 /** Facade used by Forge events, commands and network handlers. */
 public final class PlayerResearchService {
@@ -58,21 +58,19 @@ public final class PlayerResearchService {
 
     public ItemStack retrieve(EntityPlayerMP player, ResearchKey key, int requestedAmount) {
         JourneyResearchData data = data(player);
-        if (!data.registry(player.getUniqueID()).contains(key)) return null;
-        return dev.gtnhjourney.retrieval.ItemStackTemplateFactory.create(
-            key,
-            data.template(player.getUniqueID(), key),
-            requestedAmount);
+        if (!data.registry(player.getUniqueID())
+            .contains(key)) return null;
+        return dev.gtnhjourney.retrieval.ItemStackTemplateFactory
+            .create(key, data.template(player.getUniqueID(), key), requestedAmount);
     }
 
     public ItemStack retrieve(EntityPlayerMP player, ResearchFingerprint fingerprint, int requestedAmount) {
         JourneyResearchData data = data(player);
-        ResearchKey key = data.registry(player.getUniqueID()).find(fingerprint);
+        ResearchKey key = data.registry(player.getUniqueID())
+            .find(fingerprint);
         if (key == null) return null;
-        return dev.gtnhjourney.retrieval.ItemStackTemplateFactory.create(
-            key,
-            data.template(player.getUniqueID(), key),
-            requestedAmount);
+        return dev.gtnhjourney.retrieval.ItemStackTemplateFactory
+            .create(key, data.template(player.getUniqueID(), key), requestedAmount);
     }
 
     public boolean forget(EntityPlayerMP player, ResearchKey key) {
@@ -102,15 +100,18 @@ public final class PlayerResearchService {
         if (rootWorld == null) rootWorld = player.worldObj;
         return JourneyResearchData.get(rootWorld);
     }
+
     private static void recordObservationFailure(ItemStack stack, Throwable failure) {
-        String item = stack == null || stack.getItem() == null
-            ? "<null>"
-            : stack.getItem().getClass().getName();
-        String message = failure == null ? "<unknown>" : failure.getClass().getName()
-            + (failure.getMessage() == null ? "" : ": " + failure.getMessage());
+        String item = stack == null || stack.getItem() == null ? "<null>"
+            : stack.getItem()
+                .getClass()
+                .getName();
+        String message = failure == null ? "<unknown>"
+            : failure.getClass()
+                .getName() + (failure.getMessage() == null ? "" : ": " + failure.getMessage());
         if (dev.gtnhjourney.diagnostics.ResearchFailureLog.record(item, message)) {
-            cpw.mods.fml.common.FMLLog.warning(
-                "[GTNH Journey] Skipping broken research observation for %s: %s", item, message);
+            cpw.mods.fml.common.FMLLog
+                .warning("[GTNH Journey] Skipping broken research observation for %s: %s", item, message);
         }
     }
 

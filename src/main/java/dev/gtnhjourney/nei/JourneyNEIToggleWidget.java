@@ -22,16 +22,16 @@ public final class JourneyNEIToggleWidget
     private final Button researchButton = new Button("J") {
         @Override
         public boolean onButtonPress(boolean rightclick) {
-            JourneyViewState.toggle();
+            if (rightclick) JourneyViewState.setMode(JourneyViewState.Mode.ALL);
+            else JourneyViewState.toggle();
             ItemList.updateFilter.restart();
             return true;
         }
 
         @Override
         public String getButtonTip() {
-            return JourneyButtonPresentation.researchTooltip(
-                JourneyViewState.mode(),
-                ClientStackMirror.serverOnlyCount());
+            return JourneyButtonPresentation
+                .researchTooltip(JourneyViewState.mode(), ClientStackMirror.serverOnlyCount());
         }
 
         @Override
@@ -44,7 +44,8 @@ public final class JourneyNEIToggleWidget
     private final Button newestButton = new Button("N") {
         @Override
         public boolean onButtonPress(boolean rightclick) {
-            JourneyViewState.toggleNewest();
+            if (rightclick) JourneyViewState.setMode(JourneyViewState.Mode.ALL);
+            else JourneyViewState.toggleNewest();
             ItemList.updateFilter.restart();
             return true;
         }
@@ -52,8 +53,9 @@ public final class JourneyNEIToggleWidget
         @Override
         public String getButtonTip() {
             return JourneyViewState.isNewest()
-                ? "Newest view: recent research only. Click to show all NEI items."
-                : "Newest view: show the " + JourneyConfig.newestLimit() + " most recently researched states.";
+                ? "Newest view: recent research only. Left click stays here; right click returns to all NEI items."
+                : "Newest view: show the " + JourneyConfig.newestLimit()
+                    + " most recently researched states. Right click returns to all NEI items.";
         }
 
         @Override
@@ -118,7 +120,6 @@ public final class JourneyNEIToggleWidget
     @Override public List<String> handleItemDisplayName(GuiContainer gui, ItemStack itemstack, List<String> currenttip) { return currenttip; }
     @Override public List<String> handleItemTooltip(GuiContainer gui, ItemStack itemstack, int mousex, int mousey, List<String> currenttip) { return currenttip; }
     @Override public Map<String, String> handleHotkeys(GuiContainer gui, int mousex, int mousey, Map<String, String> hotkeys) { return hotkeys; }
-
     @Override public boolean keyTyped(GuiContainer gui, char keyChar, int keyCode) { return false; }
     @Override public void onKeyTyped(GuiContainer gui, char keyChar, int keyID) {}
     @Override public boolean lastKeyTyped(GuiContainer gui, char keyChar, int keyID) { return false; }

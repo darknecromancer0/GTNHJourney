@@ -8,16 +8,33 @@ import dev.gtnhjourney.client.ClientStackMirror;
 import io.netty.buffer.ByteBuf;
 
 public final class ResearchSyncEndMessage implements IMessage {
+
     private int epoch;
+
     public ResearchSyncEndMessage() {}
-    public ResearchSyncEndMessage(int epoch) { this.epoch = epoch; }
-    public void fromBytes(ByteBuf buf) { epoch = buf.readInt(); }
-    public void toBytes(ByteBuf buf) { buf.writeInt(epoch); }
+
+    public ResearchSyncEndMessage(int epoch) {
+        this.epoch = epoch;
+    }
+
+    public void fromBytes(ByteBuf buf) {
+        epoch = buf.readInt();
+    }
+
+    public void toBytes(ByteBuf buf) {
+        buf.writeInt(epoch);
+    }
+
     public static final class Handler implements IMessageHandler<ResearchSyncEndMessage, IMessage> {
+
         public IMessage onMessage(ResearchSyncEndMessage message, MessageContext ctx) {
             final int epoch = message.epoch;
             ClientNetworkQueue.enqueue(new Runnable() {
-                @Override public void run() { ClientStackMirror.finish(epoch); }
+
+                @Override
+                public void run() {
+                    ClientStackMirror.finish(epoch);
+                }
             });
             return null;
         }

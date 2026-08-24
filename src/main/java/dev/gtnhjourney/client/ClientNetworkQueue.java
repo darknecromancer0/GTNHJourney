@@ -6,6 +6,7 @@ import cpw.mods.fml.common.gameevent.TickEvent;
 
 /** Executes client-bound Journey network mutations on the client tick thread instead of Netty's callback thread. */
 public final class ClientNetworkQueue {
+
     private static final int MAX_TASKS_PER_TICK = 256;
     private static final ClientTaskQueue TASKS = new ClientTaskQueue();
     private static final ClientSessionGate SESSION = new ClientSessionGate();
@@ -43,10 +44,13 @@ public final class ClientNetworkQueue {
     public void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
         TASKS.drainSafely(MAX_TASKS_PER_TICK, new ClientTaskQueue.FailureHandler() {
-            @Override public void failed(Throwable failure) {
+
+            @Override
+            public void failed(Throwable failure) {
                 if (loggedFailures++ >= 8) return;
-                String message = failure == null ? "<unknown>" : failure.getClass().getName()
-                    + (failure.getMessage() == null ? "" : ": " + failure.getMessage());
+                String message = failure == null ? "<unknown>"
+                    : failure.getClass()
+                        .getName() + (failure.getMessage() == null ? "" : ": " + failure.getMessage());
                 FMLLog.warning("[GTNH Journey] Skipping broken client sync task: %s", message);
             }
         });

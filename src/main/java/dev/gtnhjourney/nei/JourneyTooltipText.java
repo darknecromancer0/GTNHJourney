@@ -2,6 +2,7 @@ package dev.gtnhjourney.nei;
 
 /** Stable user-facing Journey hints, isolated so they can be tested without Minecraft/NEI. */
 public final class JourneyTooltipText {
+
     private JourneyTooltipText() {}
 
     public static String researchedLine() {

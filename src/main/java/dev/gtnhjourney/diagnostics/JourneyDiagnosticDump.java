@@ -12,13 +12,15 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 
+import net.minecraft.entity.player.EntityPlayerMP;
+
 import dev.gtnhjourney.GTNHJourney;
 import dev.gtnhjourney.network.ItemStackPayloadSizer;
 import dev.gtnhjourney.research.ResearchKey;
-import net.minecraft.entity.player.EntityPlayerMP;
 
 /** Writes a compact, attachable diagnostic snapshot for live GTNH compatibility testing. */
 public final class JourneyDiagnosticDump {
+
     private JourneyDiagnosticDump() {}
 
     public static File write(EntityPlayerMP player) throws IOException {
@@ -28,7 +30,9 @@ public final class JourneyDiagnosticDump {
             throw new IOException("cannot create log directory: " + dir.getAbsolutePath());
         }
         String stamp = new SimpleDateFormat("yyyyMMdd-HHmmss", Locale.ROOT).format(new Date());
-        String shortId = player.getUniqueID().toString().substring(0, 8);
+        String shortId = player.getUniqueID()
+            .toString()
+            .substring(0, 8);
         File file = new File(dir, "gtnhjourney-dump-" + stamp + "-" + shortId + ".txt");
 
         List<ResearchKey> keys = GTNHJourney.RESEARCH.snapshot(player);
@@ -38,13 +42,15 @@ public final class JourneyDiagnosticDump {
         HashSet<String> bases = new HashSet<String>();
         for (ResearchKey key : keys) {
             bases.add(key.getItemId() + "@" + key.getMeta());
-            if (!key.getCanonicalNbt().isEmpty()) nbtStates++;
+            if (!key.getCanonicalNbt()
+                .isEmpty()) nbtStates++;
             net.minecraft.item.ItemStack diagnosticStack = GTNHJourney.RESEARCH.retrieve(player, key, 1);
             if (diagnosticStack == null) unavailable++;
             else if (!ItemStackPayloadSizer.canSync(diagnosticStack)) serverOnly++;
         }
 
-        BufferedWriter out = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8));
+        BufferedWriter out = new BufferedWriter(
+            new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8));
         try {
             out.write("GTNH Journey diagnostic dump\n");
             out.write("Generated: " + stamp + "\n");
@@ -67,7 +73,9 @@ public final class JourneyDiagnosticDump {
                 out.write('\t');
                 out.write(failure.getItem());
                 out.write('\t');
-                out.write(failure.getFailure().replace('\n', ' '));
+                out.write(
+                    failure.getFailure()
+                        .replace('\n', ' '));
                 out.write('\n');
             }
 
@@ -85,7 +93,9 @@ public final class JourneyDiagnosticDump {
                 out.write('\t');
                 out.write(Integer.toString(key.getMeta()));
                 out.write('\t');
-                out.write(key.getCanonicalNbt().isEmpty() ? "BASE" : key.getCanonicalNbt());
+                out.write(
+                    key.getCanonicalNbt()
+                        .isEmpty() ? "BASE" : key.getCanonicalNbt());
                 out.write('\n');
             }
         } finally {

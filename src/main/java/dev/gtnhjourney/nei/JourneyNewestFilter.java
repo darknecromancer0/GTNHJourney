@@ -4,16 +4,18 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
+import net.minecraft.item.ItemStack;
+
 import codechicken.nei.api.ItemFilter;
 import dev.gtnhjourney.client.ClientResearchMirror;
 import dev.gtnhjourney.client.ClientStackMirror;
 import dev.gtnhjourney.config.JourneyConfig;
 import dev.gtnhjourney.minecraft.ItemStackKeyFactory;
 import dev.gtnhjourney.research.ResearchKey;
-import net.minecraft.item.ItemStack;
 
 /** Cached fallback subset for the most recently researched states. */
 public final class JourneyNewestFilter implements ItemFilter {
+
     private volatile long cachedRevision = Long.MIN_VALUE;
     private volatile Set<ResearchKey> cached = Collections.emptySet();
 

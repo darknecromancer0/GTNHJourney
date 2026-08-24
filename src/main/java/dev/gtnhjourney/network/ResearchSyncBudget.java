@@ -6,7 +6,11 @@ import dev.gtnhjourney.research.ResearchKey;
 
 /** Conservative client-sync budget for research states with unusually large NBT payloads. */
 public final class ResearchSyncBudget {
-    /** Keeps SimpleNetworkWrapper payloads well below the vanilla 32767-byte CustomPayload ceiling, leaving room for FML framing. */
+
+    /**
+     * Keeps SimpleNetworkWrapper payloads well below the vanilla 32767-byte CustomPayload ceiling, leaving room for FML
+     * framing.
+     */
     public static final int TARGET_CHUNK_BYTES = 24 * 1024;
     public static final int MAX_ENTRIES_PER_CHUNK = 32;
     public static final int MAX_SINGLE_ENTRY_BYTES = 24 * 1024;
@@ -24,7 +28,6 @@ public final class ResearchSyncBudget {
     public static boolean canSync(ResearchKey key) {
         return estimateBytes(key) <= MAX_SINGLE_ENTRY_BYTES;
     }
-
 
     public static boolean shouldFlush(int currentEntries, int currentEstimatedBytes, int nextEstimatedBytes) {
         if (currentEntries <= 0) return false;

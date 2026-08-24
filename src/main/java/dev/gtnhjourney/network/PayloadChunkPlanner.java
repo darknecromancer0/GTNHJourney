@@ -9,9 +9,11 @@ import java.util.List;
  * sizes fail closed as unsyncable. Returned chunks contain source indices so callers can keep their own objects.
  */
 public final class PayloadChunkPlanner {
+
     private PayloadChunkPlanner() {}
 
-    public static Plan plan(List<Integer> entrySizes, int maxEntriesPerChunk, int targetChunkBytes, int maxSingleEntryBytes) {
+    public static Plan plan(List<Integer> entrySizes, int maxEntriesPerChunk, int targetChunkBytes,
+        int maxSingleEntryBytes) {
         if (maxEntriesPerChunk < 1) throw new IllegalArgumentException("maxEntriesPerChunk must be positive");
         if (targetChunkBytes < 1) throw new IllegalArgumentException("targetChunkBytes must be positive");
         if (maxSingleEntryBytes < 0) throw new IllegalArgumentException("maxSingleEntryBytes must not be negative");
@@ -47,6 +49,7 @@ public final class PayloadChunkPlanner {
     }
 
     public static final class Plan {
+
         private final int sourceTotal;
         private final int syncableTotal;
         private final int oversizedTotal;
@@ -59,9 +62,20 @@ public final class PayloadChunkPlanner {
             this.chunks = chunks;
         }
 
-        public int getSourceTotal() { return sourceTotal; }
-        public int getSyncableTotal() { return syncableTotal; }
-        public int getOversizedTotal() { return oversizedTotal; }
-        public List<List<Integer>> getChunks() { return chunks; }
+        public int getSourceTotal() {
+            return sourceTotal;
+        }
+
+        public int getSyncableTotal() {
+            return syncableTotal;
+        }
+
+        public int getOversizedTotal() {
+            return oversizedTotal;
+        }
+
+        public List<List<Integer>> getChunks() {
+            return chunks;
+        }
     }
 }

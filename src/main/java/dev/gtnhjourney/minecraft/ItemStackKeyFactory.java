@@ -31,11 +31,16 @@ public final class ItemStackKeyFactory {
         if (gtChargeState != GtChargeStatePolicy.State.EXACT) {
             identityStack = GtChargeStatePolicy.identityStack(stack);
         } else {
-            Ic2ChargeStatePolicy.State ic2ChargeState = ResearchCompatibilityOptions.normalizeIc2ChargeEndpoints()
-                ? Ic2ChargeStatePolicy.classify(stack) : Ic2ChargeStatePolicy.State.EXACT;
-            identityStack = ic2ChargeState != Ic2ChargeStatePolicy.State.EXACT
-                ? Ic2ChargeStatePolicy.identityStack(stack)
-                : CofhChargeStatePolicy.identityStack(stack);
+            OpenComputersChargeStatePolicy.State ocChargeState = OpenComputersChargeStatePolicy.classify(stack);
+            if (ocChargeState != OpenComputersChargeStatePolicy.State.EXACT) {
+                identityStack = OpenComputersChargeStatePolicy.identityStack(stack);
+            } else {
+                Ic2ChargeStatePolicy.State ic2ChargeState = ResearchCompatibilityOptions.normalizeIc2ChargeEndpoints()
+                    ? Ic2ChargeStatePolicy.classify(stack) : Ic2ChargeStatePolicy.State.EXACT;
+                identityStack = ic2ChargeState != Ic2ChargeStatePolicy.State.EXACT
+                    ? Ic2ChargeStatePolicy.identityStack(stack)
+                    : CofhChargeStatePolicy.identityStack(stack);
+            }
         }
         if (identityStack == null || identityStack.getItem() == null) {
             throw new IllegalArgumentException("semantic identity produced no item");

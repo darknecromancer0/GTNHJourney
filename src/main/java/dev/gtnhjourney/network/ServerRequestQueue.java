@@ -4,22 +4,28 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.item.ItemStack;
+
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 import dev.gtnhjourney.persistence.PlayerResearchService;
 import dev.gtnhjourney.research.ResearchFingerprint;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.item.ItemStack;
 
 /** Moves packet requests onto the authoritative server tick without relying on version-specific scheduler methods. */
 public final class ServerRequestQueue {
+
     private static final int MAX_QUEUED_REQUESTS = 4096;
     private static final int MAX_PENDING_PER_PLAYER = 32;
     private static final Queue<Request> REQUESTS = new ConcurrentLinkedQueue<Request>();
     private static final AtomicInteger QUEUED = new AtomicInteger();
     private static final PendingRequestLimiter PER_PLAYER = new PendingRequestLimiter(MAX_PENDING_PER_PLAYER);
     private final PlayerResearchService research;
-    public ServerRequestQueue(PlayerResearchService research) { this.research = research; }
+
+    public ServerRequestQueue(PlayerResearchService research) {
+        this.research = research;
+    }
+
     public static void clearPending() {
         REQUESTS.clear();
         QUEUED.set(0);
@@ -63,10 +69,12 @@ public final class ServerRequestQueue {
     }
 
     private static final class Request {
+
         final EntityPlayerMP player;
         final java.util.UUID playerId;
         final ResearchFingerprint fingerprint;
         final int amount;
+
         Request(EntityPlayerMP player, ResearchFingerprint fingerprint, int amount) {
             this.player = player;
             this.playerId = player.getUniqueID();

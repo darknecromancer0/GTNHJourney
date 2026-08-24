@@ -10,6 +10,7 @@ import java.util.Set;
  * A periodic forced pass remains the safety net for hash collisions and exotic in-place mutations.
  */
 public final class InventoryScanCache {
+
     private final Map<String, Integer> previous = new HashMap<String, Integer>();
     private final Set<String> seen = new HashSet<String>();
     private boolean force;
@@ -31,7 +32,8 @@ public final class InventoryScanCache {
 
     public void endPass() {
         if (!passOpen) return;
-        previous.keySet().retainAll(seen);
+        previous.keySet()
+            .retainAll(seen);
         seen.clear();
         force = false;
         passOpen = false;
@@ -44,5 +46,7 @@ public final class InventoryScanCache {
         passOpen = false;
     }
 
-    public int size() { return previous.size(); }
+    public int size() {
+        return previous.size();
+    }
 }

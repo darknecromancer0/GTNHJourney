@@ -12,28 +12,43 @@ import net.minecraft.nbt.NBTTagCompound;
 /**
  * Optional IC2 electric-item endpoint semantics without a hard compile/runtime dependency on IC2.
  *
- * <p>Only objects proven to implement {@code ic2.api.item.IElectricItem} are touched. The current/max charge values
+ * <p>
+ * Only objects proven to implement {@code ic2.api.item.IElectricItem} are touched. The current/max charge values
  * come from the IC2 API. Base templates are discharged through {@code ElectricItem.manager} on a copy and the verified
  * IC2 charge field is then removed, preventing partial EU values from becoming thousands of Journey states while
- * preserving every unrelated NBT field.</p>
+ * preserving every unrelated NBT field.
+ * </p>
  */
 public final class Ic2ChargeStatePolicy {
+
     private static final String CHARGE_KEY = "charge";
     private static final Api API = Api.load();
 
-    enum State { EXACT, BASE, FULL }
+    enum State {
+        EXACT,
+        BASE,
+        FULL
+    }
 
     private Ic2ChargeStatePolicy() {}
 
-    public static String describe(ItemStack observed) { return classify(observed).name(); }
+    public static String describe(ItemStack observed) {
+        return classify(observed).name();
+    }
 
-    public static boolean isApiAvailable() { return API != null; }
+    public static boolean isApiAvailable() {
+        return API != null;
+    }
 
     public static boolean isManagerReady() {
         if (API == null) return false;
-        try { return API.managerField.get(null) != null; }
-        catch (ReflectiveOperationException ignored) { return false; }
-        catch (RuntimeException ignored) { return false; }
+        try {
+            return API.managerField.get(null) != null;
+        } catch (ReflectiveOperationException ignored) {
+            return false;
+        } catch (RuntimeException ignored) {
+            return false;
+        }
     }
 
     public static ItemStack identityStack(ItemStack observed) {
@@ -109,9 +124,11 @@ public final class Ic2ChargeStatePolicy {
                 if (remaining > 0.000001D) return null;
             }
             if (copy.hasTagCompound()) {
-                NBTTagCompound tag = (NBTTagCompound) copy.getTagCompound().copy();
+                NBTTagCompound tag = (NBTTagCompound) copy.getTagCompound()
+                    .copy();
                 tag.removeTag(CHARGE_KEY);
-                if (tag.func_150296_c().isEmpty()) copy.setTagCompound(null);
+                if (tag.func_150296_c()
+                    .isEmpty()) copy.setTagCompound(null);
                 else copy.setTagCompound(tag);
             }
             return copy;
@@ -131,13 +148,15 @@ public final class Ic2ChargeStatePolicy {
     }
 
     private static final class Api {
+
         final Class<?> electricItemClass;
         final Field managerField;
         final Method getMaxCharge;
         final Method getCharge;
         final Method discharge;
 
-        private Api(Class<?> electricItemClass, Field managerField, Method getMaxCharge, Method getCharge, Method discharge) {
+        private Api(Class<?> electricItemClass, Field managerField, Method getMaxCharge, Method getCharge,
+            Method discharge) {
             this.electricItemClass = electricItemClass;
             this.managerField = managerField;
             this.getMaxCharge = getMaxCharge;
@@ -156,7 +175,13 @@ public final class Ic2ChargeStatePolicy {
                     electricItemClass.getMethod("getMaxCharge", ItemStack.class),
                     managerClass.getMethod("getCharge", ItemStack.class),
                     managerClass.getMethod(
-                        "discharge", ItemStack.class, double.class, int.class, boolean.class, boolean.class, boolean.class));
+                        "discharge",
+                        ItemStack.class,
+                        double.class,
+                        int.class,
+                        boolean.class,
+                        boolean.class,
+                        boolean.class));
             } catch (ReflectiveOperationException ignored) {
                 return null;
             } catch (LinkageError ignored) {

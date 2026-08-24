@@ -76,9 +76,10 @@ public final class PersistedResearchEntryResolver {
             // semantic stack. This keeps ResearchKey and retrieval payload impossible to drift apart during migration.
             ItemStack semantic = GtChargeStatePolicy.identityStack(reconstructed);
             if (GtChargeStatePolicy.classify(reconstructed) == GtChargeStatePolicy.State.EXACT) {
-                ItemStack ic2Semantic = Ic2ChargeStatePolicy.identityStack(semantic);
-                if (Ic2ChargeStatePolicy.classify(semantic) != Ic2ChargeStatePolicy.State.EXACT) {
-                    semantic = ic2Semantic;
+                if (OpenComputersChargeStatePolicy.classify(semantic) != OpenComputersChargeStatePolicy.State.EXACT) {
+                    semantic = OpenComputersChargeStatePolicy.identityStack(semantic);
+                } else if (Ic2ChargeStatePolicy.classify(semantic) != Ic2ChargeStatePolicy.State.EXACT) {
+                    semantic = Ic2ChargeStatePolicy.identityStack(semantic);
                 } else {
                     semantic = CofhChargeStatePolicy.identityStack(semantic);
                 }

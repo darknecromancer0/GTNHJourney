@@ -8,7 +8,9 @@ import dev.gtnhjourney.GTNHJourney;
 
 /** NEI discovers this class client-side by its NEI*Config naming convention. */
 public final class NEIGTNHJourneyConfig implements IConfigureNEI {
+
     private static final RegistrationGate REGISTRATION = new RegistrationGate();
+
     @Override
     public void loadConfig() {
         if (!REGISTRATION.acquire()) return;
@@ -22,8 +24,18 @@ public final class NEIGTNHJourneyConfig implements IConfigureNEI {
         GuiContainerManager.addDrawHandler(toggle);
         GuiContainerManager.addInputHandler(toggle);
         GuiContainerManager.addTooltipHandler(toggle);
-        FMLCommonHandler.instance().bus().register(new JourneyNEIRefreshTracker());
+        FMLCommonHandler.instance()
+            .bus()
+            .register(new JourneyNEIRefreshTracker());
     }
-    @Override public String getName() { return GTNHJourney.NAME + " NEI Integration"; }
-    @Override public String getVersion() { return GTNHJourney.VERSION; }
+
+    @Override
+    public String getName() {
+        return GTNHJourney.NAME + " NEI Integration";
+    }
+
+    @Override
+    public String getVersion() {
+        return GTNHJourney.VERSION;
+    }
 }

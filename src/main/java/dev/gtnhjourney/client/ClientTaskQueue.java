@@ -5,7 +5,9 @@ import java.util.Deque;
 
 /** Small FIFO used to move network callbacks onto the client tick thread in legacy Forge. */
 public final class ClientTaskQueue {
+
     public interface FailureHandler {
+
         void failed(Throwable failure);
     }
 
@@ -32,7 +34,6 @@ public final class ClientTaskQueue {
         return executed;
     }
 
-
     /** Like {@link #drain(int)}, but one broken legacy/mod task cannot abort the remaining FIFO. */
     public int drainSafely(int maxTasks, FailureHandler failureHandler) {
         if (maxTasks <= 0) return 0;
@@ -57,9 +58,9 @@ public final class ClientTaskQueue {
 
     private static void reportFailure(FailureHandler handler, Throwable failure) {
         if (handler == null) return;
-        try { handler.failed(failure); }
-        catch (RuntimeException ignored) {}
-        catch (LinkageError ignored) {}
+        try {
+            handler.failed(failure);
+        } catch (RuntimeException ignored) {} catch (LinkageError ignored) {}
     }
 
     public synchronized int size() {

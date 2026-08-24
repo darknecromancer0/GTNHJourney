@@ -2,6 +2,7 @@ package dev.gtnhjourney.nei;
 
 /** Pure click semantics shared by the NEI input adapter and tests. */
 public final class JourneyRetrieveClickPolicy {
+
     private JourneyRetrieveClickPolicy() {}
 
     /**

@@ -10,17 +10,26 @@ import dev.gtnhjourney.nei.JourneyViewState;
 
 /** Prevents research and remote-server identity rules from leaking into the next client world/server. */
 public final class ClientConnectionTracker {
+
     @SubscribeEvent
     public void onConnect(ClientConnectedToServerEvent event) {
         ClientNetworkQueue.beginSession(new Runnable() {
-            @Override public void run() { resetClientSessionState(); }
+
+            @Override
+            public void run() {
+                resetClientSessionState();
+            }
         });
     }
 
     @SubscribeEvent
     public void onDisconnect(ClientDisconnectionFromServerEvent event) {
         ClientNetworkQueue.endSession(new Runnable() {
-            @Override public void run() { resetClientSessionState(); }
+
+            @Override
+            public void run() {
+                resetClientSessionState();
+            }
         });
     }
 

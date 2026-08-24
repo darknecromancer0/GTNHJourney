@@ -1,9 +1,11 @@
 package dev.gtnhjourney.acquisition;
 
+import dev.gtnhjourney.minecraft.BotaniaTransientStatePolicy;
 import dev.gtnhjourney.minecraft.CofhChargeStatePolicy;
 import dev.gtnhjourney.minecraft.GtChargeStatePolicy;
 import dev.gtnhjourney.minecraft.GtToolStatePolicy;
 import dev.gtnhjourney.minecraft.Ic2ChargeStatePolicy;
+import dev.gtnhjourney.minecraft.OpenComputersChargeStatePolicy;
 import dev.gtnhjourney.minecraft.ResearchNbtIdentity;
 import dev.gtnhjourney.minecraft.TconToolStatePolicy;
 import net.minecraft.item.Item;
@@ -38,7 +40,8 @@ public final class InventoryStackSignature {
         catch (LinkageError ignored) {}
 
         try {
-            if (GtToolStatePolicy.isVerifiedTool(stack) || TconToolStatePolicy.isVerifiedTool(stack)) {
+            if (GtToolStatePolicy.isVerifiedTool(stack) || TconToolStatePolicy.isVerifiedTool(stack)
+                || BotaniaTransientStatePolicy.isVerifiedMagnetRing(stack)) {
                 hash = 31 * hash + ResearchNbtIdentity.canonicalize(stack).hashCode();
             } else {
                 NBTTagCompound tag = stack.getTagCompound();
@@ -59,13 +62,17 @@ public final class InventoryStackSignature {
             if ("BASE".equals(gt)) return 101;
             if ("FULL".equals(gt)) return 102;
 
+            String oc = OpenComputersChargeStatePolicy.describe(stack);
+            if ("BASE".equals(oc)) return 301;
+            if ("FULL".equals(oc)) return 302;
+
             String ic2 = Ic2ChargeStatePolicy.describe(stack);
             if ("BASE".equals(ic2)) return 201;
             if ("FULL".equals(ic2)) return 202;
 
             String cofh = CofhChargeStatePolicy.describe(stack);
-            if ("BASE".equals(cofh)) return 301;
-            if ("FULL".equals(cofh)) return 302;
+            if ("BASE".equals(cofh)) return 401;
+            if ("FULL".equals(cofh)) return 402;
         } catch (RuntimeException ignored) {}
         catch (LinkageError ignored) {}
         return 0;

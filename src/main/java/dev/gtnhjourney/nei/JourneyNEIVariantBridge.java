@@ -33,7 +33,7 @@ final class JourneyNEIVariantBridge {
                 for (ItemStack original : exactResearchStacks) {
                     if (original == null || original.getItem() == null) continue;
                     ResearchKey key = safeKey(original);
-                    if (key == null || !requestedKeys.contains(key)) continue;
+                    if (key == null || !requestedKeys.contains(key) || !JourneyVariantScope.shouldInjectVariant(key)) continue;
                     ItemStack variant = original.copy();
                     variant.stackSize = 1;
                     // Do not claim ownership of an entry somebody else already registered.

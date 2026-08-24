@@ -1,12 +1,14 @@
 package dev.gtnhjourney.network;
 
+import net.minecraft.item.ItemStack;
+
 import cpw.mods.fml.common.network.ByteBufUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import net.minecraft.item.ItemStack;
 
 /** Measures the actual Forge 1.7.10 ItemStack wire payload instead of guessing from textual NBT. */
 public final class ItemStackPayloadSizer {
+
     private ItemStackPayloadSizer() {}
 
     public static boolean canSync(ItemStack stack) {
@@ -26,8 +28,9 @@ public final class ItemStackPayloadSizer {
         } catch (LinkageError failure) {
             return -1;
         } finally {
-            try { buffer.release(); }
-            catch (RuntimeException ignored) {}
+            try {
+                buffer.release();
+            } catch (RuntimeException ignored) {}
         }
     }
 }

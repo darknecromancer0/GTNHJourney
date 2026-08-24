@@ -10,10 +10,15 @@ import net.minecraft.nbt.NBTTagCompound;
  * base endpoint, while a verified FULL charge remains a distinct semantic state.
  */
 public final class GtChargeStatePolicy {
+
     public static final String CHARGE_KEY = "GT.ItemCharge";
     private static final Class<?>[] VERIFIED_GT_BASES = loadVerifiedGtBases();
 
-    enum State { EXACT, BASE, FULL }
+    enum State {
+        EXACT,
+        BASE,
+        FULL
+    }
 
     private GtChargeStatePolicy() {}
 
@@ -50,9 +55,11 @@ public final class GtChargeStatePolicy {
     static ItemStack withoutCharge(ItemStack stack) {
         ItemStack copy = stack.copy();
         if (!copy.hasTagCompound()) return copy;
-        NBTTagCompound tag = (NBTTagCompound) copy.getTagCompound().copy();
+        NBTTagCompound tag = (NBTTagCompound) copy.getTagCompound()
+            .copy();
         tag.removeTag(CHARGE_KEY);
-        if (tag.func_150296_c().isEmpty()) copy.setTagCompound(null);
+        if (tag.func_150296_c()
+            .isEmpty()) copy.setTagCompound(null);
         else copy.setTagCompound(tag);
         return copy;
     }
@@ -73,14 +80,16 @@ public final class GtChargeStatePolicy {
     }
 
     private static void addIfPresent(java.util.List<Class<?>> out, String name) {
-        try { out.add(Class.forName(name, false, GtChargeStatePolicy.class.getClassLoader())); }
-        catch (ClassNotFoundException ignored) {}
-        catch (LinkageError ignored) {}
+        try {
+            out.add(Class.forName(name, false, GtChargeStatePolicy.class.getClassLoader()));
+        } catch (ClassNotFoundException ignored) {} catch (LinkageError ignored) {}
     }
 
     private static double maxCharge(ItemStack stack) {
         try {
-            Method method = stack.getItem().getClass().getMethod("getMaxCharge", ItemStack.class);
+            Method method = stack.getItem()
+                .getClass()
+                .getMethod("getMaxCharge", ItemStack.class);
             Object value = method.invoke(stack.getItem(), stack);
             return value instanceof Number ? ((Number) value).doubleValue() : -1.0D;
         } catch (ReflectiveOperationException ignored) {
