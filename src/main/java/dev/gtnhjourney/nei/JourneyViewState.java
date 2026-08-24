@@ -21,16 +21,16 @@ public final class JourneyViewState {
         return mode == Mode.NEWEST;
     }
 
-    /** Selects the researched view. Repeated activation is intentionally idempotent. */
+    /** Toggles the researched view on/off. */
     public static synchronized boolean toggle() {
-        setMode(Mode.RESEARCHED);
-        return true;
+        setMode(mode == Mode.RESEARCHED ? Mode.ALL : Mode.RESEARCHED);
+        return mode == Mode.RESEARCHED;
     }
 
-    /** Selects the newest view. Repeated activation is intentionally idempotent. */
+    /** Toggles the newest view on/off. */
     public static synchronized boolean toggleNewest() {
-        setMode(Mode.NEWEST);
-        return true;
+        setMode(mode == Mode.NEWEST ? Mode.ALL : Mode.NEWEST);
+        return mode == Mode.NEWEST;
     }
 
     public static synchronized void setEnabled(boolean value) {
