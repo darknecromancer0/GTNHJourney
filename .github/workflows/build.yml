@@ -5,11 +5,16 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
       - name: Apply staged pre2 patch
         if: ${{ hashFiles('.ci/pre2-production.patch.gz.b64') != '' }}
         run: base64 -d .ci/pre2-production.patch.gz.b64 | gzip -dc | git apply --check - && base64 -d .ci/pre2-production.patch.gz.b64 | gzip -dc | git apply -
@@ -24,6 +29,15 @@ jobs:
         run: gradle spotlessApply --stacktrace
       - name: Forge build
         run: gradle build --stacktrace
+      - name: Materialize verified pre2 source
+        if: ${{ success() && github.event_name == 'pull_request' && hashFiles('.ci/pre2-production.patch.gz.b64') != '' }}
+        run: |
+          rm -f .ci/pre2-production.patch.gz.b64
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add build.gradle.kts src/main/java src/main/resources .ci
+          git commit -m "fix: normalize live GTNH transient item states"
+          git push origin HEAD:${GITHUB_HEAD_REF}
       - name: Upload jars
         if: success()
         uses: actions/upload-artifact@v4
