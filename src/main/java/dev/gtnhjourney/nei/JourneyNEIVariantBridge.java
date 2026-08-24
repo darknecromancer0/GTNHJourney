@@ -5,20 +5,18 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import net.minecraft.item.ItemStack;
-
 import codechicken.nei.LayoutManager;
 import codechicken.nei.api.API;
 import codechicken.nei.api.ItemInfo;
 import dev.gtnhjourney.minecraft.ItemStackKeyFactory;
 import dev.gtnhjourney.research.ResearchKey;
+import net.minecraft.item.ItemStack;
 
 /**
  * Compatibility boundary for the one NEI-internal operation the public API does not expose: removing
  * ItemStack variants previously injected by Journey. All other integration stays on NEI's public API.
  */
 final class JourneyNEIVariantBridge {
-
     private static final List<ItemStack> ownedVariants = new ArrayList<ItemStack>();
     private static final Set<ResearchKey> ownedKeys = new LinkedHashSet<ResearchKey>();
 
@@ -35,7 +33,7 @@ final class JourneyNEIVariantBridge {
                 for (ItemStack original : exactResearchStacks) {
                     if (original == null || original.getItem() == null) continue;
                     ResearchKey key = safeKey(original);
-                    if (key == null || !requestedKeys.contains(key)) continue;
+                    if (key == null || !requestedKeys.contains(key) || !JourneyVariantScope.shouldInjectVariant(key)) continue;
                     ItemStack variant = original.copy();
                     variant.stackSize = 1;
                     // Do not claim ownership of an entry somebody else already registered.
