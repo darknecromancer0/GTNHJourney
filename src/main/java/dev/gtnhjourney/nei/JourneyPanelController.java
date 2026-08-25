@@ -13,6 +13,7 @@ import codechicken.nei.ItemPanels;
 import codechicken.nei.api.ItemFilter;
 import dev.gtnhjourney.client.ClientStackMirror;
 import dev.gtnhjourney.config.JourneyConfig;
+import dev.gtnhjourney.diagnostics.JourneyRuntimeCounters;
 import dev.gtnhjourney.minecraft.ItemStackKeyFactory;
 import dev.gtnhjourney.research.ResearchKey;
 
@@ -69,6 +70,7 @@ public final class JourneyPanelController {
         }
 
         ItemPanel.updateItemList(visible);
+        JourneyRuntimeCounters.panelIncrementalUpdate();
         if (resetPage) ItemPanels.itemPanel.getGrid().setPage(0);
         owned = true;
         lastPublishedList = visible;
