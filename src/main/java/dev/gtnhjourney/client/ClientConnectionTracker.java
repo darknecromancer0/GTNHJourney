@@ -36,7 +36,7 @@ public final class ClientConnectionTracker {
     private static void resetClientSessionState() {
         ClientStackMirror.clear();
         JourneyViewState.setMode(JourneyViewState.Mode.ALL);
-        JourneyNEIRefreshTracker.clearInjectedVariants();
+        JourneyNEIRefreshTracker.resetJourneyPanel();
         // Remote server identity rules are client-only session state. Restore local config so a later integrated
         // server in the same JVM cannot inherit another server's semantic policy.
         ResearchCompatibilityOptions.configure(
