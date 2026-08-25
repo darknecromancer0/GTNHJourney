@@ -1,5 +1,7 @@
 package dev.gtnhjourney;
 
+import net.minecraftforge.common.MinecraftForge;
+
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.Mod.EventHandler;
@@ -46,6 +48,7 @@ public final class GTNHJourney {
         FMLCommonHandler.instance()
             .bus()
             .register(inventoryTracker);
+        MinecraftForge.EVENT_BUS.register(inventoryTracker);
         FMLCommonHandler.instance()
             .bus()
             .register(new ServerRequestQueue(RESEARCH));
