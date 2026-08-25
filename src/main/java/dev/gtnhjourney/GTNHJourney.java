@@ -8,6 +8,7 @@ import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.event.FMLServerStartingEvent;
 import cpw.mods.fml.common.event.FMLServerStoppedEvent;
 import dev.gtnhjourney.acquisition.InventoryResearchTracker;
+import dev.gtnhjourney.acquisition.ResearchObservationService;
 import dev.gtnhjourney.command.CommandJourney;
 import dev.gtnhjourney.config.JourneyConfig;
 import dev.gtnhjourney.network.JourneyNetwork;
@@ -33,13 +34,15 @@ public final class GTNHJourney {
     @SidedProxy(clientSide = "dev.gtnhjourney.ClientProxy", serverSide = "dev.gtnhjourney.CommonProxy")
     public static CommonProxy proxy;
     private InventoryResearchTracker inventoryTracker;
+    private ResearchObservationService observations;
 
     @EventHandler
     public void preInit(FMLPreInitializationEvent event) {
         JourneyConfig.load(event.getSuggestedConfigurationFile());
         JourneyNetwork.init();
         proxy.preInit(event);
-        inventoryTracker = new InventoryResearchTracker(RESEARCH);
+        observations = new ResearchObservationService(RESEARCH);
+        inventoryTracker = new InventoryResearchTracker(RESEARCH, observations);
         FMLCommonHandler.instance()
             .bus()
             .register(inventoryTracker);
