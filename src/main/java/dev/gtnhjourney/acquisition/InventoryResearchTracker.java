@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
+import net.minecraftforge.event.entity.player.EntityItemPickupEvent;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.PlayerEvent;
@@ -21,6 +22,7 @@ public final class InventoryResearchTracker {
     private final PlayerResearchService research;
     private final ResearchObservationService observations;
     private final Map<UUID, InventoryScanCache> scanCaches = new HashMap<UUID, InventoryScanCache>();
+    private final ReconcileRequestSet reconcileRequests = new ReconcileRequestSet();
 
     public InventoryResearchTracker(PlayerResearchService research, ResearchObservationService observations) {
         if (research == null) throw new IllegalArgumentException("research must not be null");
@@ -33,11 +35,26 @@ public final class InventoryResearchTracker {
     public void onPlayerTick(TickEvent.PlayerTickEvent event) {
         if (event.phase != TickEvent.Phase.END || !(event.player instanceof EntityPlayerMP)) return;
         EntityPlayerMP player = (EntityPlayerMP) event.player;
-        if (player.worldObj.isRemote || player.ticksExisted % JourneyConfig.inventoryScanIntervalTicks() != 0) return;
+        if (player.worldObj.isRemote) return;
+
+        if (reconcileRequests.consume(player.getUniqueID())) {
+            scanChanged(player, true, true);
+            return;
+        }
+        if (player.ticksExisted % JourneyConfig.inventoryScanIntervalTicks() != 0) return;
 
         int fullInterval = JourneyConfig.inventoryFullRescanIntervalTicks();
         boolean force = fullInterval > 0 && player.ticksExisted % fullInterval == 0;
         scanChanged(player, force, true);
+    }
+
+    /** Pickup is only a hint: authoritative research happens from the player's post-merge inventory on the next tick. */
+    @SubscribeEvent
+    public void onPickup(EntityItemPickupEvent event) {
+        if (!(event.entityPlayer instanceof EntityPlayerMP)) return;
+        EntityPlayerMP player = (EntityPlayerMP) event.entityPlayer;
+        if (player.worldObj.isRemote) return;
+        reconcileRequests.request(player.getUniqueID());
     }
 
     @SubscribeEvent
@@ -62,6 +79,7 @@ public final class InventoryResearchTracker {
         synchronized (scanCaches) {
             scanCaches.remove(player.getUniqueID());
         }
+        reconcileRequests.discard(player.getUniqueID());
         ServerResearchSyncQueue.cancel(player);
     }
 
@@ -80,6 +98,7 @@ public final class InventoryResearchTracker {
         synchronized (scanCaches) {
             scanCaches.clear();
         }
+        reconcileRequests.clear();
     }
 
     private void scanChanged(final EntityPlayerMP player, boolean force, final boolean sendIncrementalUnlocks) {
