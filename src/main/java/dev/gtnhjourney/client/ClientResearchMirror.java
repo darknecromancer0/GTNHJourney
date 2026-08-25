@@ -36,6 +36,15 @@ public final class ClientResearchMirror {
         revision++;
     }
 
+    public static synchronized boolean remove(ResearchKey key) {
+        if (key == null || !keys.contains(key)) return false;
+        HashSet<ResearchKey> copy = new HashSet<ResearchKey>(keys);
+        copy.remove(key);
+        keys = Collections.unmodifiableSet(copy);
+        revision++;
+        return true;
+    }
+
     public static boolean contains(ResearchKey key) {
         return key != null && keys.contains(key);
     }

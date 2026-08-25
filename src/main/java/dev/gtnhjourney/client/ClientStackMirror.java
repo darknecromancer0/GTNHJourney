@@ -9,6 +9,7 @@ import java.util.Map;
 import net.minecraft.item.ItemStack;
 
 import dev.gtnhjourney.minecraft.ItemStackKeyFactory;
+import dev.gtnhjourney.research.ResearchFingerprint;
 import dev.gtnhjourney.research.ResearchKey;
 
 /** Exact client ItemStack templates used by the NEI frontend. Server sync is the only writer. */
@@ -80,6 +81,26 @@ public final class ClientStackMirror {
 
     public static synchronized void addServerOnlyUnlock() {
         serverAvailableTotal++;
+    }
+
+    /** Applies one server-authoritative exact removal without rebuilding the global NEI item universe. */
+    public static synchronized boolean remove(ResearchFingerprint fingerprint) {
+        if (fingerprint == null || stacks.isEmpty()) return false;
+        ResearchKey found = null;
+        for (ResearchKey key : stacks.keySet()) {
+            if (fingerprint.equals(ResearchFingerprint.of(key))) {
+                found = key;
+                break;
+            }
+        }
+        if (found == null) return false;
+        stacks.remove(found);
+        ClientResearchMirror.remove(found);
+        serverAvailableTotal = Math.max(0, serverAvailableTotal - 1);
+        if (expectedSyncedTotal >= 0) expectedSyncedTotal = Math.max(0, expectedSyncedTotal - 1);
+        previousServerAvailableTotal = serverAvailableTotal;
+        previousExpectedSyncedTotal = expectedSyncedTotal;
+        return true;
     }
 
     public static synchronized List<ItemStack> snapshot() {

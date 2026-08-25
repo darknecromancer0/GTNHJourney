@@ -5,6 +5,7 @@ public final class JourneyButtonPresentation {
     private static final int RESEARCH_MIN_WIDTH = 96;
     // At 114px the second 16px button overlaps the centered "page/total" label. Keep a small safety gap.
     private static final int NEWEST_MIN_WIDTH = 132;
+    private static final int DELETE_MIN_WIDTH = 150;
 
     private JourneyButtonPresentation() {}
 
@@ -16,6 +17,10 @@ public final class JourneyButtonPresentation {
         return panelWidth >= NEWEST_MIN_WIDTH;
     }
 
+    public static boolean deleteVisible(int panelWidth) {
+        return panelWidth >= DELETE_MIN_WIDTH;
+    }
+
     public static String researchTooltip(JourneyViewState.Mode mode, int serverOnlyCount) {
         JourneyViewState.Mode effective = mode == null ? JourneyViewState.Mode.ALL : mode;
         final String base;
@@ -25,6 +30,9 @@ public final class JourneyButtonPresentation {
                 break;
             case NEWEST:
                 base = "Newest view is active. Click J to switch to researched items.";
+                break;
+            case DELETE:
+                base = "Delete view is active. Click J to switch to researched items.";
                 break;
             case ALL:
             default:

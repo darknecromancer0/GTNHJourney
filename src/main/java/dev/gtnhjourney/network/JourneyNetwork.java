@@ -28,10 +28,16 @@ public final class JourneyNetwork {
             ResearchServerOnlyUnlockMessage.class,
             5,
             Side.CLIENT);
+        CHANNEL.registerMessage(DeleteRequestMessage.Handler.class, DeleteRequestMessage.class, 6, Side.SERVER);
+        CHANNEL.registerMessage(ResearchRemoveMessage.Handler.class, ResearchRemoveMessage.class, 7, Side.CLIENT);
     }
 
     public static void requestRetrieve(ResearchKey key, int amount) {
         CHANNEL.sendToServer(new RetrieveRequestMessage(ResearchFingerprint.of(key), amount));
+    }
+
+    public static void requestDelete(ResearchKey key) {
+        if (key != null) CHANNEL.sendToServer(new DeleteRequestMessage(ResearchFingerprint.of(key)));
     }
 
     public static void sendFullSync(EntityPlayerMP player, List<ItemStack> stacks) {
@@ -47,6 +53,15 @@ public final class JourneyNetwork {
         if (key == null) return;
         if (ItemStackPayloadSizer.canSync(stack)) CHANNEL.sendTo(new ResearchUnlockMessage(stack), player);
         else CHANNEL.sendTo(new ResearchServerOnlyUnlockMessage(), player);
+    }
+
+    public static void sendRemove(EntityPlayerMP player, ResearchFingerprint fingerprint) {
+        if (player == null || fingerprint == null) return;
+        if (!ServerResearchSyncQueue.deferRemoveIfActive(player, fingerprint)) sendRemoveImmediate(player, fingerprint);
+    }
+
+    static void sendRemoveImmediate(EntityPlayerMP player, ResearchFingerprint fingerprint) {
+        if (player != null && fingerprint != null) CHANNEL.sendTo(new ResearchRemoveMessage(fingerprint), player);
     }
 
     static void sendSyncBegin(EntityPlayerMP player, int epoch, int availableTotal, int syncableTotal,

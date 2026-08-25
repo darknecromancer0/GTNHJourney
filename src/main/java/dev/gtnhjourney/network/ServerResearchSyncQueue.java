@@ -13,6 +13,7 @@ import net.minecraft.item.ItemStack;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 import dev.gtnhjourney.config.JourneyConfig;
+import dev.gtnhjourney.research.ResearchFingerprint;
 
 /**
  * Streams large login/rescan research snapshots over multiple server ticks instead of bursting every packet at once.
@@ -43,13 +44,24 @@ public final class ServerResearchSyncQueue {
         if (session.chunks.isEmpty()) finishIfCurrent(session);
     }
 
-    /** Keeps unlock order coherent if a new item is researched while an older full snapshot is still streaming. */
+    /** Keeps incremental mutations in authoritative event order while an older full snapshot is still streaming. */
     public static boolean deferUnlockIfActive(EntityPlayerMP player, ItemStack stack) {
         if (player == null || stack == null || stack.getItem() == null) return false;
         synchronized (ACTIVE) {
             Session session = ACTIVE.get(player.getUniqueID());
             if (session == null) return false;
-            session.deferredUnlocks.add(stack.copy());
+            session.deferredEvents.add(DeferredEvent.unlock(stack));
+            return true;
+        }
+    }
+
+    /** Keeps exact removals ordered relative to passive unlocks that occur during the same full-sync window. */
+    public static boolean deferRemoveIfActive(EntityPlayerMP player, ResearchFingerprint fingerprint) {
+        if (player == null || fingerprint == null) return false;
+        synchronized (ACTIVE) {
+            Session session = ACTIVE.get(player.getUniqueID());
+            if (session == null) return false;
+            session.deferredEvents.add(DeferredEvent.remove(fingerprint));
             return true;
         }
     }
@@ -92,15 +104,18 @@ public final class ServerResearchSyncQueue {
     }
 
     private static void finishIfCurrent(Session session) {
-        List<ItemStack> deferred;
+        List<DeferredEvent> deferred;
         synchronized (ACTIVE) {
             if (ACTIVE.get(session.playerId) != session) return;
             ACTIVE.remove(session.playerId);
-            deferred = new ArrayList<ItemStack>(session.deferredUnlocks);
+            deferred = new ArrayList<DeferredEvent>(session.deferredEvents);
         }
         if (!isPlayerUsable(session.player)) return;
         JourneyNetwork.sendSyncEnd(session.player, session.epoch);
-        for (ItemStack stack : deferred) JourneyNetwork.sendUnlockImmediate(session.player, stack);
+        for (DeferredEvent event : deferred) {
+            if (event.stack != null) JourneyNetwork.sendUnlockImmediate(session.player, event.stack);
+            else JourneyNetwork.sendRemoveImmediate(session.player, event.fingerprint);
+        }
     }
 
     private static boolean isCurrent(Session session) {
@@ -119,6 +134,25 @@ public final class ServerResearchSyncQueue {
         return player != null && !player.isDead && player.playerNetServerHandler != null;
     }
 
+    private static final class DeferredEvent {
+
+        final ItemStack stack;
+        final ResearchFingerprint fingerprint;
+
+        private DeferredEvent(ItemStack stack, ResearchFingerprint fingerprint) {
+            this.stack = stack;
+            this.fingerprint = fingerprint;
+        }
+
+        static DeferredEvent unlock(ItemStack stack) {
+            return new DeferredEvent(stack.copy(), null);
+        }
+
+        static DeferredEvent remove(ResearchFingerprint fingerprint) {
+            return new DeferredEvent(null, fingerprint);
+        }
+    }
+
     private static final class Session {
 
         final EntityPlayerMP player;
@@ -127,7 +161,7 @@ public final class ServerResearchSyncQueue {
         final int availableTotal;
         final int syncableTotal;
         final List<List<ItemStack>> chunks;
-        final List<ItemStack> deferredUnlocks = new ArrayList<ItemStack>();
+        final List<DeferredEvent> deferredEvents = new ArrayList<DeferredEvent>();
         int cursor;
 
         private Session(EntityPlayerMP player, int epoch, int availableTotal, int syncableTotal,
@@ -167,6 +201,5 @@ public final class ServerResearchSyncQueue {
             }
             return new Session(player, epoch, plan.getSourceTotal(), plan.getSyncableTotal(), chunks);
         }
-
     }
 }

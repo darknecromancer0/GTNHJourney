@@ -61,7 +61,7 @@ public final class GTNHJourney {
         MinecraftForge.EVENT_BUS.register(furnaceTracker);
         FMLCommonHandler.instance()
             .bus()
-            .register(new ServerRequestQueue(RESEARCH));
+            .register(new ServerRequestQueue(RESEARCH, MUTATIONS));
         FMLCommonHandler.instance()
             .bus()
             .register(new ServerResearchSyncQueue());

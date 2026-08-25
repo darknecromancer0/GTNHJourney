@@ -10,7 +10,9 @@ import net.minecraft.item.ItemStack;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 import dev.gtnhjourney.persistence.PlayerResearchService;
+import dev.gtnhjourney.recovery.JourneyMutationService;
 import dev.gtnhjourney.research.ResearchFingerprint;
+import dev.gtnhjourney.research.ResearchKey;
 
 /** Moves packet requests onto the authoritative server tick without relying on version-specific scheduler methods. */
 public final class ServerRequestQueue {
@@ -21,9 +23,16 @@ public final class ServerRequestQueue {
     private static final AtomicInteger QUEUED = new AtomicInteger();
     private static final PendingRequestLimiter PER_PLAYER = new PendingRequestLimiter(MAX_PENDING_PER_PLAYER);
     private final PlayerResearchService research;
+    private final JourneyMutationService mutations;
 
     public ServerRequestQueue(PlayerResearchService research) {
+        this(research, null);
+    }
+
+    public ServerRequestQueue(PlayerResearchService research, JourneyMutationService mutations) {
+        if (research == null) throw new IllegalArgumentException("research must not be null");
         this.research = research;
+        this.mutations = mutations;
     }
 
     public static void clearPending() {
@@ -33,14 +42,22 @@ public final class ServerRequestQueue {
     }
 
     static void enqueue(EntityPlayerMP player, ResearchFingerprint fingerprint, int amount) {
-        if (player == null || fingerprint == null) return;
-        if (!PER_PLAYER.tryAcquire(player.getUniqueID())) return;
+        enqueueRequest(Request.retrieve(player, fingerprint, amount));
+    }
+
+    static void enqueueDelete(EntityPlayerMP player, ResearchFingerprint fingerprint) {
+        enqueueRequest(Request.delete(player, fingerprint));
+    }
+
+    private static void enqueueRequest(Request request) {
+        if (request == null || request.player == null || request.fingerprint == null) return;
+        if (!PER_PLAYER.tryAcquire(request.playerId)) return;
         if (QUEUED.incrementAndGet() > MAX_QUEUED_REQUESTS) {
             QUEUED.decrementAndGet();
-            PER_PLAYER.release(player.getUniqueID());
+            PER_PLAYER.release(request.playerId);
             return;
         }
-        REQUESTS.add(new Request(player, fingerprint, amount));
+        REQUESTS.add(request);
     }
 
     @SubscribeEvent
@@ -61,11 +78,24 @@ public final class ServerRequestQueue {
     private void handle(Request request) {
         EntityPlayerMP player = request.player;
         if (player == null || player.isDead || player.playerNetServerHandler == null) return;
+        if (request.delete) {
+            handleDelete(player, request.fingerprint);
+            return;
+        }
         ItemStack stack = research.retrieve(player, request.fingerprint, request.amount);
         if (stack == null) return;
         player.inventory.addItemStackToInventory(stack);
         if (stack.stackSize > 0) player.dropPlayerItemWithRandomChoice(stack, false);
         player.inventoryContainer.detectAndSendChanges();
+    }
+
+    private void handleDelete(EntityPlayerMP player, ResearchFingerprint fingerprint) {
+        if (mutations == null) return;
+        ResearchKey key = research.registry(player)
+            .find(fingerprint);
+        if (key == null) return;
+        if (!mutations.deleteExact(player, key, "D delete")) return;
+        JourneyNetwork.sendRemove(player, fingerprint);
     }
 
     private static final class Request {
@@ -74,12 +104,22 @@ public final class ServerRequestQueue {
         final java.util.UUID playerId;
         final ResearchFingerprint fingerprint;
         final int amount;
+        final boolean delete;
 
-        Request(EntityPlayerMP player, ResearchFingerprint fingerprint, int amount) {
+        private Request(EntityPlayerMP player, ResearchFingerprint fingerprint, int amount, boolean delete) {
             this.player = player;
-            this.playerId = player.getUniqueID();
+            this.playerId = player == null ? null : player.getUniqueID();
             this.fingerprint = fingerprint;
             this.amount = amount;
+            this.delete = delete;
+        }
+
+        static Request retrieve(EntityPlayerMP player, ResearchFingerprint fingerprint, int amount) {
+            return new Request(player, fingerprint, amount, false);
+        }
+
+        static Request delete(EntityPlayerMP player, ResearchFingerprint fingerprint) {
+            return new Request(player, fingerprint, 0, true);
         }
     }
 }

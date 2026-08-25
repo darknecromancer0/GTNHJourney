@@ -14,7 +14,7 @@ import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
 
-/** Small native-looking J/N controls in NEI's item-panel header. */
+/** Small native-looking J/N/D controls in NEI's item-panel header. */
 public final class JourneyNEIToggleWidget
     implements IContainerDrawHandler, IContainerInputHandler, IContainerTooltipHandler {
 
@@ -58,14 +58,37 @@ public final class JourneyNEIToggleWidget
         }
     };
 
+    private final Button deleteButton = new Button("D") {
+        @Override
+        public boolean onButtonPress(boolean rightclick) {
+            JourneyViewState.toggleDelete();
+            return true;
+        }
+
+        @Override
+        public String getButtonTip() {
+            return JourneyViewState.isDelete()
+                ? "Delete view: plain left-click removes one exact researched state. Click D to show all NEI items."
+                : "Delete view: plain left-click one researched state to forget it. Undo remains available.";
+        }
+
+        @Override
+        public void draw(int mousex, int mousey) {
+            state = JourneyViewState.mode() == JourneyViewState.Mode.DELETE ? 1 : 0;
+            super.draw(mousex, mousey);
+        }
+    };
+
     private boolean visible;
     private boolean newestVisible;
+    private boolean deleteVisible;
 
     @Override
     public void onPreDraw(GuiContainer gui) {
         visible = ItemPanels.itemPanel.pagePrev != null
             && JourneyButtonPresentation.researchVisible(ItemPanels.itemPanel.w);
         newestVisible = false;
+        deleteVisible = false;
         if (!visible) return;
         researchButton.x = ItemPanels.itemPanel.pagePrev.x + 18;
         researchButton.y = ItemPanels.itemPanel.pagePrev.y;
@@ -78,12 +101,20 @@ public final class JourneyNEIToggleWidget
             newestButton.w = 16;
             newestButton.h = 16;
         }
+        deleteVisible = JourneyButtonPresentation.deleteVisible(ItemPanels.itemPanel.w);
+        if (deleteVisible) {
+            deleteButton.x = ItemPanels.itemPanel.pagePrev.x + 54;
+            deleteButton.y = ItemPanels.itemPanel.pagePrev.y;
+            deleteButton.w = 16;
+            deleteButton.h = 16;
+        }
     }
 
     @Override
     public void renderObjects(GuiContainer gui, int mousex, int mousey) {
         if (visible) researchButton.draw(mousex, mousey);
         if (newestVisible) newestButton.draw(mousex, mousey);
+        if (deleteVisible) deleteButton.draw(mousex, mousey);
     }
 
     @Override public void postRenderObjects(GuiContainer gui, int mousex, int mousey) {}
@@ -100,6 +131,10 @@ public final class JourneyNEIToggleWidget
             newestButton.handleClick(mousex, mousey, mouseButton);
             return true;
         }
+        if (deleteVisible && deleteButton.contains(mousex, mousey)) {
+            deleteButton.handleClick(mousex, mousey, mouseButton);
+            return true;
+        }
         return false;
     }
 
@@ -107,6 +142,7 @@ public final class JourneyNEIToggleWidget
     public List<String> handleTooltip(GuiContainer gui, int mousex, int mousey, List<String> currenttip) {
         if (visible) researchButton.handleTooltip(mousex, mousey, currenttip);
         if (newestVisible) newestButton.handleTooltip(mousex, mousey, currenttip);
+        if (deleteVisible) deleteButton.handleTooltip(mousex, mousey, currenttip);
         return currenttip;
     }
 
