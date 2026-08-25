@@ -58,6 +58,33 @@ public class ResearchMutationEngineTest {
     }
 
     @Test
+    public void bulkDeleteCreatesOneTransactionAndRestoresExactOrder() {
+        UUID player = UUID.randomUUID();
+        JourneyResearchData research = new JourneyResearchData();
+        JourneyRecoveryData recovery = new JourneyRecoveryData();
+        ResearchKey a = new ResearchKey("minecraft:stone", 0, "");
+        ResearchKey b = new ResearchKey("minecraft:dirt", 0, "");
+        ResearchKey c = new ResearchKey("minecraft:glass", 0, "");
+        research.restoreEntry(player, new ResearchEntrySnapshot(a, null, 0));
+        research.restoreEntry(player, new ResearchEntrySnapshot(b, null, 1));
+        research.restoreEntry(player, new ResearchEntrySnapshot(c, null, 2));
+        ResearchMutationEngine engine = new ResearchMutationEngine(research, recovery, player);
+
+        assertEquals(2, engine.deleteKeys(Arrays.asList(a, c), "Clear selected"));
+        assertEquals(Arrays.asList(b), research.snapshotInUnlockOrder(player));
+        assertEquals(1, recovery.undoDepth(player));
+        assertEquals(2, recovery.activeDeletionCount(player));
+
+        assertEquals(1, engine.undo(1));
+        assertEquals(Arrays.asList(a, b, c), research.snapshotInUnlockOrder(player));
+        assertEquals(0, recovery.activeDeletionCount(player));
+
+        assertEquals(1, engine.redo(1));
+        assertEquals(Arrays.asList(b), research.snapshotInUnlockOrder(player));
+        assertEquals(2, recovery.activeDeletionCount(player));
+    }
+
+    @Test
     public void passiveMutationAfterUndoInvalidatesRedo() {
         UUID player = UUID.randomUUID();
         JourneyResearchData research = new JourneyResearchData();
