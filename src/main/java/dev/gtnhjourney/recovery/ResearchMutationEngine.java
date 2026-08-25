@@ -32,13 +32,17 @@ public final class ResearchMutationEngine {
     public boolean deleteExact(ResearchKey key, String description) {
         ResearchEntrySnapshot removed = research.removeEntry(playerId, key);
         if (removed == null) return false;
+        long id = nextId();
+        long timestamp = System.currentTimeMillis();
+        recovery.appendDeletion(playerId, new DeletionRecord(id, timestamp, removed, true));
         record(
             new ResearchTransaction(
-                nextId(),
-                System.currentTimeMillis(),
+                id,
+                timestamp,
                 description,
                 Collections.<ResearchEntrySnapshot>emptyList(),
-                Collections.singletonList(removed)));
+                Collections.singletonList(removed),
+                Collections.singletonList(new DeletionStateChange(id, true))));
         return true;
     }
 
@@ -76,6 +80,34 @@ public final class ResearchMutationEngine {
         return true;
     }
 
+    public int restoreDeleted(int count) {
+        List<DeletionRecord> records = recovery.newestActiveDeletions(playerId, Math.max(1, Math.min(1000, count)));
+        if (records.isEmpty()) return 0;
+        List<ResearchEntrySnapshot> restored = new ArrayList<ResearchEntrySnapshot>();
+        List<DeletionStateChange> changes = new ArrayList<DeletionStateChange>();
+        for (DeletionRecord record : records) {
+            ResearchEntrySnapshot entry = record.entry();
+            if (research.registry(playerId).contains(entry.key())) {
+                recovery.setDeletionActive(playerId, record.id(), false);
+                continue;
+            }
+            if (!research.restoreEntry(playerId, entry)) continue;
+            recovery.setDeletionActive(playerId, record.id(), false);
+            restored.add(entry);
+            changes.add(new DeletionStateChange(record.id(), false));
+        }
+        if (restored.isEmpty()) return 0;
+        record(
+            new ResearchTransaction(
+                nextId(),
+                System.currentTimeMillis(),
+                "Restore deleted " + restored.size(),
+                restored,
+                Collections.<ResearchEntrySnapshot>emptyList(),
+                changes));
+        return restored.size();
+    }
+
     public int undo(int count) {
         int requested = clampCount(count);
         int applied = 0;
@@ -106,6 +138,11 @@ public final class ResearchMutationEngine {
         recovery.clearRedo(playerId);
     }
 
+    public void notePassivePresent(ResearchKey key) {
+        recovery.clearRedo(playerId);
+        if (key != null) recovery.markDeletionInactiveForPresentKey(playerId, key);
+    }
+
     private void record(ResearchTransaction transaction) {
         if (transaction == null || transaction.isEmpty()) return;
         recovery.clearRedo(playerId);
@@ -115,11 +152,22 @@ public final class ResearchMutationEngine {
     private void applyForward(ResearchTransaction transaction) {
         removeEntries(transaction.removed());
         restoreEntries(transaction.added());
+        applyDeletionChanges(transaction.deletionChanges(), true);
     }
 
     private void applyReverse(ResearchTransaction transaction) {
         removeEntries(transaction.added());
         restoreEntries(transaction.removed());
+        applyDeletionChanges(transaction.deletionChanges(), false);
+    }
+
+    private void applyDeletionChanges(List<DeletionStateChange> changes, boolean forward) {
+        if (changes == null) return;
+        for (DeletionStateChange change : changes) {
+            if (change == null) continue;
+            boolean active = forward ? change.activeAfterForward() : !change.activeAfterForward();
+            recovery.setDeletionActive(playerId, change.deletionId(), active);
+        }
     }
 
     private void removeEntries(List<ResearchEntrySnapshot> entries) {

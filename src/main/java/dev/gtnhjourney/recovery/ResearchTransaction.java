@@ -12,6 +12,7 @@ public final class ResearchTransaction {
     private final String description;
     private final List<ResearchEntrySnapshot> added;
     private final List<ResearchEntrySnapshot> removed;
+    private final List<DeletionStateChange> deletionChanges;
 
     public ResearchTransaction(
         long id,
@@ -19,11 +20,22 @@ public final class ResearchTransaction {
         String description,
         List<ResearchEntrySnapshot> added,
         List<ResearchEntrySnapshot> removed) {
+        this(id, timestamp, description, added, removed, Collections.<DeletionStateChange>emptyList());
+    }
+
+    public ResearchTransaction(
+        long id,
+        long timestamp,
+        String description,
+        List<ResearchEntrySnapshot> added,
+        List<ResearchEntrySnapshot> removed,
+        List<DeletionStateChange> deletionChanges) {
         this.id = id;
         this.timestamp = timestamp;
         this.description = description == null ? "" : description;
         this.added = copyEntries(added);
         this.removed = copyEntries(removed);
+        this.deletionChanges = copyDeletionChanges(deletionChanges);
     }
 
     public long id() {
@@ -46,8 +58,12 @@ public final class ResearchTransaction {
         return removed;
     }
 
+    public List<DeletionStateChange> deletionChanges() {
+        return deletionChanges;
+    }
+
     public boolean isEmpty() {
-        return added.isEmpty() && removed.isEmpty();
+        return added.isEmpty() && removed.isEmpty() && deletionChanges.isEmpty();
     }
 
     private static List<ResearchEntrySnapshot> copyEntries(List<ResearchEntrySnapshot> source) {
@@ -57,6 +73,16 @@ public final class ResearchTransaction {
                 if (entry != null) {
                     copy.add(new ResearchEntrySnapshot(entry.key(), entry.template(), entry.timelineIndex()));
                 }
+            }
+        }
+        return Collections.unmodifiableList(copy);
+    }
+
+    private static List<DeletionStateChange> copyDeletionChanges(List<DeletionStateChange> source) {
+        List<DeletionStateChange> copy = new ArrayList<DeletionStateChange>();
+        if (source != null) {
+            for (DeletionStateChange change : source) {
+                if (change != null) copy.add(new DeletionStateChange(change.deletionId(), change.activeAfterForward()));
             }
         }
         return Collections.unmodifiableList(copy);

@@ -33,7 +33,7 @@ public final class ResearchObservationService {
         }
 
         List<ItemStack> unlocked = research.unlockStates(player, observed);
-        if (!unlocked.isEmpty() && mutations != null) mutations.notePassiveMutation(player);
+        if (!unlocked.isEmpty() && mutations != null) mutations.notePassiveMutation(player, unlocked);
         for (ItemStack endpoint : unlocked) {
             ResearchTrace.unlocked(player, endpoint);
             try {

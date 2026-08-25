@@ -11,6 +11,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
 import net.minecraftforge.common.DimensionManager;
 
+import dev.gtnhjourney.minecraft.ItemStackKeyFactory;
 import dev.gtnhjourney.persistence.JourneyRecoveryData;
 import dev.gtnhjourney.persistence.JourneyResearchData;
 import dev.gtnhjourney.research.ResearchKey;
@@ -30,8 +31,27 @@ public final class JourneyMutationService {
         return engine(player).redo(count);
     }
 
+    public int restoreDeleted(EntityPlayerMP player, int count) {
+        return engine(player).restoreDeleted(count);
+    }
+
     public void notePassiveMutation(EntityPlayerMP player) {
         if (player != null) engine(player).notePassiveMutation();
+    }
+
+    public void notePassiveMutation(EntityPlayerMP player, List<ItemStack> newlyUnlocked) {
+        if (player == null) return;
+        ResearchMutationEngine engine = engine(player);
+        engine.notePassiveMutation();
+        if (newlyUnlocked == null) return;
+        for (ItemStack stack : newlyUnlocked) {
+            if (stack == null || stack.getItem() == null) continue;
+            try {
+                engine.notePassivePresent(ItemStackKeyFactory.from(stack));
+            } catch (IllegalArgumentException ignored) {
+                // A malformed presentation endpoint must not break passive research acquisition.
+            }
+        }
     }
 
     /**
@@ -62,7 +82,9 @@ public final class JourneyMutationService {
             if (!beforeKeys.contains(entry.key())) added.add(entry);
         }
         if (added.isEmpty()) return 0;
-        engine(player).recordApplied(added, java.util.Collections.<ResearchEntrySnapshot>emptyList(), description);
+        ResearchMutationEngine engine = engine(player);
+        for (ResearchEntrySnapshot entry : added) engine.notePassivePresent(entry.key());
+        engine.recordApplied(added, java.util.Collections.<ResearchEntrySnapshot>emptyList(), description);
         return added.size();
     }
 
@@ -74,6 +96,16 @@ public final class JourneyMutationService {
     public int redoDepth(EntityPlayerMP player) {
         if (player == null) return 0;
         return recoveryData(player).redoDepth(player.getUniqueID());
+    }
+
+    public int activeDeletionCount(EntityPlayerMP player) {
+        if (player == null) return 0;
+        return recoveryData(player).activeDeletionCount(player.getUniqueID());
+    }
+
+    public int deletionCount(EntityPlayerMP player) {
+        if (player == null) return 0;
+        return recoveryData(player).deletionCount(player.getUniqueID());
     }
 
     private ResearchMutationEngine engine(EntityPlayerMP player) {
