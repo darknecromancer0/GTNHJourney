@@ -50,6 +50,13 @@ final class JourneyPresentationKeyResolver {
         nextMarker = 1;
     }
 
+    static synchronized boolean isPresentation(ItemStack stack) {
+        if (stack == null || stack.getItem() == null) return false;
+        if (presentationKeys.containsKey(stack)) return true;
+        if (!stack.hasTagCompound() || !stack.getTagCompound().hasKey(MARKER, 3)) return false;
+        return markerKeys.containsKey(Integer.valueOf(stack.getTagCompound().getInteger(MARKER)));
+    }
+
     static ResearchKey keyOf(ItemStack stack) {
         if (stack == null || stack.getItem() == null) throw new IllegalArgumentException("stack and item must not be null");
         synchronized (JourneyPresentationKeyResolver.class) {
