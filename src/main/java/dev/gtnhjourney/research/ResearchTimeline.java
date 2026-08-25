@@ -17,6 +17,17 @@ public final class ResearchTimeline {
         return oldestFirst.add(key);
     }
 
+    /** Reinserts a missing key at an exact recovery position, clamped to the current list bounds. */
+    public boolean insertAt(ResearchKey key, int index) {
+        if (key == null) throw new IllegalArgumentException("key must not be null");
+        if (oldestFirst.contains(key)) return false;
+        List<ResearchKey> ordered = new ArrayList<ResearchKey>(oldestFirst);
+        int insertion = Math.max(0, Math.min(index, ordered.size()));
+        ordered.add(insertion, key);
+        restore(ordered);
+        return true;
+    }
+
     public void restore(Collection<ResearchKey> keys) {
         oldestFirst.clear();
         if (keys == null) return;
