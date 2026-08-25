@@ -30,7 +30,7 @@ import dev.gtnhjourney.research.ResearchTimeline;
 public final class JourneyResearchData extends WorldSavedData {
 
     public static final String DATA_NAME = "gtnhjourney_research";
-    private static final int DATA_VERSION = 7;
+    private static final int DATA_VERSION = 8;
 
     private final PlayerResearchStore research = new PlayerResearchStore();
     private final Map<UUID, Map<ResearchKey, NBTTagCompound>> templates = new LinkedHashMap<UUID, Map<ResearchKey, NBTTagCompound>>();
@@ -180,6 +180,8 @@ public final class JourneyResearchData extends WorldSavedData {
         return stacksForKeys(playerId, timeline(playerId).snapshotNewest(limit));
     }
 
+    /** @deprecated explicit recovery commands now use JourneyMutationService transactions. */
+    @Deprecated
     public boolean forget(UUID playerId, ResearchKey key) {
         if (playerId == null || key == null) return false;
         ResearchRegistry registry = research.forPlayer(playerId);
@@ -200,6 +202,8 @@ public final class JourneyResearchData extends WorldSavedData {
         return true;
     }
 
+    /** @deprecated explicit recovery commands now use JourneyMutationService transactions. */
+    @Deprecated
     public int clear(UUID playerId) {
         ResearchRegistry registry = research.forPlayer(playerId);
         int previous = registry.size();
@@ -212,6 +216,8 @@ public final class JourneyResearchData extends WorldSavedData {
         return previous;
     }
 
+    /** @deprecated legacy one-shot undo remains session-only for compatibility and is no longer persisted. */
+    @Deprecated
     public int undo(UUID playerId) {
         if (playerId == null) return 0;
         PlayerResearchBackup backup = undoBackups.remove(playerId);
@@ -228,11 +234,15 @@ public final class JourneyResearchData extends WorldSavedData {
         return keys.size();
     }
 
+    /** @deprecated legacy one-shot undo remains session-only for compatibility and is no longer persisted. */
+    @Deprecated
     public int undoSize(UUID playerId) {
         PlayerResearchBackup backup = undoBackups.get(playerId);
         return backup == null ? 0 : backup.size();
     }
 
+    /** @deprecated explicit recovery commands now use JourneyMutationService transactions. */
+    @Deprecated
     public int pruneUnavailable(UUID playerId) {
         if (playerId == null) return 0;
         List<ResearchKey> keys = research.forPlayer(playerId)
@@ -303,38 +313,9 @@ public final class JourneyResearchData extends WorldSavedData {
             timeline(playerId).restore(keys);
         }
 
-        NBTTagList undoPlayers = root.getTagList("UndoPlayers", 10);
-        for (int i = 0; i < undoPlayers.tagCount(); i++) {
-            NBTTagCompound playerTag = undoPlayers.getCompoundTagAt(i);
-            UUID playerId = new UUID(playerTag.getLong("UuidMost"), playerTag.getLong("UuidLeast"));
-            NBTTagList entries = playerTag.getTagList("Entries", 10);
-            List<ResearchKey> keys = new ArrayList<ResearchKey>();
-            Map<ResearchKey, NBTTagCompound> backupTemplates = new LinkedHashMap<ResearchKey, NBTTagCompound>();
-            for (int j = 0; j < entries.tagCount(); j++) {
-                NBTTagCompound entry = entries.getCompoundTagAt(j);
-                String itemId = entry.getString("ItemId");
-                NBTTagCompound persistedTemplate = entry.hasKey("Tag", 10) ? entry.getCompoundTag("Tag") : null;
-                int persistedMeta = entry.getInteger("Meta");
-                String persistedCanonical = entry.getString("CanonicalNbt");
-                PersistedResearchEntryResolver.ResolvedEntry resolved = PersistedResearchEntryResolver
-                    .resolveEntry(itemId, persistedMeta, persistedCanonical, persistedTemplate);
-                if (resolved == null) {
-                    migrated = true;
-                    continue;
-                }
-                ResearchKey key = resolved.key();
-                NBTTagCompound template = resolved.template();
-                if (key.getMeta() != persistedMeta || !key.getCanonicalNbt()
-                    .equals(persistedCanonical) || !sameTemplate(persistedTemplate, template)) migrated = true;
-                if (backupTemplates.containsKey(key)) {
-                    migrated = true;
-                    continue;
-                }
-                keys.add(key);
-                backupTemplates.put(key, template);
-            }
-            if (!keys.isEmpty()) undoBackups.put(playerId, new PlayerResearchBackup(keys, backupTemplates));
-        }
+        // v7 and older may contain a one-shot UndoPlayers backup. Research lives in Players, so the obsolete backup can
+        // be discarded safely once the primary entries above are loaded. New recovery state is stored separately.
+        if (root.hasKey("UndoPlayers", 9)) migrated = true;
         if (migrated) markDirty();
     }
 
@@ -363,30 +344,6 @@ public final class JourneyResearchData extends WorldSavedData {
             players.appendTag(playerTag);
         }
         root.setTag("Players", players);
-
-        NBTTagList undoPlayers = new NBTTagList();
-        for (Map.Entry<UUID, PlayerResearchBackup> backupEntry : undoBackups.entrySet()) {
-            UUID playerId = backupEntry.getKey();
-            PlayerResearchBackup backup = backupEntry.getValue();
-            if (backup == null || backup.size() == 0) continue;
-            NBTTagCompound playerTag = new NBTTagCompound();
-            playerTag.setLong("UuidMost", playerId.getMostSignificantBits());
-            playerTag.setLong("UuidLeast", playerId.getLeastSignificantBits());
-            NBTTagList entries = new NBTTagList();
-            Map<ResearchKey, NBTTagCompound> backupTemplates = backup.templateCopies();
-            for (ResearchKey key : backup.keys()) {
-                NBTTagCompound entry = new NBTTagCompound();
-                entry.setString("ItemId", key.getItemId());
-                entry.setInteger("Meta", key.getMeta());
-                entry.setString("CanonicalNbt", key.getCanonicalNbt());
-                NBTTagCompound tag = backupTemplates.get(key);
-                if (tag != null) entry.setTag("Tag", tag.copy());
-                entries.appendTag(entry);
-            }
-            playerTag.setTag("Entries", entries);
-            undoPlayers.appendTag(playerTag);
-        }
-        root.setTag("UndoPlayers", undoPlayers);
     }
 
     private void saveUndoSnapshot(UUID playerId) {
