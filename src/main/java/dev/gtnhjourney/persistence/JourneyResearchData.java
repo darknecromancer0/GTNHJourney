@@ -20,6 +20,8 @@ import dev.gtnhjourney.minecraft.NbtCanonicalizer;
 import dev.gtnhjourney.minecraft.PersistedResearchEntryResolver;
 import dev.gtnhjourney.minecraft.ResearchStateExpander;
 import dev.gtnhjourney.minecraft.ResearchTemplateNormalizer;
+import dev.gtnhjourney.recovery.ResearchEntrySnapshot;
+import dev.gtnhjourney.recovery.ResearchStateSnapshot;
 import dev.gtnhjourney.research.ResearchKey;
 import dev.gtnhjourney.research.ResearchRegistry;
 import dev.gtnhjourney.research.ResearchTimeline;
@@ -116,8 +118,62 @@ public final class JourneyResearchData extends WorldSavedData {
         return timeline(playerId).snapshotNewest(limit);
     }
 
+    public List<ResearchKey> snapshotInUnlockOrder(UUID playerId) {
+        List<ResearchKey> ordered = timeline(playerId).snapshotOldestFirst();
+        if (!ordered.isEmpty() || research.forPlayer(playerId).size() == 0) return ordered;
+        return research.forPlayer(playerId).snapshot();
+    }
+
+    public ResearchStateSnapshot captureState(UUID playerId) {
+        if (playerId == null) throw new IllegalArgumentException("playerId must not be null");
+        List<ResearchKey> ordered = snapshotInUnlockOrder(playerId);
+        List<ResearchEntrySnapshot> entries = new ArrayList<ResearchEntrySnapshot>(ordered.size());
+        for (int i = 0; i < ordered.size(); i++) {
+            ResearchKey key = ordered.get(i);
+            entries.add(new ResearchEntrySnapshot(key, rawTemplate(playerId, key), i));
+        }
+        return new ResearchStateSnapshot(entries);
+    }
+
+    /** Removes one exact entry without touching the legacy one-shot undo backup. */
+    public ResearchEntrySnapshot removeEntry(UUID playerId, ResearchKey key) {
+        if (playerId == null || key == null) return null;
+        ResearchRegistry registry = research.forPlayer(playerId);
+        if (!registry.contains(key)) return null;
+        List<ResearchKey> ordered = snapshotInUnlockOrder(playerId);
+        int index = ordered.indexOf(key);
+        if (index < 0) index = Math.max(0, ordered.size() - 1);
+        ResearchEntrySnapshot removed = new ResearchEntrySnapshot(key, rawTemplate(playerId, key), index);
+        if (!registry.remove(key)) return null;
+        Map<ResearchKey, NBTTagCompound> playerTemplates = templates.get(playerId);
+        if (playerTemplates != null) {
+            playerTemplates.remove(key);
+            if (playerTemplates.isEmpty()) templates.remove(playerId);
+        }
+        ResearchTimeline playerTimeline = timelines.get(playerId);
+        if (playerTimeline != null) {
+            playerTimeline.remove(key);
+            if (playerTimeline.size() == 0) timelines.remove(playerId);
+        }
+        markDirty();
+        return removed;
+    }
+
+    /** Restores one exact entry at its recorded chronology position. Existing entries are left untouched. */
+    public boolean restoreEntry(UUID playerId, ResearchEntrySnapshot entry) {
+        if (playerId == null || entry == null) return false;
+        ResearchRegistry registry = research.forPlayer(playerId);
+        ResearchKey key = entry.key();
+        if (registry.contains(key)) return false;
+        if (!registry.unlock(key)) return false;
+        templateMap(playerId).put(key, entry.template());
+        timeline(playerId).insertAt(key, entry.timelineIndex());
+        markDirty();
+        return true;
+    }
+
     public List<ItemStack> snapshotStacksInUnlockOrder(UUID playerId) {
-        return stacksForKeys(playerId, timeline(playerId).snapshotOldestFirst());
+        return stacksForKeys(playerId, snapshotInUnlockOrder(playerId));
     }
 
     public List<ItemStack> snapshotNewestStacks(UUID playerId, int limit) {
@@ -293,12 +349,7 @@ public final class JourneyResearchData extends WorldSavedData {
             playerTag.setLong("UuidLeast", playerId.getLeastSignificantBits());
             NBTTagList entries = new NBTTagList();
 
-            List<ResearchKey> persistedOrder = timeline(playerId).snapshotOldestFirst();
-            if (persistedOrder.isEmpty() && research.forPlayer(playerId)
-                .size() > 0) {
-                persistedOrder = research.forPlayer(playerId)
-                    .snapshot();
-            }
+            List<ResearchKey> persistedOrder = snapshotInUnlockOrder(playerId);
             for (ResearchKey key : persistedOrder) {
                 NBTTagCompound entry = new NBTTagCompound();
                 entry.setString("ItemId", key.getItemId());
@@ -339,9 +390,7 @@ public final class JourneyResearchData extends WorldSavedData {
     }
 
     private void saveUndoSnapshot(UUID playerId) {
-        List<ResearchKey> keys = timeline(playerId).snapshotOldestFirst();
-        if (keys.isEmpty()) keys = research.forPlayer(playerId)
-            .snapshot();
+        List<ResearchKey> keys = snapshotInUnlockOrder(playerId);
         Map<ResearchKey, NBTTagCompound> currentTemplates = templates.get(playerId);
         undoBackups.put(playerId, new PlayerResearchBackup(keys, currentTemplates));
         markDirty();
