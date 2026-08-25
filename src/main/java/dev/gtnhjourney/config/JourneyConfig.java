@@ -9,7 +9,7 @@ import dev.gtnhjourney.minecraft.ResearchCompatibilityOptions;
 /** Small common config. Security hard limits intentionally remain compile-time constants. */
 public final class JourneyConfig {
 
-    private static volatile int inventoryScanIntervalTicks = 2;
+    private static volatile int inventoryScanIntervalTicks = 20;
     private static volatile int newestLimit = 64;
     private static volatile int inventoryFullRescanIntervalTicks = 200;
     private static volatile boolean normalizeGtTransientIdentity = true;
@@ -28,10 +28,10 @@ public final class JourneyConfig {
             inventoryScanIntervalTicks = config.getInt(
                 "inventoryScanIntervalTicks",
                 "research",
-                2,
+                20,
                 1,
                 40,
-                "How often the server validates real player inventories for newly obtained states. 20 ticks = 1 second.");
+                "How often the server performs the fallback validation of real player inventories. 20 ticks = 1 second.");
             newestLimit = config.getInt(
                 "newestLimit",
                 "client",
