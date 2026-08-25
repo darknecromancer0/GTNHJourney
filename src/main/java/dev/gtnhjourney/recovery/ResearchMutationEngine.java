@@ -3,7 +3,11 @@ package dev.gtnhjourney.recovery;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -47,6 +51,42 @@ public final class ResearchMutationEngine {
                 Collections.singletonList(removed),
                 Collections.singletonList(new DeletionStateChange(id, true))));
         return true;
+    }
+
+    /** Removes many exact states but records the whole destructive action as one reversible transaction. */
+    public int deleteKeys(List<ResearchKey> keys, String description) {
+        if (keys == null || keys.isEmpty()) return 0;
+
+        ResearchStateSnapshot before = research.captureState(playerId);
+        Map<ResearchKey, ResearchEntrySnapshot> original = new LinkedHashMap<ResearchKey, ResearchEntrySnapshot>();
+        for (ResearchEntrySnapshot entry : before.entries()) original.put(entry.key(), entry);
+
+        Set<ResearchKey> unique = new LinkedHashSet<ResearchKey>();
+        for (ResearchKey key : keys) if (key != null) unique.add(key);
+        List<ResearchEntrySnapshot> removed = new ArrayList<ResearchEntrySnapshot>();
+        List<DeletionStateChange> changes = new ArrayList<DeletionStateChange>();
+        long timestamp = System.currentTimeMillis();
+
+        for (ResearchKey key : unique) {
+            ResearchEntrySnapshot snapshot = original.get(key);
+            if (snapshot == null) continue;
+            if (research.removeEntry(playerId, key) == null) continue;
+            long deletionId = nextId();
+            recovery.appendDeletion(playerId, new DeletionRecord(deletionId, timestamp, snapshot, true));
+            removed.add(snapshot);
+            changes.add(new DeletionStateChange(deletionId, true));
+        }
+        if (removed.isEmpty()) return 0;
+
+        record(
+            new ResearchTransaction(
+                nextId(),
+                timestamp,
+                description,
+                Collections.<ResearchEntrySnapshot>emptyList(),
+                removed,
+                changes));
+        return removed.size();
     }
 
     public int addEntries(List<ResearchEntrySnapshot> entries, String description) {
@@ -222,7 +262,7 @@ public final class ResearchMutationEngine {
         return ordered;
     }
 
-    private static boolean sameState(ResearchStateSnapshot left, ResearchStateSnapshot right) {
+    static boolean sameState(ResearchStateSnapshot left, ResearchStateSnapshot right) {
         if (left == right) return true;
         if (left == null || right == null || left.size() != right.size()) return false;
         List<ResearchEntrySnapshot> leftEntries = left.entries();

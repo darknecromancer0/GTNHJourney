@@ -1,6 +1,8 @@
 package dev.gtnhjourney.recovery;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -14,6 +16,7 @@ import net.minecraftforge.common.DimensionManager;
 import dev.gtnhjourney.minecraft.ItemStackKeyFactory;
 import dev.gtnhjourney.persistence.JourneyRecoveryData;
 import dev.gtnhjourney.persistence.JourneyResearchData;
+import dev.gtnhjourney.persistence.JourneySnapshotData;
 import dev.gtnhjourney.research.ResearchKey;
 
 /** Server-authoritative facade for explicit Journey mutations and recovery actions. */
@@ -21,6 +24,11 @@ public final class JourneyMutationService {
 
     public boolean deleteExact(EntityPlayerMP player, ResearchKey key, String description) {
         return engine(player).deleteExact(key, description);
+    }
+
+    public int deleteMany(EntityPlayerMP player, List<ResearchKey> keys, String description) {
+        if (player == null || keys == null || keys.isEmpty()) return 0;
+        return engine(player).deleteKeys(keys, description);
     }
 
     public int undo(EntityPlayerMP player, int count) {
@@ -33,6 +41,59 @@ public final class JourneyMutationService {
 
     public int restoreDeleted(EntityPlayerMP player, int count) {
         return engine(player).restoreDeleted(count);
+    }
+
+    public JourneySnapshot createManualSnapshot(EntityPlayerMP player, String name) {
+        if (player == null) return null;
+        World root = rootWorld(player);
+        JourneyResearchData research = JourneyResearchData.get(root);
+        JourneySnapshotService snapshots = new JourneySnapshotService(JourneySnapshotData.get(root));
+        return snapshots.createManual(
+            player.getUniqueID(),
+            name,
+            root.getTotalWorldTime(),
+            research.captureState(player.getUniqueID()));
+    }
+
+    public List<JourneySnapshot> snapshots(EntityPlayerMP player) {
+        if (player == null) return Collections.emptyList();
+        JourneySnapshotData data = snapshotData(player);
+        UUID playerId = player.getUniqueID();
+        List<JourneySnapshot> combined = new ArrayList<JourneySnapshot>();
+        combined.addAll(data.rotatingSnapshots(playerId));
+        combined.addAll(data.manualSnapshots(playerId));
+        Collections.sort(combined, new Comparator<JourneySnapshot>() {
+
+            @Override
+            public int compare(JourneySnapshot left, JourneySnapshot right) {
+                return Long.compare(right.id(), left.id());
+            }
+        });
+        return Collections.unmodifiableList(combined);
+    }
+
+    public JourneySnapshot findSnapshot(EntityPlayerMP player, String idOrName) {
+        if (player == null || idOrName == null || idOrName.isEmpty()) return null;
+        return snapshotData(player).find(player.getUniqueID(), idOrName);
+    }
+
+    /** Validates the target first, creates a safety snapshot, then applies the full replacement as one transaction. */
+    public boolean restoreSnapshot(EntityPlayerMP player, JourneySnapshot target) {
+        if (player == null || target == null) return false;
+        World root = rootWorld(player);
+        UUID playerId = player.getUniqueID();
+        JourneyResearchData research = JourneyResearchData.get(root);
+        ResearchStateSnapshot before = research.captureState(playerId);
+        if (ResearchMutationEngine.sameState(before, target.state())) return false;
+
+        JourneySnapshotService snapshots = new JourneySnapshotService(JourneySnapshotData.get(root));
+        snapshots.createSafety(
+            playerId,
+            "before-restore-" + target.id(),
+            root.getTotalWorldTime(),
+            before);
+        engine(player).replaceState(target.state(), "Restore snapshot " + target.id());
+        return ResearchMutationEngine.sameState(research.captureState(playerId), target.state());
     }
 
     public void notePassiveMutation(EntityPlayerMP player) {
@@ -84,7 +145,7 @@ public final class JourneyMutationService {
         if (added.isEmpty()) return 0;
         ResearchMutationEngine engine = engine(player);
         for (ResearchEntrySnapshot entry : added) engine.notePassivePresent(entry.key());
-        engine.recordApplied(added, java.util.Collections.<ResearchEntrySnapshot>emptyList(), description);
+        engine.recordApplied(added, Collections.<ResearchEntrySnapshot>emptyList(), description);
         return added.size();
     }
 
@@ -119,6 +180,10 @@ public final class JourneyMutationService {
 
     private static JourneyRecoveryData recoveryData(EntityPlayerMP player) {
         return JourneyRecoveryData.get(rootWorld(player));
+    }
+
+    private static JourneySnapshotData snapshotData(EntityPlayerMP player) {
+        return JourneySnapshotData.get(rootWorld(player));
     }
 
     private static World rootWorld(EntityPlayerMP player) {
