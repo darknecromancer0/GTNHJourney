@@ -1,0 +1,22 @@
+package dev.gtnhjourney.nei;
+
+/** Pure decision table for Journey panel ownership and normal NEI restoration. */
+final class JourneyRefreshDecision {
+
+    enum Action {
+        PANEL_REFRESH,
+        PANEL_ENSURE,
+        NEI_FILTER_REFRESH,
+        NONE
+    }
+
+    private JourneyRefreshDecision() {}
+
+    static Action decide(JourneyViewState.Mode mode, boolean researchChanged, boolean viewChanged) {
+        JourneyViewState.Mode effective = mode == null ? JourneyViewState.Mode.ALL : mode;
+        if (effective != JourneyViewState.Mode.ALL) {
+            return researchChanged || viewChanged ? Action.PANEL_REFRESH : Action.PANEL_ENSURE;
+        }
+        return viewChanged ? Action.NEI_FILTER_REFRESH : Action.NONE;
+    }
+}
