@@ -21,9 +21,16 @@ public final class JourneyRecoveryDiagnostics {
         JourneySnapshotData snapshots,
         JourneySnapshotService snapshotService,
         UUID playerId) {
-        if (recovery == null || snapshots == null || snapshotService == null || playerId == null) {
-            return Snapshot.empty();
-        }
+        if (snapshotService == null) return Snapshot.empty();
+        return capture(recovery, snapshots, snapshotService.skippedSuspiciousSnapshots(), playerId);
+    }
+
+    public static Snapshot capture(
+        JourneyRecoveryData recovery,
+        JourneySnapshotData snapshots,
+        long skippedSuspiciousSnapshots,
+        UUID playerId) {
+        if (recovery == null || snapshots == null || playerId == null) return Snapshot.empty();
 
         NBTTagCompound serializedRecovery = new NBTTagCompound();
         recovery.writeToNBT(serializedRecovery);
@@ -42,7 +49,7 @@ public final class JourneyRecoveryDiagnostics {
             manual.size(),
             latest == null ? "" : latest.name(),
             transactions.latestDescription,
-            snapshotService.skippedSuspiciousSnapshots());
+            skippedSuspiciousSnapshots);
     }
 
     private static TransactionView findTransactions(NBTTagCompound root, UUID playerId) {
