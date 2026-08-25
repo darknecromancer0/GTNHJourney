@@ -71,4 +71,16 @@ public class JourneyRecoveryDiagnosticsTest {
         assertEquals(1, recovery.undoDepth(player));
         assertEquals(1, recovery.redoDepth(player));
     }
+
+    @Test
+    public void captureAcceptsLongLivedRuntimeSkipCounter() {
+        UUID player = UUID.randomUUID();
+        JourneyRecoveryDiagnostics.Snapshot diagnostic = JourneyRecoveryDiagnostics.capture(
+            new JourneyRecoveryData(),
+            new JourneySnapshotData(),
+            7L,
+            player);
+
+        assertEquals(7L, diagnostic.getSkippedSuspiciousSnapshots());
+    }
 }
