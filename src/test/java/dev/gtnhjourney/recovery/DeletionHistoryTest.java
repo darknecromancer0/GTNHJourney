@@ -12,6 +12,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import org.junit.jupiter.api.Test;
 
 import dev.gtnhjourney.persistence.JourneyRecoveryData;
+import dev.gtnhjourney.persistence.JourneyResearchData;
 import dev.gtnhjourney.research.ResearchKey;
 
 public class DeletionHistoryTest {
@@ -37,6 +38,32 @@ public class DeletionHistoryTest {
         assertFalse(data.newestActiveDeletions(player, 10).get(0).entry().key().equals(glass.key()));
         assertTrue(data.markNewestDeletionActiveForAbsentKey(player, glass.key()));
         assertEquals(glass.key(), data.newestActiveDeletions(player, 1).get(0).entry().key());
+    }
+
+    @Test
+    public void deleteUndoRedoAndRestoreDeletedKeepHistoryCoherent() {
+        UUID player = UUID.randomUUID();
+        JourneyResearchData research = new JourneyResearchData();
+        JourneyRecoveryData recovery = new JourneyRecoveryData();
+        ResearchEntrySnapshot stone = entry("minecraft:stone", 0);
+        research.restoreEntry(player, stone);
+        ResearchMutationEngine engine = new ResearchMutationEngine(research, recovery, player);
+
+        assertTrue(engine.deleteExact(stone.key(), "D delete"));
+        assertEquals(1, recovery.activeDeletionCount(player));
+
+        assertEquals(1, engine.undo(1));
+        assertEquals(0, recovery.activeDeletionCount(player));
+
+        assertEquals(1, engine.redo(1));
+        assertEquals(1, recovery.activeDeletionCount(player));
+
+        assertEquals(1, engine.restoreDeleted(1));
+        assertEquals(0, recovery.activeDeletionCount(player));
+        assertEquals(1, engine.undo(1));
+        assertEquals(1, recovery.activeDeletionCount(player));
+        assertEquals(1, engine.redo(1));
+        assertEquals(0, recovery.activeDeletionCount(player));
     }
 
     @Test
