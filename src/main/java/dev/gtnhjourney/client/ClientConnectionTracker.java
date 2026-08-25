@@ -4,6 +4,7 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.network.FMLNetworkEvent.ClientConnectedToServerEvent;
 import cpw.mods.fml.common.network.FMLNetworkEvent.ClientDisconnectionFromServerEvent;
 import dev.gtnhjourney.config.JourneyConfig;
+import dev.gtnhjourney.diagnostics.JourneyRuntimeCounters;
 import dev.gtnhjourney.minecraft.ResearchCompatibilityOptions;
 import dev.gtnhjourney.nei.JourneyNEIRefreshTracker;
 import dev.gtnhjourney.nei.JourneyViewState;
@@ -35,6 +36,7 @@ public final class ClientConnectionTracker {
 
     private static void resetClientSessionState() {
         ClientStackMirror.clear();
+        JourneyRuntimeCounters.reset();
         JourneyViewState.setMode(JourneyViewState.Mode.ALL);
         JourneyNEIRefreshTracker.resetJourneyPanel();
         // Remote server identity rules are client-only session state. Restore local config so a later integrated
