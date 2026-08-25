@@ -19,6 +19,7 @@ import dev.gtnhjourney.network.ServerRequestQueue;
 import dev.gtnhjourney.network.ServerResearchSyncQueue;
 import dev.gtnhjourney.persistence.PlayerResearchService;
 import dev.gtnhjourney.recovery.JourneyMutationService;
+import dev.gtnhjourney.recovery.JourneySnapshotTicker;
 
 @Mod(
     modid = GTNHJourney.MODID,
@@ -34,6 +35,7 @@ public final class GTNHJourney {
     public static final String TARGET_GTNH = "2.9.0-beta-2";
     public static final String TARGET_NEI = "2.8.111-GTNH";
     public static final PlayerResearchService RESEARCH = new PlayerResearchService();
+    public static final JourneySnapshotTicker SNAPSHOT_TICKER = new JourneySnapshotTicker();
     public static JourneyMutationService MUTATIONS;
 
     @SidedProxy(clientSide = "dev.gtnhjourney.ClientProxy", serverSide = "dev.gtnhjourney.CommonProxy")
@@ -65,6 +67,9 @@ public final class GTNHJourney {
         FMLCommonHandler.instance()
             .bus()
             .register(new ServerResearchSyncQueue());
+        FMLCommonHandler.instance()
+            .bus()
+            .register(SNAPSHOT_TICKER);
     }
 
     @EventHandler
@@ -88,6 +93,7 @@ public final class GTNHJourney {
         ServerResearchSyncQueue.clear();
         if (inventoryTracker != null) inventoryTracker.clearCaches();
         if (furnaceTracker != null) furnaceTracker.clear();
+        SNAPSHOT_TICKER.clear();
         dev.gtnhjourney.diagnostics.ResearchTrace.clear();
         dev.gtnhjourney.diagnostics.ResearchFailureLog.clear();
     }
