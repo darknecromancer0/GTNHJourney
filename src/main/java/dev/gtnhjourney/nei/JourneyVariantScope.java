@@ -14,8 +14,13 @@ public enum JourneyVariantScope {
         return NONE;
     }
 
-    /** Native BASE item/meta entries already exist in NEI; only exact NBT states need temporary Journey variants. */
+    /** Backwards-compatible policy: assume a blank-NBT BASE already exists natively in NEI. */
     public static boolean shouldInjectVariant(ResearchKey key) {
-        return key != null && !key.getCanonicalNbt().isEmpty();
+        return shouldInjectVariant(key, true);
+    }
+
+    /** Exact NBT states always need injection; blank-NBT states need it only when NEI lacks that exact item/meta state. */
+    public static boolean shouldInjectVariant(ResearchKey key, boolean nativeExactPresent) {
+        return key != null && (!key.getCanonicalNbt().isEmpty() || !nativeExactPresent);
     }
 }

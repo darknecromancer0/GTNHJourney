@@ -4,7 +4,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 
-/** Normalizes only verified transient GT generated-tool state in the template Journey will later recreate. */
+/** Normalizes only verified transient state in the template Journey will later recreate. */
 public final class ResearchTemplateNormalizer {
 
     private ResearchTemplateNormalizer() {}
@@ -26,17 +26,29 @@ public final class ResearchTemplateNormalizer {
         if (ResearchCompatibilityOptions.normalizeTconToolWear() && TconToolStatePolicy.isVerifiedTool(stack)) {
             NBTBase rawInfiTool = out.getTag("InfiTool");
             if (rawInfiTool instanceof NBTTagCompound) {
-                NBTTagCompound infiTool = (NBTTagCompound) rawInfiTool;
-                if (infiTool.hasKey("Damage")) infiTool.setInteger("Damage", 0);
-                if (infiTool.hasKey("Broken")) infiTool.setBoolean("Broken", false);
-                infiTool.removeTag("RenderBroken");
-                infiTool.removeTag("ToolEXP");
-                infiTool.removeTag("HeadEXP");
-                infiTool.removeTag("ExtraRedstone");
+                out.setTag("InfiTool", normalizeTconWearState((NBTTagCompound) rawInfiTool));
             }
         }
         return out.func_150296_c()
             .isEmpty() ? null : out;
+    }
+
+    /**
+     * Resets only TCon durability/render wear. Level, XP and modifiers are real tool state and must survive retrieval.
+     * Legacy pre5 templates that already lost XP counters are repaired to the safest valid zero-progress state.
+     */
+    static NBTTagCompound normalizeTconWearState(NBTTagCompound original) {
+        NBTTagCompound infiTool = original == null ? new NBTTagCompound() : (NBTTagCompound) original.copy();
+        if (infiTool.hasKey("Damage")) infiTool.setInteger("Damage", 0);
+        if (infiTool.hasKey("Broken")) infiTool.setBoolean("Broken", false);
+        infiTool.removeTag("RenderBroken");
+        if (infiTool.hasKey("ToolLevel") && infiTool.getInteger("ToolLevel") > 0 && !infiTool.hasKey("ToolEXP")) {
+            infiTool.setLong("ToolEXP", 0L);
+        }
+        if (infiTool.hasKey("HarvestLevelModified") && !infiTool.hasKey("HeadEXP")) {
+            infiTool.setLong("HeadEXP", 0L);
+        }
+        return infiTool;
     }
 
     /** Tag-only fallback is deliberately exact because the owning item class is unknown. */

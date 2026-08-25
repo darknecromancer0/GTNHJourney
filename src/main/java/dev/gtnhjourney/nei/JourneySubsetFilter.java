@@ -4,7 +4,6 @@ import net.minecraft.item.ItemStack;
 
 import codechicken.nei.api.ItemFilter;
 import dev.gtnhjourney.client.ClientResearchMirror;
-import dev.gtnhjourney.minecraft.ItemStackKeyFactory;
 
 /** NEI subset filter backed by the server-synchronized research mirror. */
 public final class JourneySubsetFilter implements ItemFilter {
@@ -13,7 +12,7 @@ public final class JourneySubsetFilter implements ItemFilter {
     public boolean matches(ItemStack item) {
         if (item == null || item.getItem() == null) return false;
         try {
-            return ClientResearchMirror.contains(ItemStackKeyFactory.from(item));
+            return ClientResearchMirror.contains(JourneyPresentationKeyResolver.keyOf(item));
         } catch (IllegalArgumentException ignored) {
             return false;
         }

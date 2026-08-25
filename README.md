@@ -1,6 +1,6 @@
 # GTNH Journey
 
-Current development version: `0.1.0-pre1`.
+Current development version: `0.1.0-pre6`.
 
 GT New Horizons 1.7.10 addon that automatically researches item states the player genuinely obtains and allows server-authoritative infinite retrieval through the existing NEI frontend.
 
@@ -19,7 +19,7 @@ GT New Horizons 1.7.10 addon that automatically researches item states the playe
 
 - Research belongs to a player UUID and is stored once per save in overworld `WorldSavedData`.
 - Real player inventory stacks are researched automatically.
-- Crafting and smelting trigger an immediate research attempt.
+- Crafting and smelting trigger an immediate research attempt; smelting also forces an immediate real-inventory revalidation so shift-click/merge paths do not wait for a later cached scan.
 - Pickups are *not* trusted as proof by themselves; the real server inventory scan validates them, avoiding cancelled/full-inventory ghost unlocks.
 - Periodic inventory validation includes main inventory, armor, cursor stack and optional Baubles-Expanded slots.
 - Installing Journey into an existing world imports the player's current real inventories before the first full client sync.
@@ -36,7 +36,10 @@ GT New Horizons 1.7.10 addon that automatically researches item states the playe
 - GT electric items use Journey endpoints: partial charge => BASE; verified max charge => BASE + FULL.
 - IC2 `IElectricItem` stacks use the same BASE/FULL model through the IC2 electric API/manager, not a generic `charge`-NBT heuristic.
 - CoFH `IEnergyContainerItem` stacks use the same BASE/FULL model through the CoFH energy API; arbitrary `Energy` NBT on foreign items remains exact.
-- Tinkers Construct `ToolCore` wear (`InfiTool.Damage/Broken`) is treated as runtime wear while materials, modifiers and other tool payload remain meaningful identity.
+- OpenComputers Hover Boots use their own public charge API and follow the same BASE/FULL endpoint model.
+- Tinkers Construct `ToolCore` durability/render wear is normalized while `ToolLevel`, XP counters, modifiers, materials and other meaningful tool payload remain intact. Legacy pre5 templates that already lost XP counters are repaired to zero progress instead of stripping progression state again.
+- Botania magnet rings ignore the verified per-tick `cooldown` field in research identity and retrieval templates.
+- Draconic Evolution `ToolBase` items ignore only the auto-created five-empty-profile initialization payload; real profile contents remain exact.
 - Unknown mod NBT remains exact by default. Compatibility rules fail closed rather than merging unknown states.
 
 ### Persistence and recovery
@@ -65,9 +68,11 @@ GT New Horizons 1.7.10 addon that automatically researches item states the playe
 
 Journey deliberately reuses GTNH's existing NEI item panel instead of adding a second item browser.
 
-- `J` toggles **Journey / Researched** view.
-- `N` toggles **Newest** view.
+- `J` toggles **Journey / Researched** view and orders researched states oldest-first, matching discovery order.
+- `N` toggles **Newest** view and orders the newest tail newest-first.
 - Exact synchronized NBT variants are injected only while `J`/`N` is active and are removed from normal NEI view.
+- A BASE item/meta state is reused when NEI already has that exact native state; if the exact BASE state is missing (for example some IC2 electric tools), Journey temporarily injects it instead of hiding the research entry.
+- Renderer-hostile volumetric-flask states use client-only presentation copies in NEI; clicks still resolve to the authoritative original research key/NBT for retrieval.
 - Normal NEI search and recipe/usage browsing remain available.
 - In Journey/Newest view: left click requests a full stack; right click requests one item.
 - In ordinary NEI: Ctrl + left click requests a full researched stack; Ctrl + right click requests one.
@@ -82,15 +87,14 @@ The NEI built-in infinite/cheat item path is intentionally **not** used because 
 - `/journey stats`
 - `/journey debug`
 - `/journey trace [on|off]` - opt-in live unlock chat/log trace for this server session
-- `/journey dump` - writes an attachable diagnostic file into `logs/`
+- `/journey dump` - writes an attachable diagnostic file into `logs/`; semantic-policy matches and unknown exact-NBT states preserved fail-closed are included for compatibility diagnosis
 - `/journey hotspots [limit]`
 - `/journey list [page]`
 - `/journey newest [limit]`
 - `/journey get <index> [amount]`
 - `/journey forget <index>`
 - `/journey undo`
-- `/journey inspect` - inspect the held stack's normalized identity/GT/IC2 endpoint classification
-- `/journey inspect` also reports CoFH, verified GT-tool and TCon-tool classification for compatibility debugging.
+- `/journey inspect` - reports normalized identity, wire/sync information, GT/IC2/CoFH/OpenComputers charge classification, GT/TCon ownership, Botania magnet state, Draconic tool state and semantic endpoint count
 - `/journey rescan`
 - `/journey prune-missing confirm`
 - `/journey clear confirm`
@@ -113,14 +117,13 @@ Security/network hard limits intentionally remain compile-time constants.
 
 ## Development verification
 
-Offline regression layers:
+The real GTNH/Forge Gradle build is the release gate. CI runs formatting followed by the full build:
 
 ```bash
-./tools/run-core-tests.sh
-./tools/run-adapter-tests.sh
-./tools/run-main-smoke.sh
+gradle spotlessApply --stacktrace
+gradle build --stacktrace
 ```
 
-They compile with `javac --release 8`. The offline tests/fixtures live outside standard Gradle test source sets so they cannot shadow real Forge/GTNH classes during the actual mod build. A real Forge/GTNH Gradle build still requires dependency network access and is the gate before the first live Prism test.
+`gradle build` includes the JUnit 5 regression suite for pure Journey state logic, including J/N chronology, charge endpoint classification, semantic diagnostic classification, BASE-variant injection, TCon wear preservation and renderer-safe presentation handling. CI also verifies that the Java `VERSION`, production jar filename and packaged `mcmod.info` version agree before uploading production, dev and sources jars.
 
-See `docs/first-live-test.md` for the first-world test matrix.
+See `docs/first-live-test.md` for the live-world test matrix.

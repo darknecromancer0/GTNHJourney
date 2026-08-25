@@ -7,12 +7,16 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.item.ItemStack;
 
 import dev.gtnhjourney.GTNHJourney;
 import dev.gtnhjourney.network.ItemStackPayloadSizer;
@@ -40,13 +44,42 @@ public final class JourneyDiagnosticDump {
         int serverOnly = 0;
         int unavailable = 0;
         HashSet<String> bases = new HashSet<String>();
+        Map<String, Integer> semanticMatches = new LinkedHashMap<String, Integer>();
+        String[] semanticPolicyOrder = {
+            "GT-charge", "IC2-charge", "CoFH-charge", "OC-charge", "GT-tool", "TCon-tool", "Botania-magnet",
+            "Draconic-tool" };
+        for (String policy : semanticPolicyOrder) semanticMatches.put(policy, Integer.valueOf(0));
+        List<ResearchKey> unknownExactNbt = new ArrayList<ResearchKey>();
         for (ResearchKey key : keys) {
             bases.add(key.getItemId() + "@" + key.getMeta());
-            if (!key.getCanonicalNbt()
-                .isEmpty()) nbtStates++;
-            net.minecraft.item.ItemStack diagnosticStack = GTNHJourney.RESEARCH.retrieve(player, key, 1);
-            if (diagnosticStack == null) unavailable++;
-            else if (!ItemStackPayloadSizer.canSync(diagnosticStack)) serverOnly++;
+            boolean hasSemanticNbt = !key.getCanonicalNbt()
+                .isEmpty();
+            if (hasSemanticNbt) nbtStates++;
+            ItemStack diagnosticStack = GTNHJourney.RESEARCH.retrieve(player, key, 1);
+            if (diagnosticStack == null) {
+                unavailable++;
+                continue;
+            }
+            if (!ItemStackPayloadSizer.canSync(diagnosticStack)) serverOnly++;
+            SemanticDiagnosticSnapshot semantic = new SemanticDiagnosticSnapshot(
+                dev.gtnhjourney.minecraft.GtChargeStatePolicy.describe(diagnosticStack),
+                dev.gtnhjourney.minecraft.Ic2ChargeStatePolicy.describe(diagnosticStack),
+                dev.gtnhjourney.minecraft.CofhChargeStatePolicy.describe(diagnosticStack),
+                dev.gtnhjourney.minecraft.OpenComputersChargeStatePolicy.describe(diagnosticStack),
+                dev.gtnhjourney.minecraft.GtToolStatePolicy.isVerifiedTool(diagnosticStack),
+                dev.gtnhjourney.minecraft.TconToolStatePolicy.isVerifiedTool(diagnosticStack),
+                dev.gtnhjourney.minecraft.BotaniaTransientStatePolicy.isVerifiedMagnetRing(diagnosticStack),
+                dev.gtnhjourney.minecraft.DraconicTransientStatePolicy.isVerifiedTool(diagnosticStack),
+                dev.gtnhjourney.minecraft.ResearchStateExpander.expand(diagnosticStack)
+                    .size());
+            String matches = semantic.matchedPoliciesCsv();
+            if (!matches.isEmpty()) {
+                for (String policy : matches.split(", ")) {
+                    Integer count = semanticMatches.get(policy);
+                    if (count != null) semanticMatches.put(policy, Integer.valueOf(count.intValue() + 1));
+                }
+            }
+            if (semantic.isUnknownExactNbt(hasSemanticNbt)) unknownExactNbt.add(key);
         }
 
         BufferedWriter out = new BufferedWriter(
@@ -63,6 +96,7 @@ public final class JourneyDiagnosticDump {
             out.write("nbtStates=" + nbtStates + "\n");
             out.write("serverOnlyOversized=" + serverOnly + "\n");
             out.write("unavailable=" + unavailable + "\n");
+            out.write("unknownExactNbt=" + unknownExactNbt.size() + "\n");
             out.write("undoSnapshot=" + GTNHJourney.RESEARCH.undoSize(player) + "\n");
             out.write("observationFailureUnique=" + ResearchFailureLog.uniqueCount() + "\n");
             out.write("observationFailureDroppedUnique=" + ResearchFailureLog.droppedUnique() + "\n");
@@ -77,6 +111,29 @@ public final class JourneyDiagnosticDump {
                     failure.getFailure()
                         .replace('\n', ' '));
                 out.write('\n');
+            }
+
+            out.write("\n== Semantic policy matches ==\n");
+            boolean wroteSemanticPolicy = false;
+            for (Map.Entry<String, Integer> entry : semanticMatches.entrySet()) {
+                if (entry.getValue().intValue() <= 0) continue;
+                out.write(entry.getKey() + "=" + entry.getValue() + "\n");
+                wroteSemanticPolicy = true;
+            }
+            if (!wroteSemanticPolicy) out.write("none\n");
+
+            out.write("\n== Unknown exact-NBT states (preserved exact) ==\n");
+            if (unknownExactNbt.isEmpty()) {
+                out.write("none\n");
+            } else {
+                for (ResearchKey key : unknownExactNbt) {
+                    out.write(key.getItemId());
+                    out.write('\t');
+                    out.write(Integer.toString(key.getMeta()));
+                    out.write('\t');
+                    out.write(key.getCanonicalNbt());
+                    out.write('\n');
+                }
             }
 
             out.write("\n== Hotspots ==\n");

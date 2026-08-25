@@ -252,19 +252,17 @@ public final class CommandJourney extends CommandBase {
                     + wireBytes
                     + " B, clientSync="
                     + dev.gtnhjourney.network.ItemStackPayloadSizer.canSync(stack));
-            tell(
-                player,
-                "Semantic: GT-charge=" + dev.gtnhjourney.minecraft.GtChargeStatePolicy.describe(stack)
-                    + ", IC2-charge="
-                    + dev.gtnhjourney.minecraft.Ic2ChargeStatePolicy.describe(stack)
-                    + ", CoFH-charge="
-                    + dev.gtnhjourney.minecraft.CofhChargeStatePolicy.describe(stack)
-                    + ", GT-tool="
-                    + dev.gtnhjourney.minecraft.GtToolStatePolicy.isVerifiedTool(stack)
-                    + ", TCon-tool="
-                    + dev.gtnhjourney.minecraft.TconToolStatePolicy.isVerifiedTool(stack)
-                    + ", observed endpoints="
-                    + endpoints);
+            dev.gtnhjourney.diagnostics.SemanticDiagnosticSnapshot semantic = new dev.gtnhjourney.diagnostics.SemanticDiagnosticSnapshot(
+                dev.gtnhjourney.minecraft.GtChargeStatePolicy.describe(stack),
+                dev.gtnhjourney.minecraft.Ic2ChargeStatePolicy.describe(stack),
+                dev.gtnhjourney.minecraft.CofhChargeStatePolicy.describe(stack),
+                dev.gtnhjourney.minecraft.OpenComputersChargeStatePolicy.describe(stack),
+                dev.gtnhjourney.minecraft.GtToolStatePolicy.isVerifiedTool(stack),
+                dev.gtnhjourney.minecraft.TconToolStatePolicy.isVerifiedTool(stack),
+                dev.gtnhjourney.minecraft.BotaniaTransientStatePolicy.isVerifiedMagnetRing(stack),
+                dev.gtnhjourney.minecraft.DraconicTransientStatePolicy.isVerifiedTool(stack),
+                endpoints);
+            tell(player, semantic.inspectLine());
         } catch (IllegalArgumentException failure) {
             tell(player, "Cannot build Journey identity: " + failure.getMessage());
         }

@@ -8,9 +8,7 @@ import dev.gtnhjourney.client.ClientResearchMirror;
 import dev.gtnhjourney.client.ClientStackMirror;
 import dev.gtnhjourney.config.JourneyConfig;
 
-/**
- * Keeps dynamic Journey filters/subsets and temporary exact NBT variants synchronized with server/client view state.
- */
+/** Keeps dynamic Journey filters, order and temporary exact variants synchronized with server/client view state. */
 public final class JourneyNEIRefreshTracker {
 
     private long seenResearchRevision = Long.MIN_VALUE;
@@ -28,7 +26,8 @@ public final class JourneyNEIRefreshTracker {
         if (!ItemList.loadFinished) return;
 
         boolean researchChanged = researchRevision != seenResearchRevision;
-        JourneyVariantScope scope = JourneyVariantScope.forMode(JourneyViewState.mode());
+        JourneyViewState.Mode mode = JourneyViewState.mode();
+        JourneyVariantScope scope = JourneyVariantScope.forMode(mode);
         boolean variantsChanged;
         switch (scope) {
             case ALL_RESEARCHED:
@@ -43,6 +42,7 @@ public final class JourneyNEIRefreshTracker {
                 variantsChanged = JourneyNEIVariantBridge.clear();
                 break;
         }
+        boolean orderChanged = JourneyNEIOrderBridge.update(mode);
 
         seenResearchRevision = researchRevision;
         seenViewRevision = viewRevision;
@@ -53,14 +53,17 @@ public final class JourneyNEIRefreshTracker {
             SubsetWidget.updateHiddenItems();
         }
 
-        // addItemVariant/remove marks LayoutManager dirty but does not itself rebuild ItemList.items. A full reload is
-        // required for exact synchronized NBT variants to appear/disappear in the already-open panel.
+        // Variant changes require a full gather. Pure chronology changes only need NEI's cheaper public reorder task.
         if (variantsChanged) ItemList.loadItems.restart();
+        else if (orderChanged) ItemList.refreshItems.restart();
         else ItemList.updateFilter.restart();
     }
 
     public static void clearInjectedVariants() {
-        if (JourneyNEIVariantBridge.clear()) ItemList.loadItems.restart();
+        boolean variantsChanged = JourneyNEIVariantBridge.clear();
+        boolean orderChanged = JourneyNEIOrderBridge.reset();
+        if (variantsChanged) ItemList.loadItems.restart();
+        else if (orderChanged) ItemList.refreshItems.restart();
         else ItemList.updateFilter.restart();
     }
 }

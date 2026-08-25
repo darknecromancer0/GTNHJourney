@@ -7,7 +7,6 @@ import codechicken.nei.ItemPanels;
 import codechicken.nei.NEIClientUtils;
 import codechicken.nei.guihook.IContainerInputHandler;
 import dev.gtnhjourney.client.ClientResearchMirror;
-import dev.gtnhjourney.minecraft.ItemStackKeyFactory;
 import dev.gtnhjourney.network.JourneyNetwork;
 import dev.gtnhjourney.research.ResearchKey;
 
@@ -21,7 +20,7 @@ public final class JourneyNEIInputHandler implements IContainerInputHandler {
         ItemStack hovered = ItemPanels.itemPanel.getStackMouseOver(mousex, mousey);
         if (hovered == null || hovered.getItem() == null) return false;
         try {
-            ResearchKey key = ItemStackKeyFactory.from(hovered);
+            ResearchKey key = JourneyPresentationKeyResolver.keyOf(hovered);
             if (!ClientResearchMirror.contains(key)) return false;
             int amount = JourneyRetrieveClickPolicy.requestedAmount(button, shiftDown(), hovered.getMaxStackSize());
             JourneyNetwork.requestRetrieve(key, amount);

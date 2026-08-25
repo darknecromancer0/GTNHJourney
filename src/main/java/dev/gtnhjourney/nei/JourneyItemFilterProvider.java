@@ -43,7 +43,7 @@ public final class JourneyItemFilterProvider implements ItemFilter.ItemFilterPro
             public boolean matches(ItemStack stack) {
                 if (stack == null || stack.getItem() == null) return false;
                 try {
-                    return allowed.contains(ItemStackKeyFactory.from(stack));
+                    return allowed.contains(JourneyPresentationKeyResolver.keyOf(stack));
                 } catch (IllegalArgumentException ignored) {
                     return false;
                 }
