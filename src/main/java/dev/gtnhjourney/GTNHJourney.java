@@ -9,6 +9,7 @@ import cpw.mods.fml.common.SidedProxy;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.event.FMLServerStartingEvent;
 import cpw.mods.fml.common.event.FMLServerStoppedEvent;
+import dev.gtnhjourney.acquisition.FurnaceOwnershipTracker;
 import dev.gtnhjourney.acquisition.InventoryResearchTracker;
 import dev.gtnhjourney.acquisition.ResearchObservationService;
 import dev.gtnhjourney.command.CommandJourney;
@@ -36,6 +37,7 @@ public final class GTNHJourney {
     @SidedProxy(clientSide = "dev.gtnhjourney.ClientProxy", serverSide = "dev.gtnhjourney.CommonProxy")
     public static CommonProxy proxy;
     private InventoryResearchTracker inventoryTracker;
+    private FurnaceOwnershipTracker furnaceTracker;
     private ResearchObservationService observations;
 
     @EventHandler
@@ -45,10 +47,15 @@ public final class GTNHJourney {
         proxy.preInit(event);
         observations = new ResearchObservationService(RESEARCH);
         inventoryTracker = new InventoryResearchTracker(RESEARCH, observations);
+        furnaceTracker = new FurnaceOwnershipTracker(observations);
         FMLCommonHandler.instance()
             .bus()
             .register(inventoryTracker);
+        FMLCommonHandler.instance()
+            .bus()
+            .register(furnaceTracker);
         MinecraftForge.EVENT_BUS.register(inventoryTracker);
+        MinecraftForge.EVENT_BUS.register(furnaceTracker);
         FMLCommonHandler.instance()
             .bus()
             .register(new ServerRequestQueue(RESEARCH));
@@ -77,6 +84,7 @@ public final class GTNHJourney {
         ServerRequestQueue.clearPending();
         ServerResearchSyncQueue.clear();
         if (inventoryTracker != null) inventoryTracker.clearCaches();
+        if (furnaceTracker != null) furnaceTracker.clear();
         dev.gtnhjourney.diagnostics.ResearchTrace.clear();
         dev.gtnhjourney.diagnostics.ResearchFailureLog.clear();
     }
