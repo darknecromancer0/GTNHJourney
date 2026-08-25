@@ -16,11 +16,7 @@ public final class JourneyPanelOrder {
             return Collections.emptyList();
         }
 
-        if (mode == JourneyViewState.Mode.RESEARCHED) {
-            return Collections.unmodifiableList(new ArrayList<ResearchKey>(oldestFirst));
-        }
-
-        int limit = Math.max(0, newestLimit);
+        int limit = mode == JourneyViewState.Mode.NEWEST ? Math.max(0, newestLimit) : oldestFirst.size();
         if (limit == 0) return Collections.emptyList();
         int start = Math.max(0, oldestFirst.size() - limit);
         List<ResearchKey> newestFirst = new ArrayList<ResearchKey>(oldestFirst.size() - start);
