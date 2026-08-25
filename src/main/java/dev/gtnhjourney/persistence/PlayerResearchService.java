@@ -8,6 +8,8 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
 import net.minecraftforge.common.DimensionManager;
 
+import dev.gtnhjourney.recovery.ResearchEntrySnapshot;
+import dev.gtnhjourney.recovery.ResearchStateSnapshot;
 import dev.gtnhjourney.research.ResearchFingerprint;
 import dev.gtnhjourney.research.ResearchKey;
 import dev.gtnhjourney.research.ResearchRegistry;
@@ -38,6 +40,18 @@ public final class PlayerResearchService {
 
     public List<ResearchKey> snapshot(EntityPlayerMP player) {
         return data(player).snapshot(player.getUniqueID());
+    }
+
+    public ResearchStateSnapshot captureState(EntityPlayerMP player) {
+        return data(player).captureState(player.getUniqueID());
+    }
+
+    public ResearchEntrySnapshot removeEntry(EntityPlayerMP player, ResearchKey key) {
+        return data(player).removeEntry(player.getUniqueID(), key);
+    }
+
+    public boolean restoreEntry(EntityPlayerMP player, ResearchEntrySnapshot entry) {
+        return data(player).restoreEntry(player.getUniqueID(), entry);
     }
 
     public List<ItemStack> snapshotStacks(EntityPlayerMP player) {
@@ -114,5 +128,4 @@ public final class PlayerResearchService {
                 .warning("[GTNH Journey] Skipping broken research observation for %s: %s", item, message);
         }
     }
-
 }
