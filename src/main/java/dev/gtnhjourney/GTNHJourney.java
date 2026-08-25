@@ -18,6 +18,7 @@ import dev.gtnhjourney.network.JourneyNetwork;
 import dev.gtnhjourney.network.ServerRequestQueue;
 import dev.gtnhjourney.network.ServerResearchSyncQueue;
 import dev.gtnhjourney.persistence.PlayerResearchService;
+import dev.gtnhjourney.recovery.JourneyMutationService;
 
 @Mod(
     modid = GTNHJourney.MODID,
@@ -33,6 +34,7 @@ public final class GTNHJourney {
     public static final String TARGET_GTNH = "2.9.0-beta-2";
     public static final String TARGET_NEI = "2.8.111-GTNH";
     public static final PlayerResearchService RESEARCH = new PlayerResearchService();
+    public static JourneyMutationService MUTATIONS;
 
     @SidedProxy(clientSide = "dev.gtnhjourney.ClientProxy", serverSide = "dev.gtnhjourney.CommonProxy")
     public static CommonProxy proxy;
@@ -45,7 +47,8 @@ public final class GTNHJourney {
         JourneyConfig.load(event.getSuggestedConfigurationFile());
         JourneyNetwork.init();
         proxy.preInit(event);
-        observations = new ResearchObservationService(RESEARCH);
+        MUTATIONS = new JourneyMutationService();
+        observations = new ResearchObservationService(RESEARCH, MUTATIONS);
         inventoryTracker = new InventoryResearchTracker(RESEARCH, observations);
         furnaceTracker = new FurnaceOwnershipTracker(observations);
         FMLCommonHandler.instance()

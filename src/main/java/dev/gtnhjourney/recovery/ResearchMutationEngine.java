@@ -32,7 +32,13 @@ public final class ResearchMutationEngine {
     public boolean deleteExact(ResearchKey key, String description) {
         ResearchEntrySnapshot removed = research.removeEntry(playerId, key);
         if (removed == null) return false;
-        record(new ResearchTransaction(nextId(), System.currentTimeMillis(), description, Collections.emptyList(), Collections.singletonList(removed)));
+        record(
+            new ResearchTransaction(
+                nextId(),
+                System.currentTimeMillis(),
+                description,
+                Collections.<ResearchEntrySnapshot>emptyList(),
+                Collections.singletonList(removed)));
         return true;
     }
 
@@ -41,13 +47,33 @@ public final class ResearchMutationEngine {
         List<ResearchEntrySnapshot> ordered = sorted(entries);
         List<ResearchEntrySnapshot> added = new ArrayList<ResearchEntrySnapshot>();
         for (ResearchEntrySnapshot entry : ordered) {
-            if (entry != null && research.restoreEntry(playerId, entry)) {
-                added.add(entry);
-            }
+            if (entry != null && research.restoreEntry(playerId, entry)) added.add(entry);
         }
         if (added.isEmpty()) return 0;
-        record(new ResearchTransaction(nextId(), System.currentTimeMillis(), description, added, Collections.emptyList()));
+        record(
+            new ResearchTransaction(
+                nextId(),
+                System.currentTimeMillis(),
+                description,
+                added,
+                Collections.<ResearchEntrySnapshot>emptyList()));
         return added.size();
+    }
+
+    /** Records a delta that has already been applied authoritatively, for example by semantic observation expansion. */
+    public boolean recordApplied(
+        List<ResearchEntrySnapshot> added,
+        List<ResearchEntrySnapshot> removed,
+        String description) {
+        ResearchTransaction transaction = new ResearchTransaction(
+            nextId(),
+            System.currentTimeMillis(),
+            description,
+            added,
+            removed);
+        if (transaction.isEmpty()) return false;
+        record(transaction);
+        return true;
     }
 
     public int undo(int count) {
