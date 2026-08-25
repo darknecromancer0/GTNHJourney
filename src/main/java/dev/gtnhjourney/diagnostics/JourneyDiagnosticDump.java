@@ -82,6 +82,7 @@ public final class JourneyDiagnosticDump {
             if (semantic.isUnknownExactNbt(hasSemanticNbt)) unknownExactNbt.add(key);
         }
 
+        JourneyRuntimeCounters.Snapshot counters = JourneyRuntimeCounters.snapshot();
         BufferedWriter out = new BufferedWriter(
             new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8));
         try {
@@ -90,6 +91,14 @@ public final class JourneyDiagnosticDump {
             out.write("Player UUID: " + player.getUniqueID() + "\n\n");
             out.write("== Runtime ==\n");
             for (String line : RuntimeCompatibilityReport.lines()) out.write(line + "\n");
+
+            out.write("\n== Runtime counters ==\n");
+            out.write("panelIncrementalUpdates=" + counters.getPanelIncrementalUpdates() + "\n");
+            out.write("fullNeiReloadRequests=" + counters.getFullNeiReloadRequests() + "\n");
+            out.write("unlockNotifications=" + counters.getUnlockNotifications() + "\n");
+            out.write("furnaceOutputObservations=" + counters.getFurnaceOutputObservations() + "\n");
+            out.write("furnaceOutputUnlocks=" + counters.getFurnaceOutputUnlocks() + "\n");
+
             out.write("\n== Research summary ==\n");
             out.write("states=" + keys.size() + "\n");
             out.write("baseItemMeta=" + bases.size() + "\n");
