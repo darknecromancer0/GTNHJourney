@@ -19,10 +19,14 @@ import dev.gtnhjourney.persistence.PlayerResearchService;
 public final class InventoryResearchTracker {
 
     private final PlayerResearchService research;
+    private final ResearchObservationService observations;
     private final Map<UUID, InventoryScanCache> scanCaches = new HashMap<UUID, InventoryScanCache>();
 
-    public InventoryResearchTracker(PlayerResearchService research) {
+    public InventoryResearchTracker(PlayerResearchService research, ResearchObservationService observations) {
+        if (research == null) throw new IllegalArgumentException("research must not be null");
+        if (observations == null) throw new IllegalArgumentException("observations must not be null");
         this.research = research;
+        this.observations = observations;
     }
 
     @SubscribeEvent
@@ -38,14 +42,14 @@ public final class InventoryResearchTracker {
 
     @SubscribeEvent
     public void onCrafted(PlayerEvent.ItemCraftedEvent event) {
-        if (event.player instanceof EntityPlayerMP) unlock((EntityPlayerMP) event.player, event.crafting);
+        if (event.player instanceof EntityPlayerMP) observations.observe((EntityPlayerMP) event.player, event.crafting);
     }
 
     @SubscribeEvent
     public void onSmelted(PlayerEvent.ItemSmeltedEvent event) {
         if (!(event.player instanceof EntityPlayerMP)) return;
         EntityPlayerMP player = (EntityPlayerMP) event.player;
-        unlock(player, event.smelting);
+        observations.observe(player, event.smelting);
         // Some furnace/container paths move or merge the result before the next cached inventory pass. Revalidate the
         // real player inventory immediately so ordinary pickup and shift-click do not depend on selecting the stack.
         scanChanged(player, true, true);
@@ -66,7 +70,7 @@ public final class InventoryResearchTracker {
         if (!(event.player instanceof EntityPlayerMP)) return;
         final EntityPlayerMP player = (EntityPlayerMP) event.player;
         // Import pre-existing inventory research first and prime slot signatures, then send one coherent client
-        // snapshot.
+        // snapshot. Login import intentionally bypasses the observation path so it cannot emit unlock notifications.
         scanChanged(player, true, false);
         JourneyNetwork.sendFullSync(player, research.snapshotStacksInUnlockOrder(player));
     }
@@ -87,7 +91,7 @@ public final class InventoryResearchTracker {
                 @Override
                 public void visit(String slotId, ItemStack stack) {
                     if (!cache.shouldInspect(slotId, InventoryStackSignature.of(stack))) return;
-                    if (sendIncrementalUnlocks) unlock(player, stack);
+                    if (sendIncrementalUnlocks) observations.observe(player, stack);
                     else research.unlock(player, stack);
                 }
             });
@@ -104,16 +108,6 @@ public final class InventoryResearchTracker {
                 scanCaches.put(playerId, cache);
             }
             return cache;
-        }
-    }
-
-    private void unlock(EntityPlayerMP player, ItemStack stack) {
-        if (stack == null || stack.getItem() == null || stack.stackSize <= 0) return;
-        for (ItemStack unlocked : research.unlockStates(player, stack)) {
-            dev.gtnhjourney.diagnostics.ResearchTrace.unlocked(player, unlocked);
-            try {
-                JourneyNetwork.sendUnlock(player, unlocked);
-            } catch (IllegalArgumentException ignored) {}
         }
     }
 }
