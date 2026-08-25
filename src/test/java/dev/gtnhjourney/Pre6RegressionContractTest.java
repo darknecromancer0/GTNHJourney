@@ -20,7 +20,7 @@ class Pre6RegressionContractTest {
 
     @SuppressWarnings("unchecked")
     @Test
-    void journeyPanelOrderKeepsResearchOrderAndReversesNewestTail() throws Exception {
+    void journeyPanelOrderIsNewestFirstForBothJourneyModes() throws Exception {
         Class<?> planner = Class.forName("dev.gtnhjourney.nei.JourneyPanelOrder");
         Method keysForMode = planner.getDeclaredMethod(
             "keysForMode",
@@ -35,7 +35,7 @@ class Pre6RegressionContractTest {
         List<ResearchKey> unlockOrder = Arrays.asList(oldest, middle, newest);
 
         assertEquals(
-            Arrays.asList(oldest, middle, newest),
+            Arrays.asList(newest, middle, oldest),
             (List<ResearchKey>) keysForMode.invoke(null, unlockOrder, JourneyViewState.Mode.RESEARCHED, 2));
         assertEquals(
             Arrays.asList(newest, middle),
