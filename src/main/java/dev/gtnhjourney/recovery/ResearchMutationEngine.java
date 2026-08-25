@@ -7,6 +7,9 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
+import net.minecraft.nbt.NBTTagCompound;
+
+import dev.gtnhjourney.minecraft.NbtCanonicalizer;
 import dev.gtnhjourney.persistence.JourneyRecoveryData;
 import dev.gtnhjourney.persistence.JourneyResearchData;
 import dev.gtnhjourney.research.ResearchKey;
@@ -62,6 +65,31 @@ public final class ResearchMutationEngine {
                 added,
                 Collections.<ResearchEntrySnapshot>emptyList()));
         return added.size();
+    }
+
+    /** Replaces the complete authoritative state and records the replacement as one reversible transaction. */
+    public int replaceState(ResearchStateSnapshot target, String description) {
+        if (target == null) return 0;
+        ResearchStateSnapshot before = research.captureState(playerId);
+        if (sameState(before, target)) return 0;
+
+        removeEntries(before.entries());
+        restoreEntries(target.entries());
+        ResearchStateSnapshot applied = research.captureState(playerId);
+        if (!sameState(applied, target)) {
+            removeEntries(applied.entries());
+            restoreEntries(before.entries());
+            return 0;
+        }
+
+        record(
+            new ResearchTransaction(
+                nextId(),
+                System.currentTimeMillis(),
+                description,
+                target.entries(),
+                before.entries()));
+        return target.size();
     }
 
     /** Records a delta that has already been applied authoritatively, for example by semantic observation expansion. */
@@ -192,6 +220,30 @@ public final class ResearchMutationEngine {
             }
         });
         return ordered;
+    }
+
+    private static boolean sameState(ResearchStateSnapshot left, ResearchStateSnapshot right) {
+        if (left == right) return true;
+        if (left == null || right == null || left.size() != right.size()) return false;
+        List<ResearchEntrySnapshot> leftEntries = left.entries();
+        List<ResearchEntrySnapshot> rightEntries = right.entries();
+        for (int i = 0; i < leftEntries.size(); i++) {
+            ResearchEntrySnapshot a = leftEntries.get(i);
+            ResearchEntrySnapshot b = rightEntries.get(i);
+            if (!a.key().equals(b.key()) || a.timelineIndex() != b.timelineIndex()) return false;
+            if (!sameTemplate(a.template(), b.template())) return false;
+        }
+        return true;
+    }
+
+    private static boolean sameTemplate(NBTTagCompound left, NBTTagCompound right) {
+        try {
+            return NbtCanonicalizer.canonicalize(left).equals(NbtCanonicalizer.canonicalize(right));
+        } catch (IllegalArgumentException unsafe) {
+            return false;
+        } catch (RuntimeException unsafe) {
+            return false;
+        }
     }
 
     private static int clampCount(int count) {
