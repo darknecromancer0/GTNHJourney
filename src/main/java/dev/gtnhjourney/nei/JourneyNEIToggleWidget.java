@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Map;
 
 import codechicken.nei.Button;
-import codechicken.nei.ItemList;
 import codechicken.nei.ItemPanels;
 import codechicken.nei.guihook.IContainerDrawHandler;
 import codechicken.nei.guihook.IContainerInputHandler;
@@ -15,7 +14,7 @@ import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
 
-/** Small native-looking J button in NEI's item-panel header. */
+/** Small native-looking J/N controls in NEI's item-panel header. */
 public final class JourneyNEIToggleWidget
     implements IContainerDrawHandler, IContainerInputHandler, IContainerTooltipHandler {
 
@@ -23,7 +22,6 @@ public final class JourneyNEIToggleWidget
         @Override
         public boolean onButtonPress(boolean rightclick) {
             JourneyViewState.toggle();
-            ItemList.updateFilter.restart();
             return true;
         }
 
@@ -44,7 +42,6 @@ public final class JourneyNEIToggleWidget
         @Override
         public boolean onButtonPress(boolean rightclick) {
             JourneyViewState.toggleNewest();
-            ItemList.updateFilter.restart();
             return true;
         }
 
