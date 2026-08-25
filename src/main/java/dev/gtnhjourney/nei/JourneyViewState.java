@@ -2,7 +2,7 @@ package dev.gtnhjourney.nei;
 
 /** Client-side mode for the NEI item panel. */
 public final class JourneyViewState {
-    public enum Mode { ALL, RESEARCHED, NEWEST }
+    public enum Mode { ALL, RESEARCHED, NEWEST, DELETE }
 
     private static volatile Mode mode = Mode.ALL;
     private static volatile long revision;
@@ -21,6 +21,10 @@ public final class JourneyViewState {
         return mode == Mode.NEWEST;
     }
 
+    public static boolean isDelete() {
+        return mode == Mode.DELETE;
+    }
+
     /** Toggles the researched view on/off. */
     public static synchronized boolean toggle() {
         setMode(mode == Mode.RESEARCHED ? Mode.ALL : Mode.RESEARCHED);
@@ -31,6 +35,12 @@ public final class JourneyViewState {
     public static synchronized boolean toggleNewest() {
         setMode(mode == Mode.NEWEST ? Mode.ALL : Mode.NEWEST);
         return mode == Mode.NEWEST;
+    }
+
+    /** Toggles exact research deletion mode on/off. */
+    public static synchronized boolean toggleDelete() {
+        setMode(mode == Mode.DELETE ? Mode.ALL : Mode.DELETE);
+        return mode == Mode.DELETE;
     }
 
     public static synchronized void setEnabled(boolean value) {
