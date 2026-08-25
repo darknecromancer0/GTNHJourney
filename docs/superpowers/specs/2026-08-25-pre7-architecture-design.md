@@ -9,7 +9,7 @@ Make Journey reliable and responsive enough for broader live testing by separati
 - `J` shows all researched states, newest first.
 - `N` shows only the newest configured window, newest first.
 - A newly researched item appears at index 0, the upper-left slot of page 1.
-- New unlocks should not trigger a full NEI item reload.
+- New unlocks do not trigger a full NEI item reload.
 - Journey/NEI integration remains usable in Creative mode.
 - Filled fluid containers and electric-item endpoint states remain researchable and visible.
 - Wearing armor must not create duplicate research merely because equip/runtime NBT changed.
@@ -34,12 +34,12 @@ When mode is `RESEARCHED` or `NEWEST`, the controller:
 2. Orders them newest-first.
 3. Limits the list for `NEWEST` after ordering.
 4. Converts each research stack to a safe presentation stack while retaining a mapping back to the original `ResearchKey`.
-5. Applies relevant lightweight NEI filters/search state to the small Journey list where feasible.
+5. Applies the active NEI item/search filters to this small Journey list, while Journey's own mode filter becomes a no-op when the controller owns the panel so filtering is not recursive.
 6. Calls `ItemPanel.updateItemList(...)` directly with the final ordered list.
 
 When a new unlock arrives while J/N is active:
 
-- insert/rebuild the small Journey list locally;
+- rebuild or incrementally update only the small Journey list;
 - set the panel to page 0;
 - do not call `ItemList.loadItems.restart()`.
 
@@ -60,19 +60,21 @@ Acquisition is split into two layers:
 - Event-first observers for known actions and containers.
 - A slower inventory reconciliation scan as a safety net.
 
-Existing crafting, smelting-pickup, login, and inventory scan paths continue to feed one shared research unlock service. Additional event hooks should reuse that service rather than create alternate persistence paths.
+Existing crafting, smelting-pickup, login, and inventory scan paths continue to feed one shared research unlock service. Additional event hooks reuse that service rather than create alternate persistence paths.
 
 ### Inventory fallback
 
-The inventory scanner remains authoritative for player-owned inventory surfaces but runs less aggressively than pre6 once event coverage is in place. Its job becomes reconciliation for missed events and unusual mod interactions, not the primary trigger for every unlock.
+The inventory scanner remains authoritative for player-owned inventory surfaces but becomes reconciliation for missed events and unusual mod interactions rather than the primary trigger for every unlock.
+
+The pre7 default incremental scan interval is 20 ticks (1 second). The existing slower forced full-rescan concept remains available as a separate safety net. Both remain configurable.
 
 ### FurnaceOwnershipTracker
 
-Add a tracker for furnaces the player has actually interacted with.
+Add a tracker for vanilla/Forge furnace tile entities the player has actually interacted with.
 
 - On opening/using a furnace, record the player's UUID as `lastUser` for that furnace position/dimension.
 - Track only furnaces that have a known last user; do not scan every loaded furnace in the world.
-- Detect a meaningful output-slot transition and send the resulting output stack through the normal research unlock service for that `lastUser`, even if the GUI is closed.
+- Poll only the tracked furnaces for a meaningful output-slot transition and send the resulting output stack through the normal research unlock service for that `lastUser`, even if the GUI is closed.
 - Remove tracking when the relevant world/chunk/session is unloaded or the tile is invalidated.
 - Avoid repeated unlock attempts for an unchanged output stack by caching an output signature.
 
@@ -86,25 +88,25 @@ The server-side research key/template remains the source of truth.
 
 - Persistence and retrieval use the authoritative normalized research state.
 - Filled containers keep their meaningful fluid NBT.
-- IC2/GT/CoFH/etc. electric items keep the existing endpoint semantics: transient intermediate charge should not create unbounded states, while meaningful BASE/FULL endpoints remain available according to each policy.
-- Client presentation must never rewrite the saved server template.
+- IC2/GT/CoFH/etc. electric items keep the existing endpoint semantics: transient intermediate charge does not create unbounded states, while meaningful BASE/FULL endpoints remain available according to each policy.
+- Client presentation never rewrites the saved server template.
 
 ### Display state
 
 Introduce/extend a presentation layer that creates a client-only display stack from an authoritative research state.
 
 - A display stack may remove or replace renderer-hostile transient data.
-- It must retain an internal mapping back to the original `ResearchKey` so clicking/retrieval requests the real state.
-- Display-only marker data must never reach the server-issued item.
+- It retains an internal mapping back to the original `ResearchKey` so clicking/retrieval requests the real state.
+- Display-only marker data never reaches the server-issued item.
 - If no safe display can be produced, keep the research state persisted and retrievable but omit that state from the Journey panel rather than crash the client.
 
 ### Filled fluid containers
 
-Filled `IC2:itemFluidCell`, GregTech cells/flasks, and analogous containers must not collapse to the empty container merely because the underlying item/meta is shared. Fluid identity/content is meaningful research data unless a specific semantic policy proves otherwise.
+Filled `IC2:itemFluidCell`, GregTech cells/flasks, and analogous containers do not collapse to the empty container merely because the underlying item/meta is shared. Fluid identity/content is meaningful research data unless a specific semantic policy proves otherwise.
 
 ### IC2 drills
 
-Existing pre6 saved Drill/Diamond Drill/Iridium Drill states must remain valid. Their absence from the panel is treated as a presentation problem, not a persistence reset. pre7 panel construction uses the Journey research mirror directly, so visibility no longer depends on native NEI permutations.
+Existing pre6 saved Drill/Diamond Drill/Iridium Drill states remain valid. Their absence from the panel is treated as a presentation problem, not a persistence reset. pre7 panel construction uses the Journey research mirror directly, so visibility no longer depends on native NEI permutations.
 
 ## 4. Armor and wearable normalization
 
@@ -117,15 +119,15 @@ Rules:
 - Do not globally strip unknown NBT from all armor.
 - Preserve material, upgrades, enchantments, configuration and other persistent identity-bearing data.
 - Normalize only fields with verified transient semantics.
-- Existing duplicated pre6 entries should be migrated/deduplicated when the new canonical key proves they represent the same logical state.
+- Existing duplicated pre6 entries are migrated/deduplicated only when the new canonical key proves they represent the same logical state.
 
 ## 5. Creative mode
 
 Journey panel mode and client research mirror are gamemode-independent.
 
-- Switching Survival <-> Creative must not disable J/N or clear Journey client state.
+- Switching Survival <-> Creative does not disable J/N or clear Journey client state.
 - Normal NEI cheat/retrieval permissions remain governed by their existing logic.
-- Journey must not depend on a Survival-only GUI/container class to remain active.
+- Journey does not depend on a Survival-only GUI/container class to remain active.
 
 The reported GregTech `ItemVolumetricFlask` crash in `GuiContainerCreative` is not treated as a Journey-owned renderer bug. Journey protects its own presentation stacks, but pre7 does not patch the global GregTech Creative renderer.
 
@@ -134,46 +136,49 @@ The reported GregTech `ItemVolumetricFlask` crash in `GuiContainerCreative` is n
 Use incremental research-unlock messages as the notification boundary.
 
 - On a truly new incremental unlock, show one concise notification using the item's display name.
-- Do not emit notifications for login/full snapshot synchronization.
-- If one observation expands into multiple technical semantic endpoints, coalesce notifications when they represent the same logical acquisition to avoid BASE/FULL spam.
-- Initial implementation may use chat text; the notification service should be isolated so a HUD/toast presentation can replace it later without changing acquisition/network code.
+- Do not emit notifications for login/full snapshot synchronization or migration.
+- If one observation expands into multiple technical semantic endpoints, coalesce notifications into one message for that logical acquisition so BASE/FULL does not spam.
+- Initial pre7 presentation is chat text: `Unlocked: <display name>`.
+- Notification production is isolated behind a small client notification service so a HUD/toast can replace chat later without changing acquisition/network code.
 
 ## 7. Performance rules
 
 The following are hard performance contracts for pre7:
 
-- Incremental unlock must not call `ItemList.loadItems.restart()`.
+- Incremental unlock does not call `ItemList.loadItems.restart()`.
 - J/N mode changes and incremental research changes operate on the small Journey list, not the global mod item universe.
 - Full NEI reload remains allowed for genuine connection/global-resource/item-universe changes, not normal research events.
-- Expensive subset/global-cache updates should not be triggered merely because one research state was added unless required for correctness.
+- Expensive subset/global-cache allocation is not restarted merely because one research state was added.
 
 Add diagnostics counters for at least:
 
 - `panelIncrementalUpdates`
 - `fullNeiReloadRequests`
 - `unlockNotifications`
-- furnace output observations/unlocks
+- `furnaceOutputObservations`
+- `furnaceOutputUnlocks`
 
 This lets the next live dump verify that the new fast path is actually being used.
 
 ## 8. Persistence and migration
 
-pre7 must preserve existing pre6 research wherever a valid item/template can still be resolved.
+pre7 preserves existing pre6 research wherever a valid item/template can still be resolved.
 
 Migration requirements:
 
 - Do not delete existing IC2 drill states.
 - Do not delete filled fluid-cell states.
 - Recanonicalize only where a newly verified semantic normalization requires it.
-- When multiple old keys collapse to one new canonical state, preserve the oldest relevant timeline position or otherwise define deterministic chronology, and keep one valid template.
+- When multiple old keys collapse to one new canonical state, preserve the earliest timeline position among the collapsed keys. This represents the first time the logical item was researched and gives deterministic chronology.
+- Keep one normalized valid template for the surviving key; prefer the template from that earliest entry unless it is invalid, then use the first later valid normalized template.
 - Migration marks data dirty once and does not create unlock notifications.
 
 ## 9. Failure handling
 
 - Optional-mod/API integration failures remain fail-closed to exact state where safe.
-- A broken display state must never delete the underlying research state.
-- A presentation failure should be diagnostic and non-fatal.
-- A furnace tracker losing ownership/state should fall back to normal acquisition when the item eventually enters the player's inventory.
+- A broken display state never deletes the underlying research state.
+- A presentation failure is diagnostic and non-fatal.
+- A furnace tracker losing ownership/state falls back to normal acquisition when the item eventually enters the player's inventory.
 - Research observation failures remain logged through the existing diagnostics path without crashing gameplay.
 
 ## 10. Test plan
@@ -186,6 +191,7 @@ Add tests for:
 - `N` newest-first order with configured limit.
 - newest unlock becomes index 0.
 - panel incremental update does not request full NEI reload.
+- active NEI search/filter still constrains J/N without changing Journey chronology among matching entries.
 - IC2 drill BASE/FULL states survive and appear in Journey panel input.
 - filled fluid containers retain fluid NBT as distinct research states.
 - display-state mapping resolves back to the authoritative `ResearchKey`.
@@ -194,7 +200,7 @@ Add tests for:
 - furnace last-user ownership and output-signature deduplication.
 - Creative-mode transitions do not reset Journey mode/mirror.
 - incremental unlock notifications are emitted once; full sync emits none.
-- pre6 -> pre7 migration preserves drills and filled cells and deterministically deduplicates newly normalized states.
+- pre6 -> pre7 migration preserves drills and filled cells and deterministically deduplicates newly normalized states while keeping the earliest logical chronology.
 
 ### Live test checklist
 
