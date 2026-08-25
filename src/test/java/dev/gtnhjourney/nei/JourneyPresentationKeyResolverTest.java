@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import dev.gtnhjourney.research.ResearchKey;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
 
 public class JourneyPresentationKeyResolverTest {
 
@@ -31,6 +32,20 @@ public class JourneyPresentationKeyResolverTest {
 
         JourneyPresentationKeyResolver.clear();
         assertFalse(JourneyPresentationKeyResolver.isPresentation(display));
+    }
+
+    @Test
+    public void registeringPresentationDoesNotMutateItsNbt() {
+        ItemStack display = new ItemStack(new Item(), 1, 0);
+        NBTTagCompound tag = new NBTTagCompound();
+        tag.setString("FluidName", "water");
+        display.setTagCompound(tag);
+        ResearchKey key = new ResearchKey("test:fluid", 0, "exact-fluid-state");
+
+        JourneyPresentationKeyResolver.register(display, key);
+
+        assertEquals("water", display.getTagCompound().getString("FluidName"));
+        assertEquals(1, display.getTagCompound().func_150296_c().size());
     }
 
     @Test
