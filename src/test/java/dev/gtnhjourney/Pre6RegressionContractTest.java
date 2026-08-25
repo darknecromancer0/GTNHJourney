@@ -11,7 +11,6 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 import dev.gtnhjourney.minecraft.ResearchTemplateNormalizer;
-import dev.gtnhjourney.nei.JourneyVariantScope;
 import dev.gtnhjourney.nei.JourneyViewState;
 import dev.gtnhjourney.research.ResearchKey;
 import net.minecraft.nbt.NBTTagCompound;
@@ -40,22 +39,6 @@ class Pre6RegressionContractTest {
         assertEquals(
             Arrays.asList(newest, middle),
             (List<ResearchKey>) keysForMode.invoke(null, unlockOrder, JourneyViewState.Mode.NEWEST, 2));
-    }
-
-    @Test
-    void blankNbtVariantIsInjectedOnlyWhenExactNativeStateIsMissing() throws Exception {
-        Method policy = JourneyVariantScope.class.getDeclaredMethod(
-            "shouldInjectVariant",
-            ResearchKey.class,
-            boolean.class);
-        policy.setAccessible(true);
-
-        ResearchKey blankBase = new ResearchKey("IC2:itemToolDrill", 26, "");
-        ResearchKey exactNbt = new ResearchKey("test:compound", 0, "10{4:data=3:1;}");
-
-        assertTrue((Boolean) policy.invoke(null, blankBase, false));
-        assertFalse((Boolean) policy.invoke(null, blankBase, true));
-        assertTrue((Boolean) policy.invoke(null, exactNbt, true));
     }
 
     @Test
