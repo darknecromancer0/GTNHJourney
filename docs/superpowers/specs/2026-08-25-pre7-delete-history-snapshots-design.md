@@ -27,7 +27,8 @@ D is a destructive interaction mode, not a normal NEI cheat/get view.
 
 While D is active:
 
-- clicking a displayed research state deletes exactly that displayed research state;
+- left-clicking a displayed research state deletes exactly that displayed research state;
+- right-click and Shift+click do not perform family-wide deletion in pre7;
 - the click must not retrieve/cheat/give the item;
 - the delete request is validated server-side against the player's authoritative research registry;
 - the deleted state disappears from the direct Journey panel immediately after server confirmation;
@@ -81,7 +82,7 @@ Command:
 `/journey undo [N]`
 
 - Default N = 1.
-- N is clamped to a safe bounded maximum, recommended 100 per command.
+- N is clamped to 1..100 per command.
 - Applies reverse transactions newest-first.
 - Moves each successfully reversed transaction to the redo stack.
 - One Debug Researcher Tool AREA_16 scan is one transaction even if it added hundreds of states.
@@ -101,6 +102,7 @@ Command:
 `/journey redo [N]`
 
 - Default N = 1.
+- N is clamped to 1..100 per command.
 - Reapplies the most recently undone transactions in correct order.
 - Moves each successfully replayed transaction back to the undo stack.
 - A new research mutation after undo clears the redo stack.
@@ -159,23 +161,23 @@ Snapshots do **not** embed the undo stack, redo stack, or snapshot list recursiv
 
 After snapshot restoration, delete-history active/inactive flags are reconciled against the restored research set: a deletion record for a currently present key is inactive; one for an absent key remains active.
 
-## Automatic snapshots
+## Automatic and safety snapshot ring
 
-Create an automatic snapshot approximately every 120 seconds when all of the following are true:
+Evaluate automatic snapshot creation every **2400 server ticks** (approximately 120 seconds at 20 TPS) when all of the following are true:
 
 - the server/world research data is fully loaded;
-- Journey research changed since the previous automatic snapshot;
+- Journey research changed since the previous automatic/safety snapshot;
 - the current state passes the suspicious-drop safety check.
 
-Keep the newest **20 automatic snapshots** in a ring.
+AUTO and SAFETY snapshots share one rotating ring containing at most **20 snapshots total**.
 
-Automatic snapshots use generated names containing local world/server time or a monotonic index.
+Generated snapshot ids contain both a monotonic sequence and a timestamp, for example `auto-000123-20260825-055700` or `safety-000124-20260825-055703`.
 
 ### Suspicious-drop guard
 
 Do not let a corruption event immediately overwrite the good rotating history with nearly empty snapshots.
 
-If the most recent good snapshot has at least 100 states and the current research count is below 25% of that snapshot, skip the automatic snapshot and emit a diagnostic warning.
+If the most recent good automatic/safety snapshot has at least 100 states and the current research count is below 25% of that snapshot, skip automatic snapshot creation and emit a diagnostic warning.
 
 Explicit manual snapshots are still allowed because the user deliberately requested them.
 
@@ -185,8 +187,8 @@ Command:
 
 `/journey snapshot [name]`
 
-- Without a name, generate a timestamp/index name.
-- With a name, sanitize it to a conservative filename/display identifier.
+- Without a name, generate an id with monotonic sequence and timestamp.
+- With a name, sanitize it to a conservative display identifier.
 - Keep at most **10 manual snapshots**.
 - If a new manual snapshot exceeds the limit, evict the oldest manual snapshot.
 
@@ -194,11 +196,11 @@ Command:
 
 `/journey snapshots`
 
-Lists manual and automatic snapshots with id/name, age/time, and research-state count.
+Lists manual plus automatic/safety snapshots with id/name, timestamp/age, type, and research-state count.
 
 ## Safety snapshots
 
-Before potentially destructive bulk actions, create a safety snapshot if the research state is non-empty:
+Before potentially destructive bulk actions, create a SAFETY snapshot if the research state is non-empty:
 
 - `clear`;
 - `prune-missing`;
@@ -206,7 +208,7 @@ Before potentially destructive bulk actions, create a safety snapshot if the res
 - Debug Researcher Tool AREA_16 scan;
 - future bulk-delete operations.
 
-Safety snapshots use the same rotating automatic/safety storage budget rather than creating an unbounded third archive.
+SAFETY snapshots share the same 20-entry rotating ring with AUTO snapshots and never create an unbounded third archive.
 
 ## Snapshot restore
 
@@ -216,7 +218,7 @@ Command:
 
 Behavior:
 
-1. Resolve an exact manual/automatic snapshot.
+1. Resolve an exact manual/automatic/safety snapshot.
 2. Create a safety snapshot of the current state first.
 3. Build one explicit full-replacement transaction from current state to target state.
 4. Apply the target snapshot authoritatively.
@@ -233,15 +235,15 @@ Therefore:
 
 Keep recovery metadata separate from primary research data so recovery corruption cannot directly destroy the authoritative registry.
 
-Recommended storage split:
+Storage split:
 
 - existing `JourneyResearchData`: authoritative current research;
 - new `JourneyRecoveryData`: undo stack, redo stack, deletion history;
-- new `JourneySnapshotData`: rotating/manual snapshot archive.
+- new `JourneySnapshotData`: automatic/safety ring and manual snapshot archive.
 
 All are world-scoped and player-keyed where appropriate.
 
-Primary research mutation should be performed through one transaction-aware facade rather than allowing D, commands, and debug tools to edit `JourneyResearchData` independently.
+Primary research mutation is performed through one transaction-aware facade rather than allowing D, commands, and debug tools to edit `JourneyResearchData` independently.
 
 ## History limits
 
@@ -250,10 +252,10 @@ Use bounded persistent history:
 - undo stack: newest 100 explicit transactions;
 - redo stack: newest 100 transactions;
 - deletion records: 1000;
-- automatic/safety snapshots: 20;
+- AUTO+SAFETY snapshot ring: 20 total;
 - manual snapshots: 10.
 
-When limits are exceeded, evict oldest entries first.
+When limits are exceeded, evict oldest entries first according to each structure's rules.
 
 These are intentionally small recovery rings, not an audit archive of the entire playthrough.
 
@@ -261,7 +263,7 @@ These are intentionally small recovery rings, not an audit archive of the entire
 
 Server remains authoritative.
 
-Single-state D deletion should use an incremental removal sync so deleting one state does not resend thousands of research entries.
+Single-state D deletion uses an incremental removal sync so deleting one state does not resend thousands of research entries.
 
 Bulk operations (`undo N`, `redo N`, restore-deleted, snapshot restore, clear/prune) may perform one full Journey research sync after the transaction batch. A Journey full sync is allowed because pre7 direct-panel refresh does not call a full NEI registry reload.
 
@@ -269,13 +271,13 @@ No recovery operation may call `ItemList.loadItems.restart()` or equivalent glob
 
 ## Diagnostics
 
-`/journey stats` and diagnostic dump should expose:
+`/journey stats` and diagnostic dump expose:
 
 - undo depth;
 - redo depth;
 - active delete-history count;
 - total deletion records;
-- automatic snapshot count;
+- AUTO+SAFETY snapshot count;
 - manual snapshot count;
 - newest snapshot age/id;
 - last recovery transaction description;
@@ -287,15 +289,15 @@ Recovery operations fail closed:
 
 - if an entry snapshot cannot reconstruct its item in the current pack, skip that entry and report the count;
 - never partially corrupt the registry because one optional mod item fails to deserialize;
-- snapshot restore should validate/build the target state before replacing current authoritative state;
+- snapshot restore validates/builds the target state before replacing current authoritative state;
 - if validation cannot produce a coherent target, leave current research untouched and report failure;
-- undo/redo only move a transaction between stacks after the intended mutation has been applied successfully enough to produce a coherent state.
+- undo/redo move a transaction between stacks only after the intended mutation has been applied successfully enough to produce a coherent state.
 
 ## Regression criteria
 
 Tests must prove at minimum:
 
-- D click deletes exact displayed state only;
+- D left-click deletes exact displayed state only;
 - D click cannot retrieve/give the item;
 - transaction forward/reverse restores exact templates and timeline position;
 - undo of one migration scan removes only that scan's additions;
@@ -306,7 +308,8 @@ Tests must prove at minimum:
 - redo restore-deleted deactivates them again;
 - natural reacquisition deactivates a matching active deletion record;
 - transaction and deletion-history bounds are enforced;
-- automatic snapshot interval/ring behavior is bounded;
+- automatic snapshot evaluation happens at the 2400-tick cadence and only when changed;
+- AUTO+SAFETY ring never exceeds 20;
 - suspicious-drop guard skips dangerous auto snapshots;
 - manual snapshots can still be made explicitly;
 - snapshot restore is undoable and redoable;
