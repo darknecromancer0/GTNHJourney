@@ -34,8 +34,11 @@ public final class ResearchSyncEndMessage implements IMessage {
 
                 @Override
                 public void run() {
-                    ClientStackMirror.finish(epoch);
-                    ClientActivityMirror.finish(epoch, ClientStackMirror.snapshotKeysInResearchOrder());
+                    if (ClientStackMirror.finish(epoch)) {
+                        ClientActivityMirror.finish(epoch, ClientStackMirror.snapshotKeysInResearchOrder());
+                    } else {
+                        ClientActivityMirror.abort(epoch);
+                    }
                 }
             });
             return null;
