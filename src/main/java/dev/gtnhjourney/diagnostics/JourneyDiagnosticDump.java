@@ -20,6 +20,7 @@ import net.minecraft.item.ItemStack;
 
 import dev.gtnhjourney.GTNHJourney;
 import dev.gtnhjourney.network.ItemStackPayloadSizer;
+import dev.gtnhjourney.recovery.JourneySnapshot;
 import dev.gtnhjourney.research.ResearchKey;
 
 /** Writes a compact, attachable diagnostic snapshot for live GTNH compatibility testing. */
@@ -84,6 +85,23 @@ public final class JourneyDiagnosticDump {
         }
 
         JourneyRuntimeCounters.Snapshot counters = JourneyRuntimeCounters.snapshot();
+        List<JourneySnapshot> recoverySnapshots = GTNHJourney.MUTATIONS == null
+            ? java.util.Collections.<JourneySnapshot>emptyList()
+            : GTNHJourney.MUTATIONS.snapshots(player);
+        int undoDepth = GTNHJourney.MUTATIONS == null ? 0 : GTNHJourney.MUTATIONS.undoDepth(player);
+        int redoDepth = GTNHJourney.MUTATIONS == null ? 0 : GTNHJourney.MUTATIONS.redoDepth(player);
+        int activeDeleted = GTNHJourney.MUTATIONS == null ? 0 : GTNHJourney.MUTATIONS.activeDeletionCount(player);
+        int totalDeleted = GTNHJourney.MUTATIONS == null ? 0 : GTNHJourney.MUTATIONS.deletionCount(player);
+        long currentWorldTick = player.worldObj == null ? 0L : player.worldObj.getTotalWorldTime();
+        List<String> recoveryLines = RecoveryDiagnosticSummary.lines(
+            undoDepth,
+            redoDepth,
+            activeDeleted,
+            totalDeleted,
+            recoverySnapshots,
+            currentWorldTick,
+            GTNHJourney.SNAPSHOT_TICKER.skippedSuspiciousSnapshots());
+
         BufferedWriter out = new BufferedWriter(
             new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8));
         try {
@@ -108,6 +126,9 @@ public final class JourneyDiagnosticDump {
             out.write("debugResearchUniqueCandidates=" + counters.getDebugResearchUniqueCandidates() + "\n");
             out.write("debugResearchNewStates=" + counters.getDebugResearchNewStates() + "\n");
 
+            out.write("\n== Recovery ==\n");
+            for (String line : recoveryLines) out.write(line + "\n");
+
             out.write("\n== Research summary ==\n");
             out.write("states=" + keys.size() + "\n");
             out.write("baseItemMeta=" + bases.size() + "\n");
@@ -115,7 +136,6 @@ public final class JourneyDiagnosticDump {
             out.write("serverOnlyOversized=" + serverOnly + "\n");
             out.write("unavailable=" + unavailable + "\n");
             out.write("unknownExactNbt=" + unknownExactNbt.size() + "\n");
-            out.write("undoSnapshot=" + GTNHJourney.RESEARCH.undoSize(player) + "\n");
             out.write("observationFailureUnique=" + ResearchFailureLog.uniqueCount() + "\n");
             out.write("observationFailureDroppedUnique=" + ResearchFailureLog.droppedUnique() + "\n");
 
