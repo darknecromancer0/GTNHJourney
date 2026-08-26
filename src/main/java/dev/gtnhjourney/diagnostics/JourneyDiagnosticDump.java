@@ -113,6 +113,9 @@ public final class JourneyDiagnosticDump {
 
             out.write("\n== Runtime counters ==\n");
             out.write("panelIncrementalUpdates=" + counters.getPanelIncrementalUpdates() + "\n");
+            out.write("panelAuthoritativeStacks=" + counters.getPanelAuthoritativeStacks() + "\n");
+            out.write("panelSemanticStacks=" + counters.getPanelSemanticStacks() + "\n");
+            out.write("panelVisibleStacks=" + counters.getPanelVisibleStacks() + "\n");
             out.write("fullNeiReloadRequests=" + counters.getFullNeiReloadRequests() + "\n");
             out.write("presentationFailures=" + counters.getPresentationFailures() + "\n");
             out.write(
