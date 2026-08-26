@@ -82,11 +82,18 @@ public final class ServerRequestQueue {
             handleDelete(player, request.fingerprint);
             return;
         }
-        ItemStack stack = research.retrieve(player, request.fingerprint, request.amount);
+        ResearchKey key = research.resolve(player, request.fingerprint);
+        if (key == null) return;
+        ItemStack stack = research.retrieve(player, key, request.amount);
         if (stack == null) return;
         player.inventory.addItemStackToInventory(stack);
         if (stack.stackSize > 0) player.dropPlayerItemWithRandomChoice(stack, false);
         player.inventoryContainer.detectAndSendChanges();
+
+        // N is activity history, not inventory-observation history. Only this successful Journey issuance moves an
+        // already researched item to the front; later pickup/reconcile passes therefore cannot reorder N again.
+        research.recordRetrieval(player, key);
+        JourneyNetwork.sendActivityTouch(player, ResearchFingerprint.of(key));
     }
 
     private void handleDelete(EntityPlayerMP player, ResearchFingerprint fingerprint) {
