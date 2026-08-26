@@ -204,12 +204,14 @@ public final class JourneyMutationService {
         JourneyRecoveryData recovery,
         UUID playerId,
         ResearchStateSnapshot target) {
-        if (recovery == null || playerId == null || target == null || target.isEmpty()) return Collections.emptyList();
+        if (recovery == null || playerId == null || target == null) return Collections.emptyList();
         Set<ResearchKey> targetKeys = keySet(target);
         List<DeletionStateChange> changes = new ArrayList<DeletionStateChange>();
-        for (DeletionRecord record : recovery.newestActiveDeletions(playerId, 1000)) {
-            if (record != null && targetKeys.contains(record.entry().key())) {
-                changes.add(new DeletionStateChange(record.id(), false));
+        for (DeletionRecord record : recovery.deletions(playerId)) {
+            if (record == null || record.entry() == null) continue;
+            boolean desiredActive = !targetKeys.contains(record.entry().key());
+            if (record.active() != desiredActive) {
+                changes.add(new DeletionStateChange(record.id(), desiredActive));
             }
         }
         return Collections.unmodifiableList(changes);
