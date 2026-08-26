@@ -35,6 +35,16 @@ public final class JourneyNetwork {
             ResearchUnlockNotificationMessage.class,
             8,
             Side.CLIENT);
+        CHANNEL.registerMessage(
+            ResearchActivitySyncChunkMessage.Handler.class,
+            ResearchActivitySyncChunkMessage.class,
+            9,
+            Side.CLIENT);
+        CHANNEL.registerMessage(
+            ResearchActivityTouchMessage.Handler.class,
+            ResearchActivityTouchMessage.class,
+            10,
+            Side.CLIENT);
     }
 
     public static void requestRetrieve(ResearchKey key, int amount) {
@@ -46,7 +56,11 @@ public final class JourneyNetwork {
     }
 
     public static void sendFullSync(EntityPlayerMP player, List<ItemStack> stacks) {
-        ServerResearchSyncQueue.start(player, stacks);
+        ServerResearchSyncQueue.start(player, stacks, java.util.Collections.<ResearchKey>emptyList());
+    }
+
+    public static void sendFullSync(EntityPlayerMP player, List<ItemStack> stacks, List<ResearchKey> activityOldestFirst) {
+        ServerResearchSyncQueue.start(player, stacks, activityOldestFirst);
     }
 
     public static void sendUnlock(EntityPlayerMP player, ItemStack stack) {
@@ -73,6 +87,17 @@ public final class JourneyNetwork {
         if (key == null) return;
         if (ItemStackPayloadSizer.canSync(stack)) CHANNEL.sendTo(new ResearchUnlockMessage(stack), player);
         else CHANNEL.sendTo(new ResearchServerOnlyUnlockMessage(), player);
+    }
+
+    public static void sendActivityTouch(EntityPlayerMP player, ResearchFingerprint fingerprint) {
+        if (player == null || fingerprint == null) return;
+        if (!ServerResearchSyncQueue.deferActivityTouchIfActive(player, fingerprint)) {
+            sendActivityTouchImmediate(player, fingerprint);
+        }
+    }
+
+    static void sendActivityTouchImmediate(EntityPlayerMP player, ResearchFingerprint fingerprint) {
+        if (player != null && fingerprint != null) CHANNEL.sendTo(new ResearchActivityTouchMessage(fingerprint), player);
     }
 
     public static void sendRemove(EntityPlayerMP player, ResearchFingerprint fingerprint) {
@@ -103,6 +128,10 @@ public final class JourneyNetwork {
 
     static void sendSyncChunk(EntityPlayerMP player, int epoch, List<ItemStack> chunk) {
         CHANNEL.sendTo(new ResearchSyncChunkMessage(epoch, chunk), player);
+    }
+
+    static void sendActivitySyncChunk(EntityPlayerMP player, int epoch, List<ResearchFingerprint> chunk) {
+        CHANNEL.sendTo(new ResearchActivitySyncChunkMessage(epoch, chunk), player);
     }
 
     static void sendSyncEnd(EntityPlayerMP player, int epoch) {
