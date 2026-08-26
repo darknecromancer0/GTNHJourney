@@ -8,6 +8,7 @@ import net.minecraft.item.ItemStack;
 
 import dev.gtnhjourney.diagnostics.ResearchTrace;
 import dev.gtnhjourney.network.JourneyNetwork;
+import dev.gtnhjourney.network.UnlockNotificationPolicy;
 import dev.gtnhjourney.persistence.PlayerResearchService;
 import dev.gtnhjourney.recovery.JourneyMutationService;
 
@@ -28,9 +29,7 @@ public final class ResearchObservationService {
     }
 
     public List<ItemStack> observe(EntityPlayerMP player, ItemStack observed) {
-        if (player == null || observed == null || observed.getItem() == null || observed.stackSize <= 0) {
-            return Collections.emptyList();
-        }
+        if (player == null || !ResearchObservationPolicy.shouldObserve(observed)) return Collections.emptyList();
 
         List<ItemStack> unlocked = research.unlockStates(player, observed);
         if (!unlocked.isEmpty() && mutations != null) mutations.notePassiveMutation(player, unlocked);
@@ -44,6 +43,15 @@ public final class ResearchObservationService {
                 // Network serialization/integration failures are isolated from persistence.
             } catch (LinkageError ignored) {
                 // Optional-mod linkage failures stay at the incremental sync boundary.
+            }
+        }
+        if (UnlockNotificationPolicy.shouldNotify(unlocked.size())) {
+            try {
+                JourneyNetwork.sendUnlockNotification(player, observed);
+            } catch (RuntimeException ignored) {
+                // Human-facing UI is never allowed to invalidate authoritative research persistence.
+            } catch (LinkageError ignored) {
+                // Optional client/UI linkage remains presentation-only.
             }
         }
         return unlocked;
