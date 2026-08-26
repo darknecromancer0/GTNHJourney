@@ -19,13 +19,33 @@ public class SemanticDiagnosticSnapshotTest {
             false,
             true,
             false,
+            false,
             2);
 
         assertEquals(
             "Semantic: GT-charge=BASE, IC2-charge=EXACT, CoFH-charge=FULL, OC-charge=EXACT, GT-tool=true, "
-                + "TCon-tool=false, Botania-magnet=true, Draconic-tool=false, observed endpoints=2",
+                + "TCon-tool=false, Botania-magnet=true, Draconic-tool=false, Wearable-transient=false, observed endpoints=2",
             snapshot.inspectLine());
         assertEquals("GT-charge, CoFH-charge, GT-tool, Botania-magnet", snapshot.matchedPoliciesCsv());
+    }
+
+    @Test
+    public void wearablePolicyIsReportedAndPreventsUnknownExactClassification() {
+        SemanticDiagnosticSnapshot wearable = new SemanticDiagnosticSnapshot(
+            "EXACT",
+            "EXACT",
+            "EXACT",
+            "EXACT",
+            false,
+            false,
+            false,
+            false,
+            true,
+            1);
+
+        assertTrue(wearable.inspectLine().contains("Wearable-transient=true"));
+        assertEquals("wearable-transient", wearable.matchedPoliciesCsv());
+        assertFalse(wearable.isUnknownExactNbt(true));
     }
 
     @Test
@@ -35,6 +55,7 @@ public class SemanticDiagnosticSnapshotTest {
             "EXACT",
             "EXACT",
             "EXACT",
+            false,
             false,
             false,
             false,
@@ -54,6 +75,7 @@ public class SemanticDiagnosticSnapshotTest {
             "EXACT",
             false,
             true,
+            false,
             false,
             false,
             1);
