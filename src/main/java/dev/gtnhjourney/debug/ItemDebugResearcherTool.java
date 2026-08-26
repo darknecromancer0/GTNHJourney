@@ -47,7 +47,9 @@ public final class ItemDebugResearcherTool extends Item {
         float hitZ) {
         DebugResearchMode mode = DebugResearchToolState.read(stack);
         InteractionDecision decision = route(mode, player != null && player.isSneaking(), true);
-        if (world == null || world.isRemote || !(player instanceof EntityPlayerMP)) return decision.consumed();
+        if (world == null) return false;
+        if (world.isRemote) return consumeClientBlockUse();
+        if (!(player instanceof EntityPlayerMP)) return false;
 
         EntityPlayerMP serverPlayer = (EntityPlayerMP) player;
         if (decision.action() == InteractionAction.CYCLE_MODE) {
@@ -63,6 +65,11 @@ public final class ItemDebugResearcherTool extends Item {
             }
         }
         return true;
+    }
+
+    /** Client must not consume the targeted use before Forge sends the corresponding server interaction. */
+    public static boolean consumeClientBlockUse() {
+        return false;
     }
 
     @Override
