@@ -4,17 +4,16 @@ import net.minecraft.item.ItemStack;
 
 import codechicken.nei.api.ItemFilter;
 
-/** Keeps NEI's own async search rebuild constrained to the active Journey view. */
+/** Keeps NEI's own async search rebuild constrained to the active Journey research set. */
 public final class JourneyItemFilterProvider implements ItemFilter.ItemFilterProvider {
 
     private final JourneySubsetFilter researched = new JourneySubsetFilter();
-    private final JourneyNewestFilter newest = new JourneyNewestFilter();
 
     @Override
     public ItemFilter getFilter() {
         JourneyViewState.Mode mode = JourneyViewState.mode();
-        if (mode == JourneyViewState.Mode.RESEARCHED || mode == JourneyViewState.Mode.DELETE) return researched;
-        if (mode == JourneyViewState.Mode.NEWEST) return newest;
+        if (mode == JourneyViewState.Mode.RESEARCHED || mode == JourneyViewState.Mode.NEWEST
+            || mode == JourneyViewState.Mode.DELETE) return researched;
         return new ItemFilter() {
 
             @Override
