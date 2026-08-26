@@ -26,7 +26,7 @@ public final class CommandJourney extends CommandBase {
 
     @Override
     public String getCommandUsage(ICommandSender sender) {
-        return "/journey <count|stats|debug|debugtool|trace|dump|hotspots|list|newest|get|forget|undo|redo|restore-deleted|snapshot|snapshots|restore|inspect|rescan|prune-missing|clear>";
+        return "/journey help";
     }
 
     @Override
@@ -43,6 +43,10 @@ public final class CommandJourney extends CommandBase {
         EntityPlayerMP player = (EntityPlayerMP) sender;
         String action = args.length == 0 ? "count" : args[0].toLowerCase(Locale.ROOT);
 
+        if ("help".equals(action)) {
+            help(player);
+            return;
+        }
         if ("count".equals(action)) {
             tell(player, "Researched: " + GTNHJourney.RESEARCH.snapshot(player).size());
             return;
@@ -184,6 +188,18 @@ public final class CommandJourney extends CommandBase {
             inspect(player);
             return;
         }
+        if ("research".equals(action)) {
+            List<ItemStack> candidates = HeldItemResearchCommand.candidates(player.inventory.getCurrentItem());
+            if (candidates.isEmpty()) {
+                tell(player, "Hold an item to research it.");
+                return;
+            }
+            int added = GTNHJourney.MUTATIONS.applyBulkAdd(player, candidates, "Research held item");
+            // This command is also an explicit refresh path. Sync even when the semantic state already existed.
+            sync(player);
+            tell(player, "Held item research refreshed. New: " + added);
+            return;
+        }
         if ("prune-missing".equals(action)) {
             if (args.length < 2 || !"confirm".equalsIgnoreCase(args[1])) {
                 tell(
@@ -231,7 +247,12 @@ public final class CommandJourney extends CommandBase {
             tell(player, "Cleared " + removed + " researched states. /journey undo reverses the operation.");
             return;
         }
-        tell(player, getCommandUsage(sender));
+        tell(player, "Unknown Journey command: " + action);
+        help(player);
+    }
+
+    private void help(EntityPlayerMP player) {
+        for (String line : JourneyHelpText.lines()) tell(player, line);
     }
 
     private void hotspots(EntityPlayerMP player, int limit) {
