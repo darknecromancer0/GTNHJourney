@@ -11,6 +11,7 @@ import net.minecraft.util.MathHelper;
 import net.minecraft.world.World;
 
 import dev.gtnhjourney.GTNHJourney;
+import dev.gtnhjourney.diagnostics.JourneyRuntimeCounters;
 import dev.gtnhjourney.network.JourneyNetwork;
 
 /** Admin migration tool that researches existing world blocks and inventory contents without mutating them. */
@@ -135,6 +136,11 @@ public final class ItemDebugResearcherTool extends Item {
 
                 @Override
                 public void summary(DebugResearchMode selected, DebugResearchScanResult result) {
+                    JourneyRuntimeCounters.debugResearchScan(
+                        result.getPositionsVisited(),
+                        result.getInventoriesVisited(),
+                        result.getUniqueCandidates(),
+                        result.getNewlyUnlockedStates());
                     tell(player, formatSummary(selected, result));
                 }
             });
