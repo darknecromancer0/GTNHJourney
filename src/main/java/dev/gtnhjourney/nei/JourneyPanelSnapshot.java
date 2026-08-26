@@ -8,18 +8,28 @@ import java.util.Set;
 
 import dev.gtnhjourney.research.ResearchKey;
 
-/** Pure Journey-panel key planning: deduplicate an oldest-first timeline before applying the active view order. */
+/** Pure Journey-panel key planning: deduplicate timelines before applying the active view order. */
 final class JourneyPanelSnapshot {
 
     private JourneyPanelSnapshot() {}
 
-    static List<ResearchKey> keys(List<ResearchKey> oldestFirst, JourneyViewState.Mode mode, int newestLimit) {
-        if (oldestFirst == null || oldestFirst.isEmpty()) return Collections.emptyList();
+    static List<ResearchKey> keys(List<ResearchKey> researchOldestFirst, JourneyViewState.Mode mode, int ignored) {
+        return keys(researchOldestFirst, researchOldestFirst, mode);
+    }
+
+    static List<ResearchKey> keys(
+        List<ResearchKey> researchOldestFirst,
+        List<ResearchKey> activityOldestFirst,
+        JourneyViewState.Mode mode) {
+        List<ResearchKey> research = unique(researchOldestFirst);
+        if (research.isEmpty()) return Collections.emptyList();
+        return JourneyPanelOrder.keysForMode(research, unique(activityOldestFirst), mode);
+    }
+
+    private static List<ResearchKey> unique(List<ResearchKey> source) {
+        if (source == null || source.isEmpty()) return Collections.emptyList();
         Set<ResearchKey> unique = new LinkedHashSet<ResearchKey>();
-        for (ResearchKey key : oldestFirst) {
-            if (key != null) unique.add(key);
-        }
-        if (unique.isEmpty()) return Collections.emptyList();
-        return JourneyPanelOrder.keysForMode(new ArrayList<ResearchKey>(unique), mode, newestLimit);
+        for (ResearchKey key : source) if (key != null) unique.add(key);
+        return new ArrayList<ResearchKey>(unique);
     }
 }
