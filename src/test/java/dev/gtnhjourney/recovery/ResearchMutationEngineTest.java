@@ -192,6 +192,64 @@ public class ResearchMutationEngineTest {
     }
 
     @Test
+    public void strictUndoValidatesOverlappingRestoreEntryEvenWhenItCurrentlyExists() {
+        UUID player = UUID.randomUUID();
+        JourneyResearchData research = new JourneyResearchData();
+        JourneyRecoveryData recovery = new JourneyRecoveryData();
+        ResearchKey shared = new ResearchKey("test:shared", 0, "");
+        ResearchKey beforeOnly = new ResearchKey("test:before", 0, "");
+        ResearchKey targetOnly = new ResearchKey("test:target", 0, "");
+        research.restoreEntry(player, new ResearchEntrySnapshot(shared, null, 0));
+        research.restoreEntry(player, new ResearchEntrySnapshot(beforeOnly, null, 1));
+        ResearchMutationEngine permissive = new ResearchMutationEngine(research, recovery, player);
+        ResearchStateSnapshot target = new ResearchStateSnapshot(
+            Arrays.asList(
+                new ResearchEntrySnapshot(shared, null, 0),
+                new ResearchEntrySnapshot(targetOnly, null, 1)));
+        assertEquals(2, permissive.replaceState(target, "replace"));
+
+        ResearchMutationEngine strict = new ResearchMutationEngine(
+            research,
+            recovery,
+            player,
+            denyKey(shared));
+        assertEquals(0, strict.undo(1));
+        assertEquals(Arrays.asList(shared, targetOnly), research.snapshotInUnlockOrder(player));
+        assertEquals(1, recovery.undoDepth(player));
+        assertEquals(0, recovery.redoDepth(player));
+    }
+
+    @Test
+    public void strictRedoValidatesOverlappingRestoreEntryEvenWhenItCurrentlyExists() {
+        UUID player = UUID.randomUUID();
+        JourneyResearchData research = new JourneyResearchData();
+        JourneyRecoveryData recovery = new JourneyRecoveryData();
+        ResearchKey shared = new ResearchKey("test:shared", 0, "");
+        ResearchKey beforeOnly = new ResearchKey("test:before", 0, "");
+        ResearchKey targetOnly = new ResearchKey("test:target", 0, "");
+        research.restoreEntry(player, new ResearchEntrySnapshot(shared, null, 0));
+        research.restoreEntry(player, new ResearchEntrySnapshot(beforeOnly, null, 1));
+        ResearchMutationEngine permissive = new ResearchMutationEngine(research, recovery, player);
+        ResearchStateSnapshot target = new ResearchStateSnapshot(
+            Arrays.asList(
+                new ResearchEntrySnapshot(shared, null, 0),
+                new ResearchEntrySnapshot(targetOnly, null, 1)));
+        assertEquals(2, permissive.replaceState(target, "replace"));
+        assertEquals(1, permissive.undo(1));
+        assertEquals(Arrays.asList(shared, beforeOnly), research.snapshotInUnlockOrder(player));
+
+        ResearchMutationEngine strict = new ResearchMutationEngine(
+            research,
+            recovery,
+            player,
+            denyKey(shared));
+        assertEquals(0, strict.redo(1));
+        assertEquals(Arrays.asList(shared, beforeOnly), research.snapshotInUnlockOrder(player));
+        assertEquals(0, recovery.undoDepth(player));
+        assertEquals(1, recovery.redoDepth(player));
+    }
+
+    @Test
     public void passiveMutationAfterUndoInvalidatesRedo() {
         UUID player = UUID.randomUUID();
         JourneyResearchData research = new JourneyResearchData();
@@ -207,5 +265,15 @@ public class ResearchMutationEngineTest {
         engine.notePassiveMutation();
         assertEquals(0, recovery.redoDepth(player));
         assertFalse(engine.redo(1) > 0);
+    }
+
+    private static RecoveryRestorePolicy denyKey(final ResearchKey denied) {
+        return new RecoveryRestorePolicy() {
+
+            @Override
+            public boolean canRestore(ResearchEntrySnapshot entry) {
+                return entry != null && !entry.key().equals(denied);
+            }
+        };
     }
 }
