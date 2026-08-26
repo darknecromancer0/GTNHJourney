@@ -57,6 +57,11 @@ public class Pre7LiveRegressionTest {
     }
 
     @Test
+    public void debugToolClientBlockUseMustNotConsumeBeforeServerExecution() {
+        assertFalse(ItemDebugResearcherTool.consumeClientBlockUse());
+    }
+
+    @Test
     public void gtPlusPlusPumpFluidPayloadIsTransientToolState() {
         assertTrue(TransientToolFluidPolicy.isTransientFluidToolClassName("gtPlusPlus.core.item.tool.misc.ItemGregtechPump"));
         assertFalse(TransientToolFluidPolicy.isTransientFluidToolClassName("gregtech.common.items.ItemVolumetricFlask"));
@@ -75,5 +80,11 @@ public class Pre7LiveRegressionTest {
         assertTrue(UnlockNotificationPolicy.shouldNotify(1));
         assertTrue(UnlockNotificationPolicy.shouldNotify(2));
         assertEquals("Unlocked: Potato", UnlockNotificationText.format("Potato"));
+    }
+
+    @Test
+    public void journeyForcesTheNeiItemSectionVisibleInCreativeScreens() {
+        assertTrue(JourneyCreativeVisibilityPolicy.forceItemSection(true));
+        assertFalse(JourneyCreativeVisibilityPolicy.forceItemSection(false));
     }
 }
