@@ -16,6 +16,7 @@ public final class ResearchNbtIdentity {
         BotaniaTransientStatePolicy.normalize(stack, identityTag);
         DraconicTransientStatePolicy.normalize(stack, identityTag);
         WearableTransientStatePolicy.normalize(stack, identityTag);
+        TransientToolFluidPolicy.normalize(stack, identityTag);
         if (identityTag.func_150296_c()
             .isEmpty()) return "";
         final boolean normalizeToolState = ResearchCompatibilityOptions.normalizeGtTransientIdentity()
