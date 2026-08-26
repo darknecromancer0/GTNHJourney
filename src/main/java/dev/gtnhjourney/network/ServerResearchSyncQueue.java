@@ -39,6 +39,7 @@ public final class ServerResearchSyncQueue {
             session.epoch,
             session.availableTotal,
             session.syncableTotal,
+            session.activityTotal,
             JourneyConfig.normalizeGtTransientIdentity(),
             JourneyConfig.resetGtToolTemplateState(),
             JourneyConfig.normalizeGtChargeEndpoints(),
@@ -203,6 +204,7 @@ public final class ServerResearchSyncQueue {
         final int epoch;
         final int availableTotal;
         final int syncableTotal;
+        final int activityTotal;
         final List<List<ItemStack>> stackChunks;
         final List<List<ResearchFingerprint>> activityChunks;
         final List<DeferredEvent> deferredEvents = new ArrayList<DeferredEvent>();
@@ -214,6 +216,7 @@ public final class ServerResearchSyncQueue {
             int epoch,
             int availableTotal,
             int syncableTotal,
+            int activityTotal,
             List<List<ItemStack>> stackChunks,
             List<List<ResearchFingerprint>> activityChunks) {
             this.player = player;
@@ -221,6 +224,7 @@ public final class ServerResearchSyncQueue {
             this.epoch = epoch;
             this.availableTotal = availableTotal;
             this.syncableTotal = syncableTotal;
+            this.activityTotal = activityTotal;
             this.stackChunks = stackChunks;
             this.activityChunks = activityChunks;
         }
@@ -256,6 +260,7 @@ public final class ServerResearchSyncQueue {
             }
 
             List<List<ResearchFingerprint>> activityChunks = new ArrayList<List<ResearchFingerprint>>();
+            int activityTotal = 0;
             if (activityOldestFirst != null) {
                 List<ResearchFingerprint> current = null;
                 for (ResearchKey key : activityOldestFirst) {
@@ -265,6 +270,7 @@ public final class ServerResearchSyncQueue {
                         activityChunks.add(current);
                     }
                     current.add(ResearchFingerprint.of(key));
+                    activityTotal++;
                 }
             }
             return new Session(
@@ -272,6 +278,7 @@ public final class ServerResearchSyncQueue {
                 epoch,
                 plan.getSourceTotal(),
                 plan.getSyncableTotal(),
+                activityTotal,
                 stackChunks,
                 activityChunks);
         }
