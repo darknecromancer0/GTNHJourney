@@ -22,18 +22,36 @@ import dev.gtnhjourney.research.ResearchKey;
 public final class ResearchMutationEngine {
 
     private static final AtomicLong NEXT_ID = new AtomicLong(System.currentTimeMillis() * 1000L);
+    private static final RecoveryRestorePolicy PERMISSIVE_RESTORE_POLICY = new RecoveryRestorePolicy() {
+
+        @Override
+        public boolean canRestore(ResearchEntrySnapshot entry) {
+            return entry != null;
+        }
+    };
 
     private final JourneyResearchData research;
     private final JourneyRecoveryData recovery;
     private final UUID playerId;
+    private final RecoveryRestorePolicy restorePolicy;
 
     public ResearchMutationEngine(JourneyResearchData research, JourneyRecoveryData recovery, UUID playerId) {
+        this(research, recovery, playerId, PERMISSIVE_RESTORE_POLICY);
+    }
+
+    public ResearchMutationEngine(
+        JourneyResearchData research,
+        JourneyRecoveryData recovery,
+        UUID playerId,
+        RecoveryRestorePolicy restorePolicy) {
         if (research == null) throw new IllegalArgumentException("research must not be null");
         if (recovery == null) throw new IllegalArgumentException("recovery must not be null");
         if (playerId == null) throw new IllegalArgumentException("playerId must not be null");
+        if (restorePolicy == null) throw new IllegalArgumentException("restorePolicy must not be null");
         this.research = research;
         this.recovery = recovery;
         this.playerId = playerId;
+        this.restorePolicy = restorePolicy;
     }
 
     public boolean deleteExact(ResearchKey key, String description) {
@@ -94,7 +112,9 @@ public final class ResearchMutationEngine {
         List<ResearchEntrySnapshot> ordered = sorted(entries);
         List<ResearchEntrySnapshot> added = new ArrayList<ResearchEntrySnapshot>();
         for (ResearchEntrySnapshot entry : ordered) {
-            if (entry != null && research.restoreEntry(playerId, entry)) added.add(entry);
+            if (entry == null || research.registry(playerId).contains(entry.key())) continue;
+            if (!restorePolicy.canRestore(entry)) continue;
+            if (research.restoreEntry(playerId, entry)) added.add(entry);
         }
         if (added.isEmpty()) return 0;
         record(
@@ -117,7 +137,7 @@ public final class ResearchMutationEngine {
         ResearchStateSnapshot target,
         String description,
         List<DeletionStateChange> deletionChanges) {
-        if (target == null) return 0;
+        if (target == null || !canRestoreAll(target.entries(), false)) return 0;
         ResearchStateSnapshot before = research.captureState(playerId);
         if (sameState(before, target)) return 0;
 
@@ -169,6 +189,7 @@ public final class ResearchMutationEngine {
                 recovery.setDeletionActive(playerId, record.id(), false);
                 continue;
             }
+            if (!restorePolicy.canRestore(entry)) continue;
             if (!research.restoreEntry(playerId, entry)) continue;
             recovery.setDeletionActive(playerId, record.id(), false);
             restored.add(entry);
@@ -192,6 +213,10 @@ public final class ResearchMutationEngine {
         while (applied < requested) {
             ResearchTransaction transaction = recovery.popUndo(playerId);
             if (transaction == null) break;
+            if (!canRestoreAll(transaction.removed(), true)) {
+                recovery.pushUndo(playerId, transaction);
+                break;
+            }
             applyReverse(transaction);
             recovery.pushRedo(playerId, transaction);
             applied++;
@@ -205,6 +230,10 @@ public final class ResearchMutationEngine {
         while (applied < requested) {
             ResearchTransaction transaction = recovery.popRedo(playerId);
             if (transaction == null) break;
+            if (!canRestoreAll(transaction.added(), true)) {
+                recovery.pushRedo(playerId, transaction);
+                break;
+            }
             applyForward(transaction);
             recovery.pushUndo(playerId, transaction);
             applied++;
@@ -246,6 +275,16 @@ public final class ResearchMutationEngine {
             boolean active = forward ? change.activeAfterForward() : !change.activeAfterForward();
             recovery.setDeletionActive(playerId, change.deletionId(), active);
         }
+    }
+
+    private boolean canRestoreAll(List<ResearchEntrySnapshot> entries, boolean existingIsEnough) {
+        if (entries == null) return true;
+        for (ResearchEntrySnapshot entry : entries) {
+            if (entry == null) continue;
+            if (existingIsEnough && research.registry(playerId).contains(entry.key())) continue;
+            if (!restorePolicy.canRestore(entry)) return false;
+        }
+        return true;
     }
 
     private void removeEntries(List<ResearchEntrySnapshot> entries) {
