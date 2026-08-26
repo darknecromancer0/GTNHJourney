@@ -97,6 +97,8 @@ public final class JourneyDiagnosticDump {
             out.write("panelIncrementalUpdates=" + counters.getPanelIncrementalUpdates() + "\n");
             out.write("fullNeiReloadRequests=" + counters.getFullNeiReloadRequests() + "\n");
             out.write("presentationFailures=" + counters.getPresentationFailures() + "\n");
+            out.write(
+                "creativeUnsafeFlaskVariantsRemoved=" + counters.getCreativeUnsafeFlaskVariantsRemoved() + "\n");
             out.write("unlockNotifications=" + counters.getUnlockNotifications() + "\n");
             out.write("furnaceOutputObservations=" + counters.getFurnaceOutputObservations() + "\n");
             out.write("furnaceOutputUnlocks=" + counters.getFurnaceOutputUnlocks() + "\n");
