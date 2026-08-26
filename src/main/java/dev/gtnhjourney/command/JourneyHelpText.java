@@ -10,13 +10,13 @@ public final class JourneyHelpText {
     private static final List<String> LINES = Collections.unmodifiableList(
         Arrays.asList(
             "GTNH Journey commands:",
-            "/journey count | stats | inspect - research summary and held item diagnostics.",
-            "/journey research | rescan - research the held item or rescan your real inventory.",
-            "/journey list [page] | newest [n] | get <index> [amount] - browse and retrieve research.",
-            "/journey forget <index> | undo [n] | redo [n] | restore-deleted [n] - delete and recover states.",
-            "/journey snapshot [name] | snapshots | restore <id|name> - create, list and restore snapshots.",
-            "/journey debug | trace [on|off] | dump | hotspots [n] - diagnostics and troubleshooting.",
-            "/journey debugtool | prune-missing confirm | clear confirm - migration and destructive tools."));
+            "/journey count | /journey stats | /journey inspect - research summary and held item diagnostics.",
+            "/journey research | /journey rescan - research the held item or rescan your real inventory.",
+            "/journey list [page] | /journey newest [n] | /journey get <index> [amount] - browse and retrieve research.",
+            "/journey forget <index> | /journey undo [n] | /journey redo [n] | /journey restore-deleted [n] - delete and recover states.",
+            "/journey snapshot [name] | /journey snapshots | /journey restore <id|name> - create, list and restore snapshots.",
+            "/journey debug | /journey trace [on|off] | /journey dump | /journey hotspots [n] - diagnostics and troubleshooting.",
+            "/journey debugtool | /journey prune-missing confirm | /journey clear confirm - migration and destructive tools."));
 
     private JourneyHelpText() {}
 
