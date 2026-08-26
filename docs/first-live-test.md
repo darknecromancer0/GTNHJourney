@@ -2,61 +2,150 @@
 
 Target: GTNH `2.9.0-beta-2`, NEI `2.8.111-GTNH`.
 
-Use the production `gtnhjourney-0.1.0-pre7.jar`. Keep a world backup from before the test. Do not delete existing Journey research unless a test explicitly needs a fresh state.
+Use only the production `gtnhjourney-0.1.0-pre7.jar` from the final green CI artifact. Keep a world backup from before the test. Do not clear existing Journey research unless a step explicitly requires a fresh acquisition.
 
-## 1. Startup / baseline
+## 1. Startup / version / old-save migration
 
 1. Replace the previous Journey jar with pre7 and launch the same test world.
-2. Confirm the main menu/mod list reports `GTNH Journey 0.1.0-pre7`.
-3. Enter the world and open ordinary NEI without enabling Journey.
+2. Confirm the mod list reports `GTNH Journey 0.1.0-pre7`.
+3. Enter the world and open ordinary NEI before enabling Journey.
+4. Run `/journey count` and `/journey dump` before doing new research.
 
 Expected:
 - no startup/client crash;
-- ordinary NEI ordering is unchanged while Journey mode is off;
-- no Journey-only presentation variants leak into the normal item list.
+- ordinary NEI remains usable and Journey does not leak private panel variants into normal view;
+- existing valid research survives migration;
+- old entries newly collapsed by verified pre7 normalization keep the earliest valid chronology position/template;
+- migration itself produces no `Unlocked:` spam.
 
-## 2. J / N chronology
+## 2. J chronology and newest placement
 
-Prepare at least five researched states with a known acquisition order. Prefer visibly distinct items and include one exact-NBT state.
+Prepare/acquire at least five visibly distinct states with a known order.
 
-1. Press `J` and compare the panel from top-left onward with first-acquisition order.
-2. Toggle `J` off/on and confirm the order is stable.
-3. Press `N` and inspect the first several entries.
-
-Expected:
-- `J` is oldest-first;
-- `N` is newest-first and contains only the configured newest tail;
-- NEI search still filters Journey without scrambling chronology.
-
-## 3. Semantic-state regressions
-
-Test representative items where Journey has special semantic handling:
-
-- partially/full charged IC2 drill;
-- GT electric item/tool if available;
-- Tinkers Construct tool with level/progression/modifiers;
-- the previously renderer-hostile volumetric flask/fluid combination if available.
+1. Press `J`.
+2. Observe page 1 from the upper-left slot onward.
+3. Acquire one additional new state while J remains active.
 
 Expected:
-- BASE/FULL electric endpoints remain independently addressable;
-- TCon wear resets without deleting progression/material/modifier state;
-- legacy repaired templates remain structurally valid;
-- volumetric flask can render/hover in J/N without client crash and retrieves the authoritative server NBT.
+- `J` contains all researched states **newest-first**;
+- the newest state is index 0, upper-left on page 1;
+- the new unlock moves/keeps the panel at page 1 without a full NEI rebuild;
+- toggling J off/on preserves the same Journey chronology.
 
-## 4. Acquisition regressions
+## 3. N chronology and configured limit
 
-1. Smelt a previously unresearched output and immediately shift-click/merge it.
-2. Pick up a previously unresearched item with normal inventory space.
-3. Attempt a pickup that cannot actually enter the inventory.
+1. Press `N` after enough states exist to exceed or meaningfully exercise `client.newestLimit`.
+2. Compare the first entries with the same known acquisition order.
+3. Search for a subset using normal NEI search.
 
 Expected:
-- furnace result is researched without waiting for a manual slot interaction;
-- successful pickup is validated from the real server inventory;
-- cancelled/full-inventory pickup does not create ghost research.
+- `N` is **newest-first**;
+- only the configured newest tail is eligible;
+- newest is upper-left page 1;
+- NEI search constrains the Journey list without scrambling chronology among matching states.
 
-## 5. Retrieval sanity
+## 4. Unlock performance / no ordinary full-NEI reload
 
-For representative BASE, exact-NBT and FULL endpoint items:
+1. Leave J or N active.
+2. Acquire several unrelated new items one by one.
+3. Watch for freezes and later inspect `/journey dump`.
+
+Expected:
+- no visible global item-regather/reindex freeze on ordinary unlocks;
+- only the small Journey panel refreshes;
+- `panelIncrementalUpdates` increases;
+- `fullNeiReloadRequests` stays at zero for ordinary research events.
+
+## 5. IC2 Drill / Diamond Drill / Iridium Drill states
+
+Test available Drill, Diamond Drill and Iridium Drill states from the migrated save or by acquiring them normally. Include charged state/endpoints where obtainable.
+
+Expected:
+- existing valid drill research is not lost in migration;
+- BASE and meaningful FULL endpoints remain independently represented according to IC2 semantics;
+- partial charge does not create an unbounded sequence of research states;
+- drill states appear in J/N even if native NEI does not expose the same permutation;
+- retrieval recreates the authoritative saved state.
+
+## 6. Filled Universal Fluid Cells / meaningful container contents
+
+Use at least two filled cells containing different fluids, preferably one from existing pre6 research.
+
+Expected:
+- empty and filled states remain distinct;
+- two different fluid contents remain distinct;
+- existing filled-cell research survives migration;
+- J/N visibility comes from Journey research, not native NEI permutations;
+- retrieval preserves the researched fluid identity/content rather than returning an empty generic cell.
+
+## 7. Closed-GUI furnace automatic research
+
+1. Put an unresearched recipe into a furnace you have opened/used.
+2. Close the GUI before smelting finishes.
+3. Let the furnace complete without reopening it first.
+
+Expected:
+- the output is researched for the tracked last user even with the GUI closed;
+- unchanged furnace output is not repeatedly treated as a new observation;
+- `furnaceOutputObservations` advances and a real new unlock advances `furnaceOutputUnlocks`;
+- ordinary inventory fallback would still recover the state later if furnace tracking misses it.
+
+## 8. Unlock notifications / no login spam
+
+1. Acquire one genuinely new logical item/state.
+2. Re-observe or move the same already researched state.
+3. Reconnect/reload the world so a full research snapshot sync occurs.
+
+Expected:
+- one concise `Unlocked: <name>` message for a new logical acquisition;
+- endpoint expansion such as BASE/FULL does not spam multiple acquisition messages;
+- re-observation of existing state produces no new unlock message;
+- login/full sync and migration do not replay old unlock notifications.
+
+## 9. Wearable equip/runtime duplicates
+
+Test the live-observed families if present:
+- `EMT:itemArmorQuantumChestplate`;
+- `DraconicEvolution:wyvernChest`.
+
+1. Record their Journey states/count before equip.
+2. Equip/unequip repeatedly and allow the mod to update runtime NBT.
+3. Run `/journey inspect` while holding the affected stack and then `/journey dump`.
+
+Expected:
+- EMT zero `unequip`/`wing` runtime initialization does not create duplicate research;
+- non-zero/persistent state is not generically stripped;
+- Wyvern `ProtectionPoints`/`ShieldEntropy` runtime values do not create duplicate research;
+- energy, upgrades, enchantments, configurations and unrelated payload remain meaningful;
+- `/journey inspect` reports `Wearable-transient=true` for supported items;
+- dump counts them under `wearable-transient`, not `unknownExactNbt` solely because of the normalized runtime fields.
+
+## 10. Survival <-> Creative continuity
+
+1. Open J and N in Survival.
+2. Switch to Creative and repeat J/N/retrieval checks.
+3. Switch back to Survival.
+
+Expected:
+- Journey mode/client research mirror is not cleared by gamemode changes;
+- J/N chronology remains the same;
+- normal NEI/permission behavior remains governed by its existing rules;
+- Journey does not depend on a Survival-only container to stay active.
+
+## 11. Journey-safe flask presentation
+
+Test the previously renderer-hostile GregTech volumetric flask/fluid state if available.
+
+Expected:
+- Journey J/N does not crash while constructing/hovering that state;
+- if a renderer-safe display copy is necessary, the authoritative server research/template remains unchanged;
+- clicks/retrieval still resolve to the original authoritative research key;
+- a third-party presentation failure may omit only that display entry for the current refresh and increments `presentationFailures`;
+- pre7 does **not** claim to fix a GregTech crash in the global Creative inventory renderer outside Journey.
+
+## 12. Retrieval sanity
+
+For representative BASE, exact-NBT, filled-container and FULL endpoint items:
 
 - Journey view left click: request full stack;
 - Journey view right click: request one;
@@ -64,147 +153,121 @@ For representative BASE, exact-NBT and FULL endpoint items:
 
 Expected:
 - server remains authoritative;
-- presentation-only NBT never appears on retrieved items;
+- display-only sanitization never contaminates retrieved items;
 - unrelated/unresearched NEI entries cannot be spawned through Journey.
 
-## 6. Recovery baseline
+## 13. Recovery baseline
 
-Before testing the migration tool, verify recovery independently.
-
-1. Create a manual snapshot with `/journey snapshot pre7-baseline`.
+1. Create `/journey snapshot pre7-baseline`.
 2. Forget one known state.
-3. `/journey undo`, then `/journey redo`, then `/journey undo` again.
-4. List snapshots and restore the manual snapshot if useful.
+3. `/journey undo`, `/journey redo`, then `/journey undo` again.
+4. Restore the manual snapshot if useful.
 
 Expected:
 - exact key/template and unlock chronology survive undo/redo;
-- redo is invalidated by a later unrelated research mutation;
-- snapshots are bounded/persisted as designed and restore through one transaction.
+- redo is invalidated by a later unrelated mutation;
+- snapshot restore is one undoable transaction and creates its safety layer as designed.
 
-## 7. Debug Researcher Tool command and modes
+## 14. Debug Researcher Tool command and modes
 
-1. As the integrated singleplayer owner, run `/journey debugtool`.
+1. As integrated singleplayer owner, run `/journey debugtool`.
 2. On dedicated multiplayer, verify a non-op is denied and an operator is allowed.
-3. Confirm exactly one `Debug Researcher Tool` is granted. If inventory is full, it should be dropped at the player instead of disappearing.
-4. Confirm the item looks like a stick, has permanent enchanted glint, and does not stack above one.
+3. Confirm exactly one `Debug Researcher Tool` is granted; with full inventory it should drop instead of disappearing.
+4. Confirm stack size 1, stick presentation and permanent enchanted glint.
 5. Shift+right-click repeatedly.
 
 Expected mode sequence:
 `BLOCK -> CONTENTS -> AREA_16 -> BLOCK`.
 
-Expected:
-- mode follows the physical item through its NBT;
-- harmless `/journey count`, `/journey stats`, `/journey dump`, etc. remain usable without globally raising `/journey` permission level;
-- one short chat line reports each mode switch.
+Ordinary `/journey count|stats|dump|...` remains permission level 0; only `debugtool` has the owner/op gate.
 
-## 8. BLOCK migration import
+## 15. BLOCK migration import
 
-Choose an existing placed block/machine whose item state is not already researched.
+Choose an existing placed block/machine whose item representation is not already researched.
 
-1. Put the tool in `BLOCK` mode.
-2. Right-click the block, preferably one that normally opens a GUI.
-3. Inspect Journey/newest and the target block after the click.
-4. Run `/journey undo`, then `/journey redo`.
+1. Use `BLOCK` mode on it.
+2. Inspect Journey/newest and the target after the click.
+3. `/journey undo`, then `/journey redo`.
 
 Expected:
-- the tool action consumes the interaction before the machine/chest GUI opens where Forge's item-first hook permits;
 - only the placed block item representation is observed;
 - target inventory contents are not implicitly scanned;
-- the block, metadata and TileEntity remain unchanged;
-- one chat summary is emitted instead of per-candidate `Unlocked:` spam;
-- the entire click is one recovery transaction;
-- undo removes only states newly added by that click and redo reapplies them.
+- block, metadata and TileEntity remain unchanged;
+- one click is one recovery transaction and one compact summary/sync;
+- undo removes only states introduced by that click and redo reapplies them.
 
-## 9. CONTENTS migration import
+## 16. CONTENTS migration import
 
-Choose an existing chest/machine implementing `IInventory`, with at least one item not already researched.
+Choose an `IInventory` chest/machine with at least one unresearched real ItemStack.
 
-1. Record its slot contents/counts/NBT before the test.
-2. Put the tool in `CONTENTS` mode and right-click it.
-3. Re-open/inspect the inventory normally after the scan.
-4. Undo and redo the import.
+1. Record slot contents/counts/NBT.
+2. Use `CONTENTS` mode.
+3. Inspect the inventory normally afterward.
+4. Undo/redo the import.
 
 Expected:
-- actual inventory stacks are copied for observation;
+- actual ItemStacks are copied only for observation;
 - the target block itself is not implicitly researched;
-- no stack is moved, consumed, inserted, extracted, charged, filled or drained;
-- slot counts and NBT are byte-for-byte/semantically unchanged from the player's perspective;
-- one physical click is one transaction and one summary/sync.
+- nothing is moved, consumed, charged, filled, drained, inserted or extracted;
+- one click is one transaction and one summary/sync.
 
-Fluid tanks that are not exposed as real inventory ItemStacks are intentionally not synthesized into fake containers in pre7.
+Fluid tanks not exposed as real inventory ItemStacks are intentionally not synthesized into fake containers.
 
-## 10. AREA_16 migrated-base workflow
+## 17. AREA_16 migrated-base workflow
 
-Use this on a backed-up migrated world/base containing many already-existing blocks and machines.
-
-1. Put the tool in `AREA_16` mode.
-2. Stand at a known integer block position `(px, py, pz)` near the old base.
-3. Right-click air once.
-4. Repeat once while pointing at a machine/block.
-5. Check the summary and `/journey dump`.
-6. List snapshots, then `/journey undo` and `/journey redo`.
+1. Stand near a backed-up old base and use `AREA_16`.
+2. Repeat while pointing at a machine to verify the center still follows the player.
+3. Inspect `/journey dump`, snapshots, undo and redo.
 
 Expected:
-- each action plans exactly 4096 positions: x/z `-8..+7`, y `-8..+7` around the player's integer position;
-- clicking a block in AREA_16 still centers the cube on the player, not the clicked block;
-- only already-loaded/valid positions are read;
-- repeated stone/cables/etc. are semantically deduplicated before bulk research;
+- exactly 4096 candidate positions are planned: x/y/z `-8..+7` around the player's integer position;
+- only valid, already-loaded positions are read;
+- no chunk is force-loaded/generated by the scan;
+- repeated blocks/cables/stacks are semantically deduplicated before bulk research;
 - placed blocks plus actual `IInventory` contents are observed;
-- one safety snapshot is created before the AREA_16 mutation when there is a valid current research state;
-- one action produces one bulk recovery transaction, one full Journey sync and one compact summary;
+- a pre-mutation safety snapshot is created when there is current state to protect;
 - zero-new-state scans create no undo transaction;
 - blocks and inventories remain physically untouched.
 
-`/journey dump` should include cumulative:
+## 18. `/journey dump` final counters and semantic evidence
+
+After the preceding tests, generate a final dump.
+
+Check at least:
+- `panelIncrementalUpdates`;
+- `fullNeiReloadRequests`;
+- `presentationFailures`;
+- `unlockNotifications`;
+- `furnaceOutputObservations`;
+- `furnaceOutputUnlocks`;
 - `debugResearchScans`;
 - `debugResearchPositionsVisited`;
 - `debugResearchInventoriesVisited`;
 - `debugResearchUniqueCandidates`;
-- `debugResearchNewStates`.
-
-## 11. No forced chunk loading / no global NEI rebuild
-
-For a base near a loaded-chunk boundary:
-
-1. Note which chunks are loaded before AREA_16 if you have a diagnostic method available.
-2. Run AREA_16 near the boundary.
-3. Watch server/client logs for chunk generation/loading caused by Journey.
-4. Toggle ordinary NEI/J/N after the import.
-
-Expected:
-- Journey never force-loads or generates an unloaded chunk for migration scanning;
-- no world-wide/region-file scan occurs;
-- no full global NEI item-list rebuild is triggered by a migration action;
-- Journey's direct panel/full research sync remains functional after the bulk import.
+- `debugResearchNewStates`;
+- semantic policy matches including `wearable-transient` when those items were tested;
+- `unknownExactNbt` entries for truly unsupported exact-NBT states only.
 
 ## Recommended migrated-world workflow
 
-For an old world installed into Journey after years of progression:
-
 1. Back up the save.
-2. Run `/journey debugtool`.
-3. Walk through the important parts of the old base and use `AREA_16` in overlapping positions to seed already-existing blocks and machine inventories.
-4. Use `BLOCK` for individual placed-state misses.
-5. Use `CONTENTS` for a specific chest/machine inventory miss.
-6. Use `/journey undo`, `/journey redo`, snapshots and `/journey dump` if a scan imports something unexpected.
+2. Launch the final pre7 jar and first confirm old research/drills/filled cells survived.
+3. Run `/journey debugtool`.
+4. Walk important parts of the base and use overlapping `AREA_16` scans.
+5. Use `BLOCK` for individual placed-state misses and `CONTENTS` for a specific inventory miss.
+6. Use undo/redo/snapshots and `/journey dump` if anything unexpected is imported.
 
-The debug tool is intentionally explicit migration/recovery assistance. It does not reconstruct lifetime item history, scan region files, synthesize tank fluids or grant arbitrary NEI items.
+The debug tool is explicit migration/recovery assistance. It does not reconstruct lifetime history, scan region files, synthesize tank fluids or grant arbitrary NEI items.
 
 ## Diagnostics to attach on failure
 
-If any case fails, attach:
-
+Attach:
 - latest client log;
 - dedicated/integrated server log if separate;
-- `/journey dump` output;
+- `/journey dump`;
 - `/journey inspect` while holding the affected stack where applicable;
-- exact test section/step and what happened versus expected.
+- exact section/step and observed versus expected behavior.
 
-For migration-tool failures also include:
-- current Debug Researcher Tool mode;
-- player coordinates;
-- whether the clicked target normally opens a GUI;
-- whether the relevant chunk was already loaded;
-- inventory contents before/after if CONTENTS was involved.
+For migration-tool failures also include the tool mode, player coordinates, whether the clicked target normally opens a GUI, whether the chunk was already loaded, and inventory before/after for CONTENTS.
 
-Do not clear research before collecting dump/inspect data, because persisted keys/templates and recovery history are often the most useful evidence.
+Do not clear research before collecting dump/inspect data; persisted keys/templates, chronology and recovery history are often the best evidence.
