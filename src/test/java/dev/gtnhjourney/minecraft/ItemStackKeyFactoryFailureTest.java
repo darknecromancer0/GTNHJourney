@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
-import net.minecraft.init.Items;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 
@@ -13,7 +13,7 @@ public class ItemStackKeyFactoryFailureTest {
 
     @Test
     public void unexpectedModdedStackRuntimeIsConvertedToSafeIdentityFailure() {
-        ItemStack broken = new ItemStack(Items.stick, 1, 0);
+        ItemStack broken = new ItemStack(new Item(), 1, 0);
         broken.setTagCompound(new BrokenCopyTag(new IllegalStateException("broken modded stack NBT")));
 
         IllegalArgumentException failure = assertThrows(
