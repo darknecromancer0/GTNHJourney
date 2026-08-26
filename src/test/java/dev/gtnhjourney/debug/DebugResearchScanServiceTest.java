@@ -77,7 +77,7 @@ public class DebugResearchScanServiceTest {
         assertTrue(contents.getCandidates().stream().anyMatch(stack -> hasFluid(stack, "water")));
 
         DebugResearchScanResult area = service.scanArea16(10, 20, 30);
-        assertEquals(4096, area.getPositionsVisited());
+        assertEquals(35937, area.getPositionsVisited());
         assertEquals(2, area.getBlockCandidates());
         assertEquals(2, area.getInventoriesVisited());
         assertEquals(4, area.getRawStacks());
@@ -115,7 +115,7 @@ public class DebugResearchScanServiceTest {
 
         DebugResearchScanResult area = service.scanArea16(10, 20, 30);
 
-        assertEquals(4096, area.getPositionsVisited());
+        assertEquals(35937, area.getPositionsVisited());
         assertEquals(1, area.getBlockCandidates());
         assertEquals(1, area.getInventoriesVisited());
         assertEquals(2, area.getRawStacks());
