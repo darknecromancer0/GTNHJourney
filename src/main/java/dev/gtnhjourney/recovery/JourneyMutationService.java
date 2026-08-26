@@ -139,7 +139,7 @@ public final class JourneyMutationService {
         Set<ResearchKey> beforeKeys = keySet(before);
 
         for (ItemStack stack : observedStacks) {
-            if (stack == null || stack.getItem() == null || stack.stackSize <= 0) continue;
+            if (!BulkResearchCandidatePolicy.shouldObserve(stack)) continue;
             try {
                 research.unlockStates(playerId, stack);
             } catch (RuntimeException ignored) {
