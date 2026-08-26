@@ -98,6 +98,11 @@ public final class JourneyDiagnosticDump {
             out.write("unlockNotifications=" + counters.getUnlockNotifications() + "\n");
             out.write("furnaceOutputObservations=" + counters.getFurnaceOutputObservations() + "\n");
             out.write("furnaceOutputUnlocks=" + counters.getFurnaceOutputUnlocks() + "\n");
+            out.write("debugResearchScans=" + counters.getDebugResearchScans() + "\n");
+            out.write("debugResearchPositionsVisited=" + counters.getDebugResearchPositionsVisited() + "\n");
+            out.write("debugResearchInventoriesVisited=" + counters.getDebugResearchInventoriesVisited() + "\n");
+            out.write("debugResearchUniqueCandidates=" + counters.getDebugResearchUniqueCandidates() + "\n");
+            out.write("debugResearchNewStates=" + counters.getDebugResearchNewStates() + "\n");
 
             out.write("\n== Research summary ==\n");
             out.write("states=" + keys.size() + "\n");
