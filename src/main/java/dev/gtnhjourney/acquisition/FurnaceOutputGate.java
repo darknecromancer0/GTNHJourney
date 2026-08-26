@@ -13,6 +13,12 @@ public final class FurnaceOutputGate {
         this.primed = true;
     }
 
+    /** Claims the current output once when a player opens the furnace, then primes normal transition tracking. */
+    public boolean claim(int signature, boolean occupied) {
+        prime(signature, occupied);
+        return occupied;
+    }
+
     public boolean observe(int signature, boolean occupied) {
         if (!primed) {
             prime(signature, occupied);
