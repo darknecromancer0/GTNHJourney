@@ -51,14 +51,20 @@ public final class ClientStackMirror {
         for (ItemStack stack : chunk) addInternal(staging, stack);
     }
 
+    /** Discards only the matching staged epoch and restores metadata for the last complete visible snapshot. */
+    public static synchronized void abort(int abortEpoch) {
+        if (!syncing || abortEpoch != epoch) return;
+        staging.clear();
+        syncing = false;
+        serverAvailableTotal = previousServerAvailableTotal;
+        expectedSyncedTotal = previousExpectedSyncedTotal;
+    }
+
     /** Commits the matching complete epoch and reports whether the visible stack snapshot was actually replaced. */
     public static synchronized boolean finish(int finishEpoch) {
         if (!syncing || finishEpoch != epoch) return false;
         if (expectedSyncedTotal >= 0 && staging.size() != expectedSyncedTotal) {
-            staging.clear();
-            syncing = false;
-            serverAvailableTotal = previousServerAvailableTotal;
-            expectedSyncedTotal = previousExpectedSyncedTotal;
+            abort(finishEpoch);
             return false;
         }
         stacks.clear();
