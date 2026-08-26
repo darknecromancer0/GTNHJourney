@@ -1,6 +1,8 @@
 package dev.gtnhjourney.client;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -57,6 +59,36 @@ public class ClientActivityMirrorAbortTest {
         ClientActivityMirror.recordUnlock(first);
 
         assertEquals(Arrays.asList(second, first), ClientActivityMirror.snapshotOldestFirst());
+    }
+
+    @Test
+    public void incompleteActivityEpochIsRejectedBeforeVisibleOrderCanBeReplaced() {
+        ResearchKey first = key("first");
+        ResearchKey second = key("second");
+        ClientActivityMirror.recordUnlock(first);
+        ClientActivityMirror.recordUnlock(second);
+
+        ClientActivityMirror.begin(12, 2);
+        ClientActivityMirror.addChunk(12, Collections.singletonList(ResearchFingerprint.of(first)));
+
+        assertFalse(ClientActivityMirror.isComplete(12));
+        ClientActivityMirror.abort(12);
+        assertEquals(Arrays.asList(first, second), ClientActivityMirror.snapshotOldestFirst());
+    }
+
+    @Test
+    public void completeActivityEpochPassesExpectedCountGate() {
+        ResearchKey first = key("first");
+        ResearchKey second = key("second");
+
+        ClientActivityMirror.begin(13, 2);
+        ClientActivityMirror.addChunk(
+            13,
+            Arrays.asList(ResearchFingerprint.of(first), ResearchFingerprint.of(second)));
+
+        assertTrue(ClientActivityMirror.isComplete(13));
+        ClientActivityMirror.finish(13, Arrays.asList(first, second));
+        assertEquals(Arrays.asList(first, second), ClientActivityMirror.snapshotOldestFirst());
     }
 
     private static ResearchKey key(String name) {
