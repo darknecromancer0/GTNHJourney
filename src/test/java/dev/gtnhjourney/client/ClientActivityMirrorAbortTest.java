@@ -47,6 +47,18 @@ public class ClientActivityMirrorAbortTest {
         assertEquals(Arrays.asList(first, second), ClientActivityMirror.snapshotOldestFirst());
     }
 
+    @Test
+    public void freshUnlockEventMovesAStaleEntryToNewest() {
+        ResearchKey first = key("first");
+        ResearchKey second = key("second");
+        ClientActivityMirror.recordUnlock(first);
+        ClientActivityMirror.recordUnlock(second);
+
+        ClientActivityMirror.recordUnlock(first);
+
+        assertEquals(Arrays.asList(second, first), ClientActivityMirror.snapshotOldestFirst());
+    }
+
     private static ResearchKey key(String name) {
         return new ResearchKey("test:" + name, 0, "");
     }
