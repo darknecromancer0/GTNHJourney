@@ -111,7 +111,7 @@ public final class JourneyNetwork {
         if (player != null && fingerprint != null) CHANNEL.sendTo(new ResearchRemoveMessage(fingerprint), player);
     }
 
-    static void sendSyncBegin(EntityPlayerMP player, int epoch, int availableTotal, int syncableTotal,
+    static void sendSyncBegin(EntityPlayerMP player, int epoch, int availableTotal, int syncableTotal, int activityTotal,
         boolean normalizeGtTransientIdentity, boolean resetGtToolTemplateState, boolean normalizeGtChargeEndpoints,
         boolean normalizeIc2ChargeEndpoints, boolean normalizeTconToolWear, boolean normalizeCofhChargeEndpoints) {
         CHANNEL.sendTo(
@@ -119,6 +119,7 @@ public final class JourneyNetwork {
                 epoch,
                 availableTotal,
                 syncableTotal,
+                activityTotal,
                 normalizeGtTransientIdentity,
                 resetGtToolTemplateState,
                 normalizeGtChargeEndpoints,
