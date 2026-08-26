@@ -90,7 +90,10 @@ public final class InventoryResearchTracker {
         // Import pre-existing inventory research first and prime slot signatures, then send one coherent client
         // snapshot. Login import intentionally bypasses the observation path so it cannot emit unlock notifications.
         scanChanged(player, true, false);
-        JourneyNetwork.sendFullSync(player, research.snapshotStacksInUnlockOrder(player));
+        JourneyNetwork.sendFullSync(
+            player,
+            research.snapshotStacksInUnlockOrder(player),
+            research.snapshotActivityOrder(player));
     }
 
     /** Clears process-lifetime scan state between integrated/dedicated server sessions. */
