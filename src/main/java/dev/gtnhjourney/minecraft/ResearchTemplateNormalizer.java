@@ -15,6 +15,7 @@ public final class ResearchTemplateNormalizer {
             .copy();
         BotaniaTransientStatePolicy.normalize(stack, out);
         DraconicTransientStatePolicy.normalize(stack, out);
+        WearableTransientStatePolicy.normalize(stack, out);
         if (ResearchCompatibilityOptions.resetGtToolTemplateState() && GtToolStatePolicy.isVerifiedTool(stack)) {
             NBTBase rawToolStats = out.getTag("GT.ToolStats");
             if (rawToolStats instanceof NBTTagCompound) {
