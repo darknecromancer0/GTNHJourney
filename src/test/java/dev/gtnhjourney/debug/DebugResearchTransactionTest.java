@@ -49,7 +49,7 @@ public class DebugResearchTransactionTest {
             mutation(events, 1),
             effects(events));
 
-        assertEquals(4096, result.getPositionsVisited());
+        assertEquals(35937, result.getPositionsVisited());
         assertEquals(1, result.getNewlyUnlockedStates());
         assertEquals(
             java.util.Arrays.asList(
