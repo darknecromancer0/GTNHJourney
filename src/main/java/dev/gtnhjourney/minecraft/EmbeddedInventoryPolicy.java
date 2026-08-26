@@ -23,6 +23,8 @@ public final class EmbeddedInventoryPolicy {
 
     private static final String LUNCH_BAG = "SpiceOfLife:lunchbag";
     private static final String IC2_TOOLBOX = "IC2:itemToolbox";
+    private static final String BACKPACK = "Backpack:backpack";
+    private static final String WORKBENCH_BACKPACK = "Backpack:workbenchbackpack";
     private static final int NORMALIZE_MAX_DEPTH = 8;
 
     private EmbeddedInventoryPolicy() {}
@@ -41,6 +43,10 @@ public final class EmbeddedInventoryPolicy {
         } else if (IC2_TOOLBOX.equals(registryId)) {
             tag.removeTag("Items");
             tag.removeTag("uid");
+        } else if (BACKPACK.equals(registryId) || WORKBENCH_BACKPACK.equals(registryId)) {
+            // Backpack Edited stores inventory externally under this UUID. A Journey retrieval template must never
+            // retain that pointer, otherwise a copied backpack could address the original backpack's external save.
+            tag.removeTag("backpack-UID");
         }
         stripSerializedItemLists(tag, 0);
     }
@@ -53,7 +59,7 @@ public final class EmbeddedInventoryPolicy {
         return Collections.unmodifiableList(out);
     }
 
-    static boolean isSerializedItemList(NBTTagList list) {
+    public static boolean isSerializedItemList(NBTTagList list) {
         if (list == null || list.tagCount() <= 0) return false;
         for (int i = 0; i < list.tagCount(); i++) {
             NBTTagCompound entry;
