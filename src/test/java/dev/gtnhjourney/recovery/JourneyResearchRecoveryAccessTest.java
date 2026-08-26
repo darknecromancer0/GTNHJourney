@@ -1,11 +1,14 @@
 package dev.gtnhjourney.recovery;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.UUID;
 
 import net.minecraft.nbt.NBTTagCompound;
@@ -41,5 +44,19 @@ public class JourneyResearchRecoveryAccessTest {
         assertTrue(data.restoreEntry(player, removed));
         assertEquals(Arrays.asList(a, b, c), data.snapshotInUnlockOrder(player));
         assertFalse(data.restoreEntry(player, removed));
+    }
+
+    @Test
+    public void snapshotRestorabilityRejectsMissingItemsBeforeMutation() throws Exception {
+        Method validator = assertDoesNotThrow(
+            () -> JourneyMutationService.class.getDeclaredMethod("isRestorableState", ResearchStateSnapshot.class));
+        validator.setAccessible(true);
+
+        assertTrue((Boolean) validator.invoke(null, new ResearchStateSnapshot(Collections.<ResearchEntrySnapshot>emptyList())));
+
+        ResearchKey missing = new ResearchKey("journey_missing_mod:ghost", 0, "");
+        ResearchStateSnapshot broken = new ResearchStateSnapshot(
+            Collections.singletonList(new ResearchEntrySnapshot(missing, null, 0)));
+        assertFalse((Boolean) validator.invoke(null, broken));
     }
 }
