@@ -25,11 +25,11 @@ public class JourneyPanelSnapshotTest {
     }
 
     @Test
-    public void newestAppliesLimitAfterDeduplicationAndReversal() {
+    public void newestReturnsOnlyTheLastUniqueResearchState() {
         List<ResearchKey> input = Arrays.asList(oldest, middle, oldest, newest);
         assertEquals(
-            Arrays.asList(newest, middle),
-            JourneyPanelSnapshot.keys(input, JourneyViewState.Mode.NEWEST, 2));
+            Collections.singletonList(newest),
+            JourneyPanelSnapshot.keys(input, JourneyViewState.Mode.NEWEST, 64));
     }
 
     @Test
