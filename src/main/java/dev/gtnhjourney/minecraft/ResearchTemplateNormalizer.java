@@ -4,7 +4,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 
-/** Normalizes only verified transient state in the template Journey will later recreate. */
+/** Normalizes only verified transient/runtime state in the template Journey will later recreate. */
 public final class ResearchTemplateNormalizer {
 
     private ResearchTemplateNormalizer() {}
@@ -17,6 +17,7 @@ public final class ResearchTemplateNormalizer {
         DraconicTransientStatePolicy.normalize(stack, out);
         WearableTransientStatePolicy.normalize(stack, out);
         TransientToolFluidPolicy.normalize(stack, out);
+        EmbeddedInventoryPolicy.normalize(stack, out);
         if (ResearchCompatibilityOptions.resetGtToolTemplateState() && GtToolStatePolicy.isVerifiedTool(stack)) {
             NBTBase rawToolStats = out.getTag("GT.ToolStats");
             if (rawToolStats instanceof NBTTagCompound) {
