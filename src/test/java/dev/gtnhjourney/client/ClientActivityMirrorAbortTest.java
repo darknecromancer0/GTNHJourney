@@ -91,6 +91,25 @@ public class ClientActivityMirrorAbortTest {
         assertEquals(Arrays.asList(first, second), ClientActivityMirror.snapshotOldestFirst());
     }
 
+    @Test
+    public void completeActivityCountMayIncludeServerOnlyKeyWithoutChangingVisibleMembership() {
+        ResearchKey first = key("first");
+        ResearchKey second = key("second");
+        ResearchKey serverOnly = key("serverOnly");
+
+        ClientActivityMirror.begin(14, 3);
+        ClientActivityMirror.addChunk(
+            14,
+            Arrays.asList(
+                ResearchFingerprint.of(first),
+                ResearchFingerprint.of(serverOnly),
+                ResearchFingerprint.of(second)));
+
+        assertTrue(ClientActivityMirror.isComplete(14));
+        ClientActivityMirror.finish(14, Arrays.asList(first, second));
+        assertEquals(Arrays.asList(first, second), ClientActivityMirror.snapshotOldestFirst());
+    }
+
     private static ResearchKey key(String name) {
         return new ResearchKey("test:" + name, 0, "");
     }
