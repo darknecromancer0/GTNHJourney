@@ -20,6 +20,8 @@ public class JourneyRuntimeCountersTest {
         JourneyRuntimeCounters.unlockNotification();
         JourneyRuntimeCounters.furnaceOutputObservation();
         JourneyRuntimeCounters.furnaceOutputUnlock();
+        JourneyRuntimeCounters.debugResearchScan(4096, 14, 63, 21);
+        JourneyRuntimeCounters.debugResearchScan(1, 1, 2, 0);
 
         JourneyRuntimeCounters.Snapshot snapshot = JourneyRuntimeCounters.snapshot();
         assertEquals(1L, snapshot.getPanelIncrementalUpdates());
@@ -27,12 +29,18 @@ public class JourneyRuntimeCountersTest {
         assertEquals(1L, snapshot.getUnlockNotifications());
         assertEquals(1L, snapshot.getFurnaceOutputObservations());
         assertEquals(1L, snapshot.getFurnaceOutputUnlocks());
+        assertEquals(2L, snapshot.getDebugResearchScans());
+        assertEquals(4097L, snapshot.getDebugResearchPositionsVisited());
+        assertEquals(15L, snapshot.getDebugResearchInventoriesVisited());
+        assertEquals(65L, snapshot.getDebugResearchUniqueCandidates());
+        assertEquals(21L, snapshot.getDebugResearchNewStates());
     }
 
     @Test
     public void resetClearsAllCounters() {
         JourneyRuntimeCounters.panelIncrementalUpdate();
         JourneyRuntimeCounters.furnaceOutputObservation();
+        JourneyRuntimeCounters.debugResearchScan(4096, 3, 50, 7);
         JourneyRuntimeCounters.reset();
 
         JourneyRuntimeCounters.Snapshot snapshot = JourneyRuntimeCounters.snapshot();
@@ -41,5 +49,10 @@ public class JourneyRuntimeCountersTest {
         assertEquals(0L, snapshot.getUnlockNotifications());
         assertEquals(0L, snapshot.getFurnaceOutputObservations());
         assertEquals(0L, snapshot.getFurnaceOutputUnlocks());
+        assertEquals(0L, snapshot.getDebugResearchScans());
+        assertEquals(0L, snapshot.getDebugResearchPositionsVisited());
+        assertEquals(0L, snapshot.getDebugResearchInventoriesVisited());
+        assertEquals(0L, snapshot.getDebugResearchUniqueCandidates());
+        assertEquals(0L, snapshot.getDebugResearchNewStates());
     }
 }
