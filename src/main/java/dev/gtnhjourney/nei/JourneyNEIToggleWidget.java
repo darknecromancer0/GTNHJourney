@@ -9,7 +9,6 @@ import codechicken.nei.guihook.IContainerDrawHandler;
 import codechicken.nei.guihook.IContainerInputHandler;
 import codechicken.nei.guihook.IContainerTooltipHandler;
 import dev.gtnhjourney.client.ClientStackMirror;
-import dev.gtnhjourney.config.JourneyConfig;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
@@ -47,8 +46,8 @@ public final class JourneyNEIToggleWidget
 
         @Override
         public String getButtonTip() {
-            return JourneyViewState.isNewest() ? "Newest view: recent research only. Click to show all NEI items."
-                : "Newest view: show the " + JourneyConfig.newestLimit() + " most recently researched states.";
+            return JourneyViewState.isNewest() ? "Newest view: last researched item. Click to show all NEI items."
+                : "Newest view: show only the last researched item.";
         }
 
         @Override
