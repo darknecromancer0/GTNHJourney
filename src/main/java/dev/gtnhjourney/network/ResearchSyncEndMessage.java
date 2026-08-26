@@ -3,6 +3,7 @@ package dev.gtnhjourney.network;
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
 import cpw.mods.fml.common.network.simpleimpl.MessageContext;
+import dev.gtnhjourney.client.ClientActivityMirror;
 import dev.gtnhjourney.client.ClientNetworkQueue;
 import dev.gtnhjourney.client.ClientStackMirror;
 import io.netty.buffer.ByteBuf;
@@ -34,6 +35,7 @@ public final class ResearchSyncEndMessage implements IMessage {
                 @Override
                 public void run() {
                     ClientStackMirror.finish(epoch);
+                    ClientActivityMirror.finish(epoch, ClientStackMirror.snapshotKeysInResearchOrder());
                 }
             });
             return null;
