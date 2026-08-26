@@ -282,8 +282,7 @@ public final class JourneyResearchData extends WorldSavedData {
             NBTTagCompound playerTag = players.getCompoundTagAt(i);
             UUID playerId = new UUID(playerTag.getLong("UuidMost"), playerTag.getLong("UuidLeast"));
             NBTTagList entries = playerTag.getTagList("Entries", 10);
-            List<ResearchKey> keys = new ArrayList<ResearchKey>();
-            Map<ResearchKey, NBTTagCompound> playerTemplates = templateMap(playerId);
+            MigratedEntryAccumulator accumulator = new MigratedEntryAccumulator();
 
             for (int j = 0; j < entries.tagCount(); j++) {
                 NBTTagCompound entry = entries.getCompoundTagAt(j);
@@ -302,13 +301,14 @@ public final class JourneyResearchData extends WorldSavedData {
                 NBTTagCompound template = resolved.template();
                 if (key.getMeta() != persistedMeta || !key.getCanonicalNbt()
                     .equals(persistedCanonical) || !sameTemplate(persistedTemplate, template)) migrated = true;
-                if (playerTemplates.containsKey(key)) {
+                if (!accumulator.accept(key, template)) {
                     migrated = true;
-                    continue;
                 }
-                keys.add(key);
-                playerTemplates.put(key, template);
             }
+
+            List<ResearchKey> keys = accumulator.keys();
+            Map<ResearchKey, NBTTagCompound> playerTemplates = accumulator.templateCopies();
+            if (!playerTemplates.isEmpty()) templates.put(playerId, playerTemplates);
             research.restore(playerId, keys);
             timeline(playerId).restore(keys);
         }
