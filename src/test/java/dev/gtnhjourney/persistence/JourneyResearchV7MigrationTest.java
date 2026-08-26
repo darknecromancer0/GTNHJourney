@@ -25,6 +25,16 @@ public class JourneyResearchV7MigrationTest {
         data.writeToNBT(rewritten);
         assertEquals(8, rewritten.getInteger("Version"));
         assertEquals(0, rewritten.getTagList("UndoPlayers", 10).tagCount());
+        assertEquals(1, rewritten.getTagList("Players", 10).tagCount());
+        assertEquals(2, rewritten.getTagList("Players", 10).getCompoundTagAt(0).getTagList("Entries", 10).tagCount());
+
+        // BASE entries legitimately have no NBT template. They still need a retained null-template map entry so the
+        // player's research remains enumerable and survives the next save/load rather than disappearing after migration.
+        JourneyResearchData roundTrip = new JourneyResearchData();
+        roundTrip.readFromNBT(rewritten);
+        assertEquals(2, roundTrip.snapshotInUnlockOrder(player).size());
+        assertEquals("minecraft:stone", roundTrip.snapshotInUnlockOrder(player).get(0).getItemId());
+        assertEquals("minecraft:dirt", roundTrip.snapshotInUnlockOrder(player).get(1).getItemId());
 
         JourneyRecoveryData recovery = new JourneyRecoveryData();
         assertEquals(0, recovery.undoDepth(player));
