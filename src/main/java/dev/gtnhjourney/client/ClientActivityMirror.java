@@ -20,13 +20,20 @@ public final class ClientActivityMirror {
     private static final List<ResearchFingerprint> staging = new ArrayList<ResearchFingerprint>();
     private static int epoch;
     private static boolean syncing;
+    private static int expectedEntries = -1;
     private static long revision;
 
     private ClientActivityMirror() {}
 
+    /** Legacy/test entry point when no authoritative expected activity count is available. */
     public static synchronized void begin(int newEpoch) {
+        begin(newEpoch, -1);
+    }
+
+    public static synchronized void begin(int newEpoch, int expectedActivityEntries) {
         epoch = newEpoch;
         syncing = true;
+        expectedEntries = expectedActivityEntries < 0 ? -1 : expectedActivityEntries;
         staging.clear();
     }
 
@@ -35,15 +42,21 @@ public final class ClientActivityMirror {
         for (ResearchFingerprint fingerprint : fingerprints) if (fingerprint != null) staging.add(fingerprint);
     }
 
+    /** True only when the matching staged epoch contains the complete server-declared activity membership. */
+    public static synchronized boolean isComplete(int finishEpoch) {
+        return syncing && finishEpoch == epoch && (expectedEntries < 0 || staging.size() == expectedEntries);
+    }
+
     /** Discards only the matching staged epoch. A stale End must never cancel a newer sync already in flight. */
     public static synchronized void abort(int abortEpoch) {
         if (!syncing || abortEpoch != epoch) return;
         staging.clear();
         syncing = false;
+        expectedEntries = -1;
     }
 
     public static synchronized void finish(int finishEpoch, Collection<ResearchKey> researchOldestFirst) {
-        if (!syncing || finishEpoch != epoch) return;
+        if (!isComplete(finishEpoch)) return;
         List<ResearchKey> research = researchOldestFirst == null ? Collections.<ResearchKey>emptyList()
             : new ArrayList<ResearchKey>(researchOldestFirst);
         Map<ResearchFingerprint, ResearchKey> byFingerprint = new HashMap<ResearchFingerprint, ResearchKey>();
@@ -57,7 +70,8 @@ public final class ClientActivityMirror {
         }
 
         LinkedHashSet<ResearchKey> next = new LinkedHashSet<ResearchKey>();
-        // Unknown/missing activity records are treated as old, never as recent. This also migrates old saves safely.
+        // Unknown/missing research keys may be server-only and therefore have no client template. Among visible keys,
+        // genuinely missing activity records stay old rather than being promoted to recent.
         for (ResearchKey key : research) if (key != null && !activityKeys.contains(key)) next.add(key);
         next.addAll(resolvedActivity);
 
@@ -68,6 +82,7 @@ public final class ClientActivityMirror {
         }
         staging.clear();
         syncing = false;
+        expectedEntries = -1;
     }
 
     /** Called only when the server has reported an actually new researched state. */
@@ -94,6 +109,7 @@ public final class ClientActivityMirror {
     public static synchronized void clear() {
         epoch++;
         syncing = false;
+        expectedEntries = -1;
         staging.clear();
         if (!oldestFirst.isEmpty()) {
             oldestFirst.clear();
