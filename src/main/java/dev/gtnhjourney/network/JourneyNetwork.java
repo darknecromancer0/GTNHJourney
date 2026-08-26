@@ -56,7 +56,9 @@ public final class JourneyNetwork {
     }
 
     public static void sendFullSync(EntityPlayerMP player, List<ItemStack> stacks) {
-        ServerResearchSyncQueue.start(player, stacks, java.util.Collections.<ResearchKey>emptyList());
+        List<ResearchKey> activity = player == null ? java.util.Collections.<ResearchKey>emptyList()
+            : dev.gtnhjourney.GTNHJourney.RESEARCH.snapshotActivityOrder(player);
+        ServerResearchSyncQueue.start(player, stacks, activity);
     }
 
     public static void sendFullSync(EntityPlayerMP player, List<ItemStack> stacks, List<ResearchKey> activityOldestFirst) {
