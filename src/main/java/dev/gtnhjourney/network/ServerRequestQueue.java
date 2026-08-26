@@ -6,9 +6,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.ChatComponentText;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
+import dev.gtnhjourney.GTNHJourney;
+import dev.gtnhjourney.acquisition.ManualInventoryResearchService;
+import dev.gtnhjourney.command.DebugToolPermissionPolicy;
 import dev.gtnhjourney.persistence.PlayerResearchService;
 import dev.gtnhjourney.recovery.JourneyMutationService;
 import dev.gtnhjourney.research.ResearchFingerprint;
@@ -49,8 +53,17 @@ public final class ServerRequestQueue {
         enqueueRequest(Request.delete(player, fingerprint));
     }
 
+    static void enqueueInventoryScan(EntityPlayerMP player) {
+        enqueueRequest(Request.inventoryScan(player));
+    }
+
+    static void enqueueDebugTool(EntityPlayerMP player) {
+        enqueueRequest(Request.debugTool(player));
+    }
+
     private static void enqueueRequest(Request request) {
-        if (request == null || request.player == null || request.fingerprint == null) return;
+        if (request == null || request.player == null) return;
+        if (request.requiresFingerprint() && request.fingerprint == null) return;
         if (!PER_PLAYER.tryAcquire(request.playerId)) return;
         if (QUEUED.incrementAndGet() > MAX_QUEUED_REQUESTS) {
             QUEUED.decrementAndGet();
@@ -78,10 +91,24 @@ public final class ServerRequestQueue {
     private void handle(Request request) {
         EntityPlayerMP player = request.player;
         if (player == null || player.isDead || player.playerNetServerHandler == null) return;
-        if (request.delete) {
-            handleDelete(player, request.fingerprint);
-            return;
+        switch (request.kind) {
+            case DELETE:
+                handleDelete(player, request.fingerprint);
+                return;
+            case INVENTORY_SCAN:
+                handleInventoryScan(player);
+                return;
+            case DEBUG_TOOL:
+                handleDebugTool(player);
+                return;
+            case RETRIEVE:
+            default:
+                handleRetrieve(player, request);
+                return;
         }
+    }
+
+    private void handleRetrieve(EntityPlayerMP player, Request request) {
         ResearchKey key = research.resolve(player, request.fingerprint);
         if (key == null) return;
         ItemStack stack = research.retrieve(player, key, request.amount);
@@ -105,28 +132,73 @@ public final class ServerRequestQueue {
         JourneyNetwork.sendRemove(player, fingerprint);
     }
 
+    private void handleInventoryScan(EntityPlayerMP player) {
+        if (mutations == null) return;
+        ManualInventoryResearchService.Result result = ManualInventoryResearchService.scan(player, research, mutations);
+        tell(player, result.summary());
+    }
+
+    private void handleDebugTool(EntityPlayerMP player) {
+        if (!DebugToolPermissionPolicy.mayUse(player)) {
+            tell(player, "Debug Researcher Tool requires the integrated-server owner or operator permission.");
+            return;
+        }
+        if (GTNHJourney.DEBUG_RESEARCHER_TOOL == null) {
+            tell(player, "Debug Researcher Tool is not registered.");
+            return;
+        }
+        ItemStack tool = new ItemStack(GTNHJourney.DEBUG_RESEARCHER_TOOL, 1, 0);
+        player.inventory.addItemStackToInventory(tool);
+        if (tool.stackSize > 0) player.dropPlayerItemWithRandomChoice(tool, false);
+        player.inventoryContainer.detectAndSendChanges();
+        tell(player, "Debug Researcher Tool granted. Shift+right-click cycles BLOCK / CONTENTS / AREA_16.");
+    }
+
+    private static void tell(EntityPlayerMP player, String text) {
+        if (player != null) player.addChatMessage(new ChatComponentText("[Journey] " + text));
+    }
+
+    private enum RequestKind {
+        RETRIEVE,
+        DELETE,
+        INVENTORY_SCAN,
+        DEBUG_TOOL
+    }
+
     private static final class Request {
 
         final EntityPlayerMP player;
         final java.util.UUID playerId;
         final ResearchFingerprint fingerprint;
         final int amount;
-        final boolean delete;
+        final RequestKind kind;
 
-        private Request(EntityPlayerMP player, ResearchFingerprint fingerprint, int amount, boolean delete) {
+        private Request(EntityPlayerMP player, ResearchFingerprint fingerprint, int amount, RequestKind kind) {
             this.player = player;
             this.playerId = player == null ? null : player.getUniqueID();
             this.fingerprint = fingerprint;
             this.amount = amount;
-            this.delete = delete;
+            this.kind = kind == null ? RequestKind.RETRIEVE : kind;
+        }
+
+        boolean requiresFingerprint() {
+            return kind == RequestKind.RETRIEVE || kind == RequestKind.DELETE;
         }
 
         static Request retrieve(EntityPlayerMP player, ResearchFingerprint fingerprint, int amount) {
-            return new Request(player, fingerprint, amount, false);
+            return new Request(player, fingerprint, amount, RequestKind.RETRIEVE);
         }
 
         static Request delete(EntityPlayerMP player, ResearchFingerprint fingerprint) {
-            return new Request(player, fingerprint, 0, true);
+            return new Request(player, fingerprint, 0, RequestKind.DELETE);
+        }
+
+        static Request inventoryScan(EntityPlayerMP player) {
+            return new Request(player, null, 0, RequestKind.INVENTORY_SCAN);
+        }
+
+        static Request debugTool(EntityPlayerMP player) {
+            return new Request(player, null, 0, RequestKind.DEBUG_TOOL);
         }
     }
 }
