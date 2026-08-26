@@ -13,8 +13,12 @@ public final class ItemStackKeyFactory {
     public static ResearchKey from(ItemStack stack) {
         try {
             return fromUnchecked(stack);
-        } catch (LinkageError optionalIntegrationFailure) {
-            throw new IllegalArgumentException("item identity failed because an optional integration is unavailable", optionalIntegrationFailure);
+        } catch (IllegalArgumentException knownIdentityFailure) {
+            throw knownIdentityFailure;
+        } catch (RuntimeException | LinkageError optionalIntegrationFailure) {
+            throw new IllegalArgumentException(
+                "item identity failed because a modded stack could not be inspected safely",
+                optionalIntegrationFailure);
         }
     }
 
