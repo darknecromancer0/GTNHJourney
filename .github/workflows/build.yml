@@ -9,7 +9,9 @@ permissions:
   contents: write
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  # GitHub can deliver queued push events out of order after an Actions outage. Scope cancellation to the exact event
+  # head so an older delayed run can never cancel validation of a newer commit on the same branch.
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event.pull_request.head.sha || github.sha }}
   cancel-in-progress: true
 
 jobs:
