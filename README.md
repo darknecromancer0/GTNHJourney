@@ -34,8 +34,9 @@ GT New Horizons 1.7.10 addon that automatically researches item states the playe
 - Verified `MetaGeneratedTool` runtime fields `GT.ToolStats.Damage` and `GT.ToolStats.Mode` are ignored in identity and reset in retrieval templates; foreign lookalike NBT stays exact.
 - Filled fluid/container payload remains meaningful research state. Filled cells with different contents stay distinct; no generic `Fluid`/container stripping is applied.
 - GT fluid/container payload (`GT.FluidContent`) remains exact.
+- GT++ `ItemGregtechPump` fluid payload (`mFluid`, `mFluidAmount`, `mInit`) is treated as transient tool state so filling a Hand Pump does not create another researched tool; actual fluid containers remain exact.
 - GT electric items use Journey endpoints: partial charge => BASE; verified max charge => BASE + FULL.
-- IC2 `IElectricItem` stacks use the same BASE/FULL model through the IC2 electric API/manager, not a generic `charge`-NBT heuristic.
+- IC2 `IElectricItem` stacks use the same BASE/FULL model through the IC2 electric API/manager, not a generic `charge`-NBT heuristic. Legacy visual damage for an empty electric item is normalized to its stable empty value, preventing partial-charge damage steps such as Vajra charge animation from becoming research duplicates.
 - CoFH `IEnergyContainerItem` stacks use the same BASE/FULL model through the CoFH energy API; arbitrary `Energy` NBT on foreign items remains exact.
 - OpenComputers Hover Boots use their own public charge API and follow the same BASE/FULL endpoint model.
 - Tinkers Construct `ToolCore` durability/render wear is normalized while `ToolLevel`, XP counters, modifiers, materials and other meaningful tool payload remain intact. Legacy pre5 templates that already lost XP counters are repaired to zero progress instead of stripping progression state again.
@@ -49,7 +50,7 @@ GT New Horizons 1.7.10 addon that automatically researches item states the playe
 ### Persistence and recovery
 
 - Exact server retrieval templates are stored alongside research keys.
-- Save-format migration rebuilds both identity and template through the same current semantic policy.
+- Save-format migration rebuilds both identity and template through the same current semantic policy on load, so already-saved duplicates can collapse when a verified normalization rule is added.
 - When old entries collapse to one canonical pre7 state, the first valid/earliest persisted occurrence keeps the chronology position and template deterministically.
 - Broken NBT-backed entries with no retrieval template are rejected instead of becoming a bare item; a later valid occurrence may then become the migration survivor.
 - Existing drill/electric endpoints and filled-cell research are preserved when their semantic states remain distinct.
@@ -67,10 +68,11 @@ pre7 adds an explicit admin migration tool for already-existing bases. It is del
 - Obtain exactly one tool with `/journey debugtool`.
 - Integrated singleplayer owner is allowed; dedicated multiplayer requires operator-level permission for this subcommand only.
 - The item is a stack-size-1 `Debug Researcher Tool`, visually based on a vanilla stick with permanent enchanted glint.
+- The debug tool itself is never a research candidate; old accidentally persisted tool-mode states are rejected by migration.
 - Shift+right-click cycles `BLOCK -> CONTENTS -> AREA_16 -> BLOCK`; mode is stored on the physical tool's NBT.
 - `BLOCK` observes only the item representation of the targeted placed block. Forge pick-block is preferred, with a safe item/meta fallback.
 - `CONTENTS` copies actual ItemStacks from a targeted `IInventory` without opening or mutating it. The block itself is not implicitly added.
-- `AREA_16` scans exactly a 16 x 16 x 16 cube around the player's integer position (`-8..+7` on each axis), 4096 positions before validity/loading filters.
+- `AREA_16` is a true 16-block radius around the player's integer position: `-16..+16` on X, Y and Z. The resulting cube is `33 x 33 x 33`, exactly **35,937** positions before validity/loading filters.
 - AREA_16 reads only already-loaded valid positions and never force-loads/generates chunks.
 - Repeated observations are deduplicated by Journey semantic identity before research expansion.
 - The tool never breaks blocks, changes metadata, moves inventory contents, synthesizes machine-fluid containers or scans region files/the entire world.
@@ -88,9 +90,9 @@ Recommended old-world workflow: back up the save, walk through important parts o
 - Server resolves the fingerprint against the player's current research again before creating the saved template.
 - Retrieval requests are rate/queue limited per player.
 - Large research catalogs stream over multiple server ticks with entry-count and actual serialized-ItemStack byte budgets.
-- Full sync is epoch-based, expected-count validated and double-buffered client-side; an incomplete/outdated stream never replaces the last complete snapshot.
+- Full sync is epoch-based, expected-count validated and double-buffered client-side; an incomplete/outdated stream never replaces the last complete snapshot or its staged N activity order.
 - Client-bound network mutations are FIFO-queued onto the client tick thread instead of mutating the NEI mirror from Netty callbacks.
-- Unlocks occurring during a full sync are deferred and replayed after its matching End packet.
+- Unlocks and N retrieval touches occurring during a full sync are deferred and replayed after its matching End packet.
 - Oversized or unserializable single NBT states stay server-side rather than risking a disconnect; the GUI reports the server-only count.
 - Server-selected semantic compatibility flags are transmitted at Begin-sync so client fingerprints cannot drift from server identity rules.
 - Migration imports use one bulk server-side mutation and one research sync rather than one network refresh per candidate.
@@ -99,18 +101,20 @@ Recommended old-world workflow: back up the save, walk through important parts o
 
 Journey deliberately reuses GTNH's existing NEI item panel instead of adding a second item browser. While J/N is active, Journey owns the small visible panel list directly from its synchronized research mirror instead of rebuilding or injecting variants into NEI's global item universe.
 
-- `J` toggles **Journey / Researched** and shows all researched states **newest-first**.
-- `N` toggles **Newest** and shows only the configured newest tail, also **newest-first**.
-- A newly researched state is index 0 and appears in the upper-left slot of page 1 after the incremental Journey refresh.
-- Stored Drill/Diamond Drill/Iridium Drill and filled-cell states are eligible directly from Journey chronology; visibility does not depend on NEI having a native permutation for them.
+- `J` toggles **Journey / Researched** and shows all researched states **newest-first by first/fresh research chronology**.
+- `N` contains the **same complete researched set as J**, but orders it by recent meaningful Journey activity.
+- A genuinely new researched state becomes newest in both J and N.
+- Re-observing or normally obtaining an already researched state does not reorder either view.
+- Successfully retrieving an already researched state by clicking it in J or N leaves J unchanged and moves that state to the front of N. This activity order is persisted across relogs.
+- Stored Drill/Diamond Drill/Iridium Drill and filled-cell states are eligible directly from Journey research; visibility does not depend on NEI having a native permutation for them.
 - Normal unlocks rebuild only the small Journey panel list and do **not** call NEI's full item-universe reload.
 - Returning to ordinary NEI relinquishes Journey panel ownership and requests the normal NEI filter/update path.
-- Renderer-hostile states use client-only presentation copies. If third-party presentation/filter code fails, only that display entry is omitted for the current refresh; authoritative server research and retrieval templates remain intact.
-- Volumetric-flask display sanitization is Journey-local. pre7 does not claim to patch GregTech's global Creative Inventory renderer.
-- Normal NEI search and recipe/usage browsing remain available and constrain the Journey list without changing Journey chronology among matching states.
+- Renderer-hostile Journey states use client-only presentation copies. If third-party presentation/filter code fails, only that display entry is omitted for the current refresh; authoritative server research and retrieval templates remain intact.
+- Vanilla Creative and NEI also omit only proven renderer-hostile GregTech volumetric-flask permutations whose fluid has no icon; normal flask states remain available. `/journey dump` counts removed Creative permutations as `creativeUnsafeFlaskVariantsRemoved`.
+- Normal NEI search and recipe/usage browsing remain available and constrain the Journey list without changing J/N chronology among matching states.
 - In Journey/Newest view: left click requests a full stack; right click requests one item.
 - In ordinary NEI: Ctrl + left click requests a full researched stack; Ctrl + right click requests one.
-- `Journey.Researched` and `Journey.Newest` remain fallback subsets for layouts too narrow to show both buttons.
+- `Journey.Researched` and `Journey.Newest` remain fallback subsets for layouts too narrow to show both buttons; both subsets use the full researched membership.
 - Researched tooltips are marked and include Journey retrieval hotkey hints.
 - Migration actions update Journey through the research sync path and do not require a global NEI item-list rebuild.
 
@@ -148,7 +152,7 @@ Diagnostics and ordinary player operations keep `/journey` permission level 0. T
 
 - `research.inventoryScanIntervalTicks` (default `20`, one-second fallback reconciliation)
 - `research.inventoryFullRescanIntervalTicks` (default `200`, safety deep-rescan while stable slots use cheap signatures)
-- `client.newestLimit` (default `64`)
+- `client.newestLimit` is a deprecated compatibility key and is ignored by pre7; N always contains the full researched set.
 - `compatibility.normalizeGtTransientIdentity` (default `true`)
 - `compatibility.resetGtToolTemplateState` (default `true`)
 - `compatibility.normalizeGtChargeEndpoints` (default `true`)
@@ -167,8 +171,8 @@ gradle spotlessApply --stacktrace
 gradle build --stacktrace
 ```
 
-`gradle build` includes the regression suite for chronology, semantic endpoint classification, filled-container exactness, wearable normalization/migration, renderer-safe presentation, acquisition, recovery transactions/snapshots and the pre7 Debug Researcher Tool. CI also verifies that the Java `VERSION`, production jar filename and packaged `mcmod.info` version agree before uploading production, dev and sources jars.
+`gradle build` includes the regression suite for chronology, N activity ordering, semantic endpoint classification, filled-container exactness, wearable/tool normalization and migration, renderer-safe presentation, acquisition, recovery transactions/snapshots and the pre7 Debug Researcher Tool. CI also verifies that the Java `VERSION`, production jar filename and packaged `mcmod.info` version agree before uploading production, dev and sources jars.
 
-For pre7 release verification, the debug package must contain no forced chunk-loading path and no global NEI reload path. AREA_16 is bounded to exactly 4096 planned positions and skips unavailable/unloaded cells.
+For pre7 release verification, the debug package must contain no forced chunk-loading path and no global NEI item-universe reload path. AREA_16 is bounded to exactly **35,937** planned positions (`-16..+16` on each axis) and skips unavailable/unloaded cells.
 
 See `docs/first-live-test.md` for the live-world matrix and migrated-base workflow.
