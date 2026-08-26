@@ -14,10 +14,27 @@ public final class SemanticDiagnosticSnapshot {
     private final boolean tconTool;
     private final boolean botaniaMagnet;
     private final boolean draconicTool;
+    private final boolean wearableTransient;
     private final int observedEndpoints;
 
     public SemanticDiagnosticSnapshot(String gtCharge, String ic2Charge, String cofhCharge, String ocCharge,
         boolean gtTool, boolean tconTool, boolean botaniaMagnet, boolean draconicTool, int observedEndpoints) {
+        this(
+            gtCharge,
+            ic2Charge,
+            cofhCharge,
+            ocCharge,
+            gtTool,
+            tconTool,
+            botaniaMagnet,
+            draconicTool,
+            false,
+            observedEndpoints);
+    }
+
+    public SemanticDiagnosticSnapshot(String gtCharge, String ic2Charge, String cofhCharge, String ocCharge,
+        boolean gtTool, boolean tconTool, boolean botaniaMagnet, boolean draconicTool, boolean wearableTransient,
+        int observedEndpoints) {
         this.gtCharge = normalizeState(gtCharge);
         this.ic2Charge = normalizeState(ic2Charge);
         this.cofhCharge = normalizeState(cofhCharge);
@@ -26,6 +43,7 @@ public final class SemanticDiagnosticSnapshot {
         this.tconTool = tconTool;
         this.botaniaMagnet = botaniaMagnet;
         this.draconicTool = draconicTool;
+        this.wearableTransient = wearableTransient;
         this.observedEndpoints = Math.max(0, observedEndpoints);
     }
 
@@ -45,6 +63,8 @@ public final class SemanticDiagnosticSnapshot {
             + botaniaMagnet
             + ", Draconic-tool="
             + draconicTool
+            + ", Wearable-transient="
+            + wearableTransient
             + ", observed endpoints="
             + observedEndpoints;
     }
@@ -59,6 +79,7 @@ public final class SemanticDiagnosticSnapshot {
         if (tconTool) matched.add("TCon-tool");
         if (botaniaMagnet) matched.add("Botania-magnet");
         if (draconicTool) matched.add("Draconic-tool");
+        if (wearableTransient) matched.add("wearable-transient");
         StringBuilder out = new StringBuilder();
         for (String policy : matched) {
             if (out.length() > 0) out.append(", ");
