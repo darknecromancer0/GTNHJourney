@@ -20,7 +20,7 @@ import cpw.mods.fml.common.gameevent.PlayerEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 import dev.gtnhjourney.diagnostics.JourneyRuntimeCounters;
 
-/** Tracks only furnaces a real player interacted with and attributes completed output to the last user. */
+/** Tracks only furnaces a real player interacted with and attributes output to the last user. */
 public final class FurnaceOwnershipTracker {
 
     private final ResearchObservationService observations;
@@ -43,11 +43,18 @@ public final class FurnaceOwnershipTracker {
         TileEntityFurnace furnace = (TileEntityFurnace) tile;
         ItemStack output = furnace.getStackInSlot(2);
         boolean occupied = isOccupied(output);
+        int signature = occupied ? InventoryStackSignature.of(output) : 0;
         FurnaceOutputGate gate = new FurnaceOutputGate();
-        gate.prime(occupied ? InventoryStackSignature.of(output) : 0, occupied);
+        boolean claimOutput = gate.claim(signature, occupied);
 
         FurnaceKey key = new FurnaceKey(event.world.provider.dimensionId, event.x, event.y, event.z);
         tracked.put(key, new TrackedFurnace(player.getUniqueID(), gate));
+
+        if (claimOutput && output != null) {
+            JourneyRuntimeCounters.furnaceOutputObservation();
+            List<ItemStack> unlocked = observations.observe(player, output.copy());
+            if (!unlocked.isEmpty()) JourneyRuntimeCounters.furnaceOutputUnlock();
+        }
     }
 
     @SubscribeEvent
