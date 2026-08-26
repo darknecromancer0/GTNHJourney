@@ -30,6 +30,11 @@ public final class JourneyNetwork {
             Side.CLIENT);
         CHANNEL.registerMessage(DeleteRequestMessage.Handler.class, DeleteRequestMessage.class, 6, Side.SERVER);
         CHANNEL.registerMessage(ResearchRemoveMessage.Handler.class, ResearchRemoveMessage.class, 7, Side.CLIENT);
+        CHANNEL.registerMessage(
+            ResearchUnlockNotificationMessage.Handler.class,
+            ResearchUnlockNotificationMessage.class,
+            8,
+            Side.CLIENT);
     }
 
     public static void requestRetrieve(ResearchKey key, int amount) {
@@ -46,6 +51,21 @@ public final class JourneyNetwork {
 
     public static void sendUnlock(EntityPlayerMP player, ItemStack stack) {
         if (!ServerResearchSyncQueue.deferUnlockIfActive(player, stack)) sendUnlockImmediate(player, stack);
+    }
+
+    public static void sendUnlockNotification(EntityPlayerMP player, ItemStack observed) {
+        if (player == null || observed == null || observed.getItem() == null) return;
+        String displayName = "item";
+        try {
+            String candidate = observed.getDisplayName();
+            if (candidate != null && !candidate.trim().isEmpty()) displayName = candidate;
+        } catch (RuntimeException ignored) {
+            try {
+                String candidate = observed.getItem().getUnlocalizedName(observed);
+                if (candidate != null && !candidate.trim().isEmpty()) displayName = candidate;
+            } catch (RuntimeException ignoredAgain) {}
+        }
+        CHANNEL.sendTo(new ResearchUnlockNotificationMessage(displayName), player);
     }
 
     static void sendUnlockImmediate(EntityPlayerMP player, ItemStack stack) {
