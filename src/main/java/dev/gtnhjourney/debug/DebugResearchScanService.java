@@ -12,7 +12,7 @@ import net.minecraft.world.World;
 
 import dev.gtnhjourney.minecraft.ItemStackKeyFactory;
 
-/** Read-only migration scan service for BLOCK, CONTENTS and bounded AREA_16 observations. */
+/** Read-only migration scans plus one-action transactional application hooks for the Debug Researcher Tool. */
 public final class DebugResearchScanService {
 
     private final WorldAdapter world;
@@ -57,6 +57,31 @@ public final class DebugResearchScanService {
                 return ItemStackKeyFactory.from(stack);
             }
         });
+    }
+
+    /** Applies one physical tool action as one bulk mutation, then emits exactly one sync and one summary callback. */
+    public DebugResearchScanResult apply(
+        DebugResearchMode mode,
+        int x,
+        int y,
+        int z,
+        MutationAdapter mutation,
+        ActionEffects effects) {
+        DebugResearchMode selected = mode == null ? DebugResearchMode.BLOCK : mode;
+        DebugResearchScanResult scanned = scan(selected, x, y, z);
+        int added = 0;
+
+        if (mutation != null) {
+            if (selected == DebugResearchMode.AREA_16) mutation.createSafetySnapshot("before-migration-area16");
+            added = mutation.applyBulkAdd(scanned.getCandidates(), "Migration " + selected.name());
+        }
+
+        DebugResearchScanResult completed = scanned.withNewlyUnlockedStates(added);
+        if (effects != null) {
+            effects.sync();
+            effects.summary(selected, completed);
+        }
+        return completed;
     }
 
     public DebugResearchScanResult scanBlock(int x, int y, int z) {
@@ -104,6 +129,18 @@ public final class DebugResearchScanService {
         }
 
         return result(raw, positions.size(), blockCandidates, inventoriesVisited, raw.size());
+    }
+
+    private DebugResearchScanResult scan(DebugResearchMode mode, int x, int y, int z) {
+        switch (mode) {
+            case CONTENTS:
+                return scanContents(x, y, z);
+            case AREA_16:
+                return scanArea16(x, y, z);
+            case BLOCK:
+            default:
+                return scanBlock(x, y, z);
+        }
     }
 
     private DebugResearchScanResult result(
@@ -178,5 +215,19 @@ public final class DebugResearchScanService {
 
         /** Returns null when the position has no readable IInventory, otherwise a defensive stack list. */
         List<ItemStack> inventoryContents(int x, int y, int z);
+    }
+
+    public interface MutationAdapter {
+
+        void createSafetySnapshot(String name);
+
+        int applyBulkAdd(List<ItemStack> candidates, String description);
+    }
+
+    public interface ActionEffects {
+
+        void sync();
+
+        void summary(DebugResearchMode mode, DebugResearchScanResult result);
     }
 }
