@@ -98,9 +98,18 @@ public final class ClientStackMirror {
 
     /** Applies one server-authoritative exact removal without rebuilding the global NEI item universe. */
     public static synchronized boolean remove(ResearchFingerprint fingerprint) {
-        if (fingerprint == null || stacks.isEmpty()) return false;
+        if (fingerprint == null) return false;
         ResearchKey found = keyForFingerprint(fingerprint);
-        if (found == null) return false;
+        if (found == null) {
+            // The server also acknowledges deletions for states that were intentionally omitted from client stack
+            // sync because their serialized payload was too large. They have no local key/template to remove, but
+            // their authoritative membership still contributed to serverAvailableTotal.
+            if (serverOnlyCount() <= 0) return false;
+            serverAvailableTotal = Math.max(0, serverAvailableTotal - 1);
+            previousServerAvailableTotal = serverAvailableTotal;
+            previousExpectedSyncedTotal = expectedSyncedTotal;
+            return true;
+        }
         stacks.remove(found);
         ClientResearchMirror.remove(found);
         ClientActivityMirror.remove(found);
