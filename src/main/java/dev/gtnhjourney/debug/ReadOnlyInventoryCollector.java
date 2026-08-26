@@ -24,14 +24,13 @@ public final class ReadOnlyInventoryCollector {
 
         List<ItemStack> result = new ArrayList<>();
         for (int slot = 0; slot < size; slot++) {
-            final ItemStack stack;
             try {
-                stack = source.get(slot);
+                ItemStack stack = source.get(slot);
+                if (stack == null || stack.getItem() == null || stack.stackSize <= 0) continue;
+                result.add(stack.copy());
             } catch (RuntimeException | LinkageError ignored) {
-                continue;
+                // One broken optional-mod stack must not abort the rest of a migration inventory snapshot.
             }
-            if (stack == null || stack.getItem() == null || stack.stackSize <= 0) continue;
-            result.add(stack.copy());
         }
         return result;
     }
