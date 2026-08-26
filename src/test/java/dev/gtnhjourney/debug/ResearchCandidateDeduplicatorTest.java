@@ -46,6 +46,27 @@ public class ResearchCandidateDeduplicatorTest {
     }
 
     @Test
+    public void linkageFailureOnOneOptionalCandidateDoesNotAbortTheMigrationBatch() {
+        Item common = new Item();
+        ItemStack broken = new ItemStack(common, 1, 99);
+        ItemStack valid = new ItemStack(common, 1, 0);
+
+        List<ItemStack> unique = ResearchCandidateDeduplicator.deduplicate(
+            Arrays.asList(broken, valid),
+            new ResearchCandidateDeduplicator.IdentityResolver() {
+
+                @Override
+                public ResearchKey identity(ItemStack stack) {
+                    if (stack.getItemDamage() == 99) throw new NoClassDefFoundError("missing optional integration");
+                    return new ResearchKey("minecraft:stone", 0, "");
+                }
+            });
+
+        assertEquals(1, unique.size());
+        assertEquals(0, unique.get(0).getItemDamage());
+    }
+
+    @Test
     public void scanResultTracksRequiredMigrationMetricsAndCanAttachMutationCount() {
         ItemStack candidate = new ItemStack(new Item(), 1, 0);
         DebugResearchScanResult scanned = new DebugResearchScanResult(
