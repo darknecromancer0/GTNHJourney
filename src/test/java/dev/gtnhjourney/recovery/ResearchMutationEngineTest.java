@@ -130,6 +130,68 @@ public class ResearchMutationEngineTest {
     }
 
     @Test
+    public void strictRecoverySkipsUnreconstructableDeletedStateAndKeepsDeletionActive() {
+        UUID player = UUID.randomUUID();
+        JourneyResearchData research = new JourneyResearchData();
+        JourneyRecoveryData recovery = new JourneyRecoveryData();
+        ResearchEntrySnapshot missing = new ResearchEntrySnapshot(
+            new ResearchKey("journey_missing_mod:ghost", 0, ""),
+            null,
+            0);
+        recovery.appendDeletion(player, new DeletionRecord(501L, 1L, missing, true));
+        ResearchMutationEngine engine = new ResearchMutationEngine(
+            research,
+            recovery,
+            player,
+            RuntimeRecoveryRestorePolicy.INSTANCE);
+
+        assertEquals(0, engine.restoreDeleted(1));
+        assertFalse(research.registry(player).contains(missing.key()));
+        assertEquals(1, recovery.activeDeletionCount(player));
+        assertEquals(0, recovery.undoDepth(player));
+    }
+
+    @Test
+    public void strictUndoAndRedoDoNotMoveTransactionsThatRequireMissingItems() {
+        UUID player = UUID.randomUUID();
+        JourneyResearchData research = new JourneyResearchData();
+        JourneyRecoveryData recovery = new JourneyRecoveryData();
+        ResearchEntrySnapshot missing = new ResearchEntrySnapshot(
+            new ResearchKey("journey_missing_mod:ghost", 0, ""),
+            null,
+            0);
+        ResearchMutationEngine engine = new ResearchMutationEngine(
+            research,
+            recovery,
+            player,
+            RuntimeRecoveryRestorePolicy.INSTANCE);
+
+        ResearchTransaction undoBlocked = new ResearchTransaction(
+            601L,
+            1L,
+            "Undo blocked",
+            Collections.<ResearchEntrySnapshot>emptyList(),
+            Collections.singletonList(missing));
+        recovery.pushUndo(player, undoBlocked);
+        assertEquals(0, engine.undo(1));
+        assertEquals(1, recovery.undoDepth(player));
+        assertEquals(0, recovery.redoDepth(player));
+        assertFalse(research.registry(player).contains(missing.key()));
+
+        ResearchTransaction redoBlocked = new ResearchTransaction(
+            602L,
+            2L,
+            "Redo blocked",
+            Collections.singletonList(missing),
+            Collections.<ResearchEntrySnapshot>emptyList());
+        recovery.clearRedo(player);
+        recovery.pushRedo(player, redoBlocked);
+        assertEquals(0, engine.redo(1));
+        assertEquals(1, recovery.redoDepth(player));
+        assertFalse(research.registry(player).contains(missing.key()));
+    }
+
+    @Test
     public void passiveMutationAfterUndoInvalidatesRedo() {
         UUID player = UUID.randomUUID();
         JourneyResearchData research = new JourneyResearchData();
