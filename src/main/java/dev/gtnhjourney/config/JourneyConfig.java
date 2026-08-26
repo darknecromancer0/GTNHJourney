@@ -9,7 +9,8 @@ import dev.gtnhjourney.minecraft.ResearchCompatibilityOptions;
 /** Small common config. Security hard limits intentionally remain compile-time constants. */
 public final class JourneyConfig {
 
-    private static volatile int inventoryScanIntervalTicks = 20;
+    public static final int DEFAULT_INVENTORY_SCAN_INTERVAL_TICKS = 5;
+    private static volatile int inventoryScanIntervalTicks = DEFAULT_INVENTORY_SCAN_INTERVAL_TICKS;
     /** @deprecated N now contains the full researched set; retained only so existing config files remain readable. */
     private static volatile int newestLimit = 64;
     private static volatile int inventoryFullRescanIntervalTicks = 200;
@@ -26,13 +27,14 @@ public final class JourneyConfig {
         Configuration config = new Configuration(file);
         try {
             config.load();
-            inventoryScanIntervalTicks = config.getInt(
-                "inventoryScanIntervalTicks",
-                "research",
-                20,
-                1,
-                40,
-                "How often the server performs the fallback validation of real player inventories. 20 ticks = 1 second.");
+            inventoryScanIntervalTicks = normalizeInventoryScanIntervalTicks(
+                config.getInt(
+                    "inventoryScanIntervalTicks",
+                    "research",
+                    DEFAULT_INVENTORY_SCAN_INTERVAL_TICKS,
+                    1,
+                    40,
+                    "How often the server performs fallback validation of real player inventories. Values below 5 are raised to 5 ticks."));
             newestLimit = config.getInt(
                 "newestLimit",
                 "client",
@@ -87,6 +89,10 @@ public final class JourneyConfig {
         } finally {
             if (config.hasChanged()) config.save();
         }
+    }
+
+    public static int normalizeInventoryScanIntervalTicks(int configured) {
+        return Math.max(DEFAULT_INVENTORY_SCAN_INTERVAL_TICKS, Math.min(40, configured));
     }
 
     public static int inventoryScanIntervalTicks() {
