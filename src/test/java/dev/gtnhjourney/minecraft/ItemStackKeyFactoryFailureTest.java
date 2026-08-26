@@ -1,7 +1,7 @@
 package dev.gtnhjourney.minecraft;
 
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
@@ -24,6 +24,6 @@ public class ItemStackKeyFactoryFailureTest {
             IllegalArgumentException.class,
             () -> ItemStackKeyFactory.from(broken));
 
-        assertInstanceOf(IllegalStateException.class, failure.getCause());
+        assertTrue(failure.getCause() instanceof IllegalStateException);
     }
 }
