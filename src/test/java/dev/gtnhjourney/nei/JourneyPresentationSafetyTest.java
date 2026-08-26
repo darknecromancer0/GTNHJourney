@@ -33,20 +33,16 @@ public class JourneyPresentationSafetyTest {
     @Test
     public void catastrophicThirdPartyPresentationFailureIsOmittedAndCounted() {
         JourneyRuntimeCounters.reset();
+        ItemStack original = new ItemStack(Items.stick, 1, 0);
 
-        assertNull(JourneyPanelController.safePresentation(new ExplodingItemStack()));
+        assertNull(
+            JourneyPanelController.safePresentation(original, new JourneyPanelController.Presenter() {
+
+                @Override
+                public ItemStack present(ItemStack stack) {
+                    throw new AssertionError("simulated third-party renderer state failure");
+                }
+            }));
         assertEquals(1L, JourneyRuntimeCounters.snapshot().getPresentationFailures());
-    }
-
-    private static final class ExplodingItemStack extends ItemStack {
-
-        private ExplodingItemStack() {
-            super(Items.stick, 1, 0);
-        }
-
-        @Override
-        public ItemStack copy() {
-            throw new AssertionError("simulated third-party renderer state failure");
-        }
     }
 }
