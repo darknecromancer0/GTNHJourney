@@ -9,11 +9,12 @@ import codechicken.nei.guihook.IContainerDrawHandler;
 import codechicken.nei.guihook.IContainerInputHandler;
 import codechicken.nei.guihook.IContainerTooltipHandler;
 import dev.gtnhjourney.client.ClientStackMirror;
+import dev.gtnhjourney.network.JourneyNetwork;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
 
-/** Small native-looking J/N/D controls in NEI's item-panel header. */
+/** Small native-looking J/N/D/S/T controls in NEI's item-panel header. */
 public final class JourneyNEIToggleWidget
     implements IContainerDrawHandler, IContainerInputHandler, IContainerTooltipHandler {
 
@@ -77,9 +78,37 @@ public final class JourneyNEIToggleWidget
         }
     };
 
+    private final Button scanButton = new Button("S") {
+        @Override
+        public boolean onButtonPress(boolean rightclick) {
+            JourneyNetwork.requestInventoryScan();
+            return true;
+        }
+
+        @Override
+        public String getButtonTip() {
+            return JourneyButtonPresentation.scanTooltip();
+        }
+    };
+
+    private final Button debugToolButton = new Button("T") {
+        @Override
+        public boolean onButtonPress(boolean rightclick) {
+            JourneyNetwork.requestDebugTool();
+            return true;
+        }
+
+        @Override
+        public String getButtonTip() {
+            return JourneyButtonPresentation.debugToolTooltip();
+        }
+    };
+
     private boolean visible;
     private boolean newestVisible;
     private boolean deleteVisible;
+    private boolean scanVisible;
+    private boolean debugToolVisible;
 
     @Override
     public void onPreDraw(GuiContainer gui) {
@@ -87,6 +116,8 @@ public final class JourneyNEIToggleWidget
             && JourneyButtonPresentation.researchVisible(ItemPanels.itemPanel.w);
         newestVisible = false;
         deleteVisible = false;
+        scanVisible = false;
+        debugToolVisible = false;
         if (!visible) return;
         researchButton.x = ItemPanels.itemPanel.pagePrev.x + 18;
         researchButton.y = ItemPanels.itemPanel.pagePrev.y;
@@ -106,6 +137,20 @@ public final class JourneyNEIToggleWidget
             deleteButton.w = 16;
             deleteButton.h = 16;
         }
+        scanVisible = JourneyButtonPresentation.scanVisible(ItemPanels.itemPanel.w);
+        if (scanVisible) {
+            scanButton.x = ItemPanels.itemPanel.pagePrev.x + 72;
+            scanButton.y = ItemPanels.itemPanel.pagePrev.y;
+            scanButton.w = 16;
+            scanButton.h = 16;
+        }
+        debugToolVisible = JourneyButtonPresentation.debugToolVisible(ItemPanels.itemPanel.w);
+        if (debugToolVisible) {
+            debugToolButton.x = ItemPanels.itemPanel.pagePrev.x + 90;
+            debugToolButton.y = ItemPanels.itemPanel.pagePrev.y;
+            debugToolButton.w = 16;
+            debugToolButton.h = 16;
+        }
     }
 
     @Override
@@ -113,6 +158,8 @@ public final class JourneyNEIToggleWidget
         if (visible) researchButton.draw(mousex, mousey);
         if (newestVisible) newestButton.draw(mousex, mousey);
         if (deleteVisible) deleteButton.draw(mousex, mousey);
+        if (scanVisible) scanButton.draw(mousex, mousey);
+        if (debugToolVisible) debugToolButton.draw(mousex, mousey);
     }
 
     @Override public void postRenderObjects(GuiContainer gui, int mousex, int mousey) {}
@@ -133,6 +180,14 @@ public final class JourneyNEIToggleWidget
             deleteButton.handleClick(mousex, mousey, mouseButton);
             return true;
         }
+        if (scanVisible && scanButton.contains(mousex, mousey)) {
+            scanButton.handleClick(mousex, mousey, mouseButton);
+            return true;
+        }
+        if (debugToolVisible && debugToolButton.contains(mousex, mousey)) {
+            debugToolButton.handleClick(mousex, mousey, mouseButton);
+            return true;
+        }
         return false;
     }
 
@@ -141,6 +196,8 @@ public final class JourneyNEIToggleWidget
         if (visible) researchButton.handleTooltip(mousex, mousey, currenttip);
         if (newestVisible) newestButton.handleTooltip(mousex, mousey, currenttip);
         if (deleteVisible) deleteButton.handleTooltip(mousex, mousey, currenttip);
+        if (scanVisible) scanButton.handleTooltip(mousex, mousey, currenttip);
+        if (debugToolVisible) debugToolButton.handleTooltip(mousex, mousey, currenttip);
         return currenttip;
     }
 
