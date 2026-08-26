@@ -18,6 +18,7 @@ import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.PlayerEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
+import dev.gtnhjourney.debug.ItemDebugResearcherTool;
 import dev.gtnhjourney.diagnostics.JourneyRuntimeCounters;
 
 /** Tracks only furnaces a real player interacted with and attributes output to the last user. */
@@ -35,6 +36,7 @@ public final class FurnaceOwnershipTracker {
     public void onInteract(PlayerInteractEvent event) {
         if (event == null || event.action != PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK) return;
         if (!(event.entityPlayer instanceof EntityPlayerMP) || event.world == null || event.world.isRemote) return;
+        if (isDebugResearcherInteraction(event.entityPlayer.getHeldItem())) return;
 
         TileEntity tile = event.world.getTileEntity(event.x, event.y, event.z);
         if (!(tile instanceof TileEntityFurnace)) return;
@@ -104,6 +106,10 @@ public final class FurnaceOwnershipTracker {
 
     public void clear() {
         tracked.clear();
+    }
+
+    private static boolean isDebugResearcherInteraction(ItemStack held) {
+        return held != null && held.getItem() instanceof ItemDebugResearcherTool;
     }
 
     private static boolean isOccupied(ItemStack stack) {
