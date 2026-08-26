@@ -7,6 +7,7 @@ public final class JourneyRuntimeCounters {
 
     private static final AtomicLong panelIncrementalUpdates = new AtomicLong();
     private static final AtomicLong fullNeiReloadRequests = new AtomicLong();
+    private static final AtomicLong presentationFailures = new AtomicLong();
     private static final AtomicLong unlockNotifications = new AtomicLong();
     private static final AtomicLong furnaceOutputObservations = new AtomicLong();
     private static final AtomicLong furnaceOutputUnlocks = new AtomicLong();
@@ -24,6 +25,10 @@ public final class JourneyRuntimeCounters {
 
     public static void fullNeiReloadRequest() {
         fullNeiReloadRequests.incrementAndGet();
+    }
+
+    public static void presentationFailure() {
+        presentationFailures.incrementAndGet();
     }
 
     public static void unlockNotification() {
@@ -50,6 +55,7 @@ public final class JourneyRuntimeCounters {
         return new Snapshot(
             panelIncrementalUpdates.get(),
             fullNeiReloadRequests.get(),
+            presentationFailures.get(),
             unlockNotifications.get(),
             furnaceOutputObservations.get(),
             furnaceOutputUnlocks.get(),
@@ -63,6 +69,7 @@ public final class JourneyRuntimeCounters {
     public static void reset() {
         panelIncrementalUpdates.set(0L);
         fullNeiReloadRequests.set(0L);
+        presentationFailures.set(0L);
         unlockNotifications.set(0L);
         furnaceOutputObservations.set(0L);
         furnaceOutputUnlocks.set(0L);
@@ -77,6 +84,7 @@ public final class JourneyRuntimeCounters {
 
         private final long panelIncrementalUpdates;
         private final long fullNeiReloadRequests;
+        private final long presentationFailures;
         private final long unlockNotifications;
         private final long furnaceOutputObservations;
         private final long furnaceOutputUnlocks;
@@ -89,6 +97,7 @@ public final class JourneyRuntimeCounters {
         private Snapshot(
             long panelIncrementalUpdates,
             long fullNeiReloadRequests,
+            long presentationFailures,
             long unlockNotifications,
             long furnaceOutputObservations,
             long furnaceOutputUnlocks,
@@ -99,6 +108,7 @@ public final class JourneyRuntimeCounters {
             long debugResearchNewStates) {
             this.panelIncrementalUpdates = panelIncrementalUpdates;
             this.fullNeiReloadRequests = fullNeiReloadRequests;
+            this.presentationFailures = presentationFailures;
             this.unlockNotifications = unlockNotifications;
             this.furnaceOutputObservations = furnaceOutputObservations;
             this.furnaceOutputUnlocks = furnaceOutputUnlocks;
@@ -115,6 +125,10 @@ public final class JourneyRuntimeCounters {
 
         public long getFullNeiReloadRequests() {
             return fullNeiReloadRequests;
+        }
+
+        public long getPresentationFailures() {
+            return presentationFailures;
         }
 
         public long getUnlockNotifications() {
