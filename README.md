@@ -1,6 +1,6 @@
 # GTNH Journey
 
-Current development version: `0.1.0-pre6`.
+Current development version: `0.1.0-pre7`.
 
 GT New Horizons 1.7.10 addon that automatically researches item states the player genuinely obtains and allows server-authoritative infinite retrieval through the existing NEI frontend.
 
@@ -23,7 +23,7 @@ GT New Horizons 1.7.10 addon that automatically researches item states the playe
 - Pickups are *not* trusted as proof by themselves; the real server inventory scan validates them, avoiding cancelled/full-inventory ghost unlocks.
 - Periodic inventory validation includes main inventory, armor, cursor stack and optional Baubles-Expanded slots.
 - Installing Journey into an existing world imports the player's current real inventories before the first full client sync.
-- GUI recipe previews, machine output previews and arbitrary open-container slots are never research sources.
+- GUI recipe previews, machine output previews and arbitrary open-container slots are never normal research sources.
 
 ### State identity
 
@@ -45,11 +45,35 @@ GT New Horizons 1.7.10 addon that automatically researches item states the playe
 ### Persistence and recovery
 
 - Exact server retrieval templates are stored alongside research keys.
-- Save format migration rebuilds both identity and template through the same current semantic policy.
+- Save-format migration rebuilds both identity and template through the same current semantic policy.
 - Broken NBT-backed entries with no retrieval template are rejected instead of becoming a bare item.
 - Removed mod items remain diagnosable as orphan research until explicitly pruned.
-- `/journey forget`, `/journey clear confirm` and `/journey prune-missing confirm` create one persisted undo snapshot first.
-- `/journey undo` restores exact keys/templates and unlock order, including after a restart.
+- Explicit destructive/recovery operations are transaction-aware and persist undo/redo state.
+- `/journey forget`, `/journey clear confirm` and `/journey prune-missing confirm` are undoable through the recovery journal.
+- `/journey undo` and `/journey redo` restore exact keys/templates and unlock chronology.
+- Manual, rotating automatic and pre-operation safety snapshots provide a second recovery layer.
+- Snapshot restore is itself an undoable transaction and creates a safety snapshot before replacing state.
+
+### pre7 migrated-world recovery tool
+
+pre7 adds an explicit admin migration tool for already-existing bases. It is deliberately separate from normal research progression.
+
+- Obtain exactly one tool with `/journey debugtool`.
+- Integrated singleplayer owner is allowed; dedicated multiplayer requires operator-level permission for this subcommand only.
+- The item is a stack-size-1 `Debug Researcher Tool`, visually based on a vanilla stick with permanent enchanted glint.
+- Shift+right-click cycles `BLOCK -> CONTENTS -> AREA_16 -> BLOCK`; mode is stored on the physical tool's NBT.
+- `BLOCK` observes only the item representation of the targeted placed block. Forge pick-block is preferred, with a safe item/meta fallback.
+- `CONTENTS` copies actual ItemStacks from a targeted `IInventory` without opening or mutating it. The block itself is not implicitly added.
+- `AREA_16` scans exactly a 16 x 16 x 16 cube around the player's integer position (`-8..+7` on each axis), 4096 positions before validity/loading filters.
+- AREA_16 reads only already-loaded valid positions and never force-loads/generates chunks.
+- Repeated observations are deduplicated by Journey semantic identity before research expansion.
+- The tool never breaks blocks, changes metadata, moves inventory contents, synthesizes machine-fluid containers or scans region files/the entire world.
+- One physical action is one bulk recovery transaction and one compact summary/sync. Zero-new-state imports create no undo transaction.
+- AREA_16 creates a pre-mutation safety snapshot when there is current state to preserve.
+- `/journey undo` removes only states newly introduced by the last migration transaction; `/journey redo` can reapply it while the redo branch remains valid.
+- Runtime diagnostics accumulate migration scan count, positions, inventories, unique candidates and newly unlocked states in `/journey dump`.
+
+Recommended old-world workflow: back up the save, walk through important parts of the old base using overlapping AREA_16 scans, then use BLOCK/CONTENTS for targeted misses.
 
 ### Networking / security
 
@@ -63,6 +87,7 @@ GT New Horizons 1.7.10 addon that automatically researches item states the playe
 - Unlocks occurring during a full sync are deferred and replayed after its matching End packet.
 - Oversized or unserializable single NBT states stay server-side rather than risking a disconnect; the GUI reports the server-only count.
 - Server-selected semantic compatibility flags are transmitted at Begin-sync so client fingerprints cannot drift from server identity rules.
+- Migration imports use one bulk server-side mutation and one research sync rather than one network refresh per candidate.
 
 ## NEI GUI
 
@@ -78,22 +103,31 @@ Journey deliberately reuses GTNH's existing NEI item panel instead of adding a s
 - In ordinary NEI: Ctrl + left click requests a full researched stack; Ctrl + right click requests one.
 - `Journey.Researched` and `Journey.Newest` remain fallback subsets for layouts too narrow to show both buttons.
 - Researched tooltips are marked and include Journey retrieval hotkey hints.
+- Migration actions update Journey through the existing direct/full research sync path and do not require a global NEI item-list rebuild.
 
 The NEI built-in infinite/cheat item path is intentionally **not** used because it would bypass Journey's server-side research validation.
 
 ## Commands
 
+Diagnostics and ordinary player operations keep `/journey` permission level 0. The `debugtool` subcommand performs its own owner/operator permission check.
+
 - `/journey count`
 - `/journey stats`
 - `/journey debug`
+- `/journey debugtool` - grants the admin migration/recovery tool to the integrated owner or an operator
 - `/journey trace [on|off]` - opt-in live unlock chat/log trace for this server session
-- `/journey dump` - writes an attachable diagnostic file into `logs/`; semantic-policy matches and unknown exact-NBT states preserved fail-closed are included for compatibility diagnosis
+- `/journey dump` - writes an attachable diagnostic file into `logs/`, including semantic-policy, recovery and pre7 migration counters
 - `/journey hotspots [limit]`
 - `/journey list [page]`
 - `/journey newest [limit]`
 - `/journey get <index> [amount]`
 - `/journey forget <index>`
-- `/journey undo`
+- `/journey undo [count]`
+- `/journey redo [count]`
+- `/journey restore-deleted [count]`
+- `/journey snapshot [name]`
+- `/journey snapshots`
+- `/journey restore <snapshot-id-or-name>`
 - `/journey inspect` - reports normalized identity, wire/sync information, GT/IC2/CoFH/OpenComputers charge classification, GT/TCon ownership, Botania magnet state, Draconic tool state and semantic endpoint count
 - `/journey rescan`
 - `/journey prune-missing confirm`
@@ -113,7 +147,7 @@ The NEI built-in infinite/cheat item path is intentionally **not** used because 
 - `compatibility.normalizeTconToolWear` (default `true`)
 - `compatibility.normalizeCofhChargeEndpoints` (default `true`)
 
-Security/network hard limits intentionally remain compile-time constants.
+Security/network hard limits and the pre7 AREA_16 radius intentionally remain compile-time constants.
 
 ## Development verification
 
@@ -124,6 +158,8 @@ gradle spotlessApply --stacktrace
 gradle build --stacktrace
 ```
 
-`gradle build` includes the JUnit 5 regression suite for pure Journey state logic, including J/N chronology, charge endpoint classification, semantic diagnostic classification, BASE-variant injection, TCon wear preservation and renderer-safe presentation handling. CI also verifies that the Java `VERSION`, production jar filename and packaged `mcmod.info` version agree before uploading production, dev and sources jars.
+`gradle build` includes the regression suite for chronology, semantic endpoint classification, renderer-safe presentation, acquisition, recovery transactions/snapshots and the pre7 Debug Researcher Tool. CI also verifies that the Java `VERSION`, production jar filename and packaged `mcmod.info` version agree before uploading production, dev and sources jars.
 
-See `docs/first-live-test.md` for the live-world test matrix.
+For pre7 release verification, the debug package must contain no forced chunk-loading path and no global NEI reload path. AREA_16 is bounded to exactly 4096 planned positions and skips unavailable/unloaded cells.
+
+See `docs/first-live-test.md` for the live-world matrix and migrated-base workflow.
