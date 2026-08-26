@@ -55,6 +55,18 @@ public final class JourneyMutationService {
             research.captureState(player.getUniqueID()));
     }
 
+    public JourneySnapshot createSafetySnapshot(EntityPlayerMP player, String name) {
+        if (player == null) return null;
+        World root = rootWorld(player);
+        JourneyResearchData research = JourneyResearchData.get(root);
+        JourneySnapshotService snapshots = new JourneySnapshotService(JourneySnapshotData.get(root));
+        return snapshots.createSafety(
+            player.getUniqueID(),
+            name,
+            root.getTotalWorldTime(),
+            research.captureState(player.getUniqueID()));
+    }
+
     public List<JourneySnapshot> snapshots(EntityPlayerMP player) {
         if (player == null) return Collections.emptyList();
         JourneySnapshotData data = snapshotData(player);
