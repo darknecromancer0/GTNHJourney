@@ -9,11 +9,10 @@ import net.minecraft.item.ItemStack;
 import codechicken.nei.api.ItemFilter;
 import dev.gtnhjourney.client.ClientResearchMirror;
 import dev.gtnhjourney.client.ClientStackMirror;
-import dev.gtnhjourney.config.JourneyConfig;
 import dev.gtnhjourney.minecraft.ItemStackKeyFactory;
 import dev.gtnhjourney.research.ResearchKey;
 
-/** Cached fallback subset for the most recently researched states. */
+/** Cached fallback subset for the single most recently researched state. */
 public final class JourneyNewestFilter implements ItemFilter {
 
     private volatile long cachedRevision = Long.MIN_VALUE;
@@ -37,7 +36,7 @@ public final class JourneyNewestFilter implements ItemFilter {
             revision = ClientResearchMirror.revision();
             if (revision == cachedRevision) return;
             Set<ResearchKey> newest = new HashSet<ResearchKey>();
-            for (ItemStack stack : ClientStackMirror.snapshotNewest(JourneyConfig.newestLimit())) {
+            for (ItemStack stack : ClientStackMirror.snapshotNewest(1)) {
                 try {
                     newest.add(ItemStackKeyFactory.from(stack));
                 } catch (IllegalArgumentException ignored) {}
