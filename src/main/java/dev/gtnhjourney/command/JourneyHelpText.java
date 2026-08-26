@@ -10,7 +10,7 @@ public final class JourneyHelpText {
     private static final List<String> LINES = Collections.unmodifiableList(
         Arrays.asList(
             "GTNH Journey commands:",
-            "/journey count | stats | inspect - research summary and held-item diagnostics.",
+            "/journey count | stats | inspect - research summary and held item diagnostics.",
             "/journey research | rescan - research the held item or rescan your real inventory.",
             "/journey list [page] | newest [n] | get <index> [amount] - browse and retrieve research.",
             "/journey forget <index> | undo [n] | redo [n] | restore-deleted [n] - delete and recover states.",
