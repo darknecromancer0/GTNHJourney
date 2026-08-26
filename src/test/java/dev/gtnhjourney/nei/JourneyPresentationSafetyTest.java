@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 
 import dev.gtnhjourney.diagnostics.JourneyRuntimeCounters;
-import net.minecraft.item.Item;
+import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 
@@ -41,7 +41,7 @@ public class JourneyPresentationSafetyTest {
     private static final class ExplodingItemStack extends ItemStack {
 
         private ExplodingItemStack() {
-            super(new Item(), 1, 0);
+            super(Items.stick, 1, 0);
         }
 
         @Override
