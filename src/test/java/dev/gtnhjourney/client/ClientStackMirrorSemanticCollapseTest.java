@@ -29,7 +29,7 @@ public class ClientStackMirrorSemanticCollapseTest {
 
         assertTrue(ClientStackMirror.finish(42));
         assertEquals(1, ClientStackMirror.snapshot().size());
-        assertEquals(1, ClientResearchMirror.size());
+        assertEquals(1, ClientResearchMirror.snapshot().size());
         assertEquals(2, ClientStackMirror.expectedSyncedTotal());
     }
 }
