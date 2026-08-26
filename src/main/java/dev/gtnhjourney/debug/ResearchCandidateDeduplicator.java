@@ -31,7 +31,7 @@ public final class ResearchCandidateDeduplicator {
                 if (identity != null && !unique.containsKey(identity)) {
                     unique.put(identity, stack.copy());
                 }
-            } catch (RuntimeException ignored) {
+            } catch (RuntimeException | LinkageError ignored) {
                 // Optional integrations may fail to resolve individual stacks. A migration scan must continue.
             }
         }
