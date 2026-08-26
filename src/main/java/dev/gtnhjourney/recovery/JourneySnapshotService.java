@@ -26,18 +26,18 @@ public final class JourneySnapshotService {
 
     public boolean maybeAutoSnapshot(UUID playerId, long worldTick, boolean loaded, ResearchStateSnapshot current) {
         if (playerId == null || !loaded || current == null) return false;
-        JourneySnapshot previousAuto = data.latestAuto(playerId);
-        if (previousAuto == null) {
+        JourneySnapshot previousRotating = data.latestRotating(playerId);
+        if (previousRotating == null) {
             if (worldTick < AUTO_INTERVAL_TICKS) return false;
         } else {
-            if (worldTick < previousAuto.worldTick() || worldTick - previousAuto.worldTick() < AUTO_INTERVAL_TICKS) {
+            if (worldTick < previousRotating.worldTick()
+                || worldTick - previousRotating.worldTick() < AUTO_INTERVAL_TICKS) {
                 return false;
             }
-            if (sameState(previousAuto.state(), current)) return false;
+            if (sameState(previousRotating.state(), current)) return false;
         }
 
-        JourneySnapshot lastGood = data.latestRotating(playerId);
-        if (isSuspiciousDrop(lastGood, current)) {
+        if (isSuspiciousDrop(previousRotating, current)) {
             skippedSuspiciousSnapshots++;
             return false;
         }
