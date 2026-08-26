@@ -1,48 +1,19 @@
 package dev.gtnhjourney.nei;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-
 import net.minecraft.item.ItemStack;
 
 import codechicken.nei.api.ItemFilter;
-import dev.gtnhjourney.client.ClientResearchMirror;
-import dev.gtnhjourney.client.ClientStackMirror;
-import dev.gtnhjourney.minecraft.ItemStackKeyFactory;
-import dev.gtnhjourney.research.ResearchKey;
 
-/** Cached fallback subset for the single most recently researched state. */
+/**
+ * Legacy NEI subset name retained for config compatibility. N is no longer a subset: its membership is identical to J
+ * and only its ordering differs, so this filter delegates to the researched-set membership policy.
+ */
 public final class JourneyNewestFilter implements ItemFilter {
 
-    private volatile long cachedRevision = Long.MIN_VALUE;
-    private volatile Set<ResearchKey> cached = Collections.emptySet();
+    private final JourneySubsetFilter researched = new JourneySubsetFilter();
 
     @Override
     public boolean matches(ItemStack item) {
-        if (item == null || item.getItem() == null) return false;
-        refreshIfNeeded();
-        try {
-            return cached.contains(JourneyPresentationKeyResolver.keyOf(item));
-        } catch (IllegalArgumentException ignored) {
-            return false;
-        }
-    }
-
-    private void refreshIfNeeded() {
-        long revision = ClientResearchMirror.revision();
-        if (revision == cachedRevision) return;
-        synchronized (this) {
-            revision = ClientResearchMirror.revision();
-            if (revision == cachedRevision) return;
-            Set<ResearchKey> newest = new HashSet<ResearchKey>();
-            for (ItemStack stack : ClientStackMirror.snapshotNewest(1)) {
-                try {
-                    newest.add(ItemStackKeyFactory.from(stack));
-                } catch (IllegalArgumentException ignored) {}
-            }
-            cached = Collections.unmodifiableSet(newest);
-            cachedRevision = revision;
-        }
+        return researched.matches(item);
     }
 }
