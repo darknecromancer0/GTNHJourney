@@ -63,8 +63,7 @@ public final class RuntimeCompatibilityReport {
             "Config: scan=" + JourneyConfig.inventoryScanIntervalTicks()
                 + "t, fullRescan="
                 + JourneyConfig.inventoryFullRescanIntervalTicks()
-                + "t, newest="
-                + JourneyConfig.newestLimit()
+                + "t, N=full-research/activity-order"
                 + ", GT transient identity="
                 + JourneyConfig.normalizeGtTransientIdentity()
                 + ", fresh GT tool templates="
