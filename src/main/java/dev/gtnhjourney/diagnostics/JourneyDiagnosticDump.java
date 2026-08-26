@@ -47,7 +47,7 @@ public final class JourneyDiagnosticDump {
         Map<String, Integer> semanticMatches = new LinkedHashMap<String, Integer>();
         String[] semanticPolicyOrder = {
             "GT-charge", "IC2-charge", "CoFH-charge", "OC-charge", "GT-tool", "TCon-tool", "Botania-magnet",
-            "Draconic-tool" };
+            "Draconic-tool", "wearable-transient" };
         for (String policy : semanticPolicyOrder) semanticMatches.put(policy, Integer.valueOf(0));
         List<ResearchKey> unknownExactNbt = new ArrayList<ResearchKey>();
         for (ResearchKey key : keys) {
@@ -70,6 +70,7 @@ public final class JourneyDiagnosticDump {
                 dev.gtnhjourney.minecraft.TconToolStatePolicy.isVerifiedTool(diagnosticStack),
                 dev.gtnhjourney.minecraft.BotaniaTransientStatePolicy.isVerifiedMagnetRing(diagnosticStack),
                 dev.gtnhjourney.minecraft.DraconicTransientStatePolicy.isVerifiedTool(diagnosticStack),
+                dev.gtnhjourney.minecraft.WearableTransientStatePolicy.matches(diagnosticStack),
                 dev.gtnhjourney.minecraft.ResearchStateExpander.expand(diagnosticStack)
                     .size());
             String matches = semantic.matchedPoliciesCsv();
@@ -95,6 +96,7 @@ public final class JourneyDiagnosticDump {
             out.write("\n== Runtime counters ==\n");
             out.write("panelIncrementalUpdates=" + counters.getPanelIncrementalUpdates() + "\n");
             out.write("fullNeiReloadRequests=" + counters.getFullNeiReloadRequests() + "\n");
+            out.write("presentationFailures=" + counters.getPresentationFailures() + "\n");
             out.write("unlockNotifications=" + counters.getUnlockNotifications() + "\n");
             out.write("furnaceOutputObservations=" + counters.getFurnaceOutputObservations() + "\n");
             out.write("furnaceOutputUnlocks=" + counters.getFurnaceOutputUnlocks() + "\n");
