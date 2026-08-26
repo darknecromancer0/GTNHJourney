@@ -37,10 +37,14 @@ public final class ClientStackMirror {
     }
 
     private static void beginInternal(int newEpoch, int availableTotal, int syncableTotal) {
+        // Preserve rollback metadata from the last published snapshot. A newer Begin may supersede an in-flight
+        // epoch before that older stream reaches End; its advertised totals are staging data, not a visible baseline.
+        if (!syncing) {
+            previousServerAvailableTotal = serverAvailableTotal;
+            previousExpectedSyncedTotal = expectedSyncedTotal;
+        }
         epoch = newEpoch;
         syncing = true;
-        previousServerAvailableTotal = serverAvailableTotal;
-        previousExpectedSyncedTotal = expectedSyncedTotal;
         serverAvailableTotal = Math.max(0, availableTotal);
         expectedSyncedTotal = syncableTotal;
         staging.clear();
