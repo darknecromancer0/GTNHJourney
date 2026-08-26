@@ -192,7 +192,11 @@ public final class CommandJourney extends CommandBase {
                 return;
             }
             List<ResearchKey> unavailable = unavailableKeys(player);
-            int removed = GTNHJourney.MUTATIONS.deleteMany(player, unavailable, "Prune unavailable research");
+            int removed = 0;
+            if (!unavailable.isEmpty()) {
+                GTNHJourney.MUTATIONS.createSafetySnapshot(player, "before-prune-missing");
+                removed = GTNHJourney.MUTATIONS.deleteMany(player, unavailable, "Prune unavailable research");
+            }
             if (removed > 0) sync(player);
             tell(player, JourneyCommandPolicy.pruneMissingResult(removed));
             return;
@@ -218,7 +222,11 @@ public final class CommandJourney extends CommandBase {
                 return;
             }
             List<ResearchKey> keys = new ArrayList<ResearchKey>(GTNHJourney.RESEARCH.snapshot(player));
-            int removed = GTNHJourney.MUTATIONS.deleteMany(player, keys, "Clear Journey research");
+            int removed = 0;
+            if (!keys.isEmpty()) {
+                GTNHJourney.MUTATIONS.createSafetySnapshot(player, "before-clear");
+                removed = GTNHJourney.MUTATIONS.deleteMany(player, keys, "Clear Journey research");
+            }
             if (removed > 0) sync(player);
             tell(player, "Cleared " + removed + " researched states. /journey undo reverses the operation.");
             return;
