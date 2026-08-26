@@ -44,4 +44,33 @@ public class ResearchMutationConflictTest {
         assertEquals(1, recovery.undoDepth(player));
         assertEquals(0, recovery.redoDepth(player));
     }
+
+    @Test
+    public void redoDoesNotDeleteStateThatNoLongerMatchesItsForwardRemovalSnapshot() {
+        UUID player = UUID.randomUUID();
+        JourneyResearchData research = new JourneyResearchData();
+        JourneyRecoveryData recovery = new JourneyRecoveryData();
+        ResearchKey victim = new ResearchKey("test:victim", 0, "");
+
+        NBTTagCompound original = new NBTTagCompound();
+        original.setString("Variant", "original");
+        NBTTagCompound diverged = new NBTTagCompound();
+        diverged.setString("Variant", "diverged");
+
+        research.restoreEntry(player, new ResearchEntrySnapshot(victim, original, 0));
+        ResearchMutationEngine engine = new ResearchMutationEngine(research, recovery, player);
+        assertTrue(engine.deleteExact(victim, "D delete"));
+        assertEquals(1, engine.undo(1));
+        assertEquals(1, recovery.redoDepth(player));
+
+        assertTrue(research.removeEntry(player, victim) != null);
+        assertTrue(research.restoreEntry(player, new ResearchEntrySnapshot(victim, diverged, 0)));
+        assertEquals("diverged", research.template(player, victim).getString("Variant"));
+
+        assertEquals(0, engine.redo(1));
+        assertTrue(research.registry(player).contains(victim));
+        assertEquals("diverged", research.template(player, victim).getString("Variant"));
+        assertEquals(0, recovery.undoDepth(player));
+        assertEquals(1, recovery.redoDepth(player));
+    }
 }
