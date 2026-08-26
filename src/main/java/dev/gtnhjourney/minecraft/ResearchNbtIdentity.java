@@ -3,12 +3,12 @@ package dev.gtnhjourney.minecraft;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 
-/** Semantic NBT identity with narrowly verified handling for supported transient runtime state. */
+/** Semantic NBT identity with narrowly verified handling for supported transient/runtime state. */
 public final class ResearchNbtIdentity {
 
     private ResearchNbtIdentity() {}
 
-    /** Stack-aware identity. Only verified owner families may ignore their explicitly supported runtime fields. */
+    /** Stack-aware identity. Only verified/structurally proven transient payload may be ignored. */
     public static String canonicalize(ItemStack stack) {
         if (stack == null || !stack.hasTagCompound()) return "";
         NBTTagCompound identityTag = (NBTTagCompound) stack.getTagCompound()
@@ -17,6 +17,7 @@ public final class ResearchNbtIdentity {
         DraconicTransientStatePolicy.normalize(stack, identityTag);
         WearableTransientStatePolicy.normalize(stack, identityTag);
         TransientToolFluidPolicy.normalize(stack, identityTag);
+        EmbeddedInventoryPolicy.normalize(stack, identityTag);
         if (identityTag.func_150296_c()
             .isEmpty()) return "";
         final boolean normalizeToolState = ResearchCompatibilityOptions.normalizeGtTransientIdentity()
