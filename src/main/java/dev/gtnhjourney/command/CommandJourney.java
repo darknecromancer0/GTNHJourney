@@ -335,6 +335,7 @@ public final class CommandJourney extends CommandBase {
                 dev.gtnhjourney.minecraft.TconToolStatePolicy.isVerifiedTool(stack),
                 dev.gtnhjourney.minecraft.BotaniaTransientStatePolicy.isVerifiedMagnetRing(stack),
                 dev.gtnhjourney.minecraft.DraconicTransientStatePolicy.isVerifiedTool(stack),
+                dev.gtnhjourney.minecraft.WearableTransientStatePolicy.matches(stack),
                 endpoints);
             tell(player, semantic.inspectLine());
         } catch (IllegalArgumentException failure) {
