@@ -19,6 +19,7 @@ public final class ClientStackMirror {
     private static final Map<ResearchKey, ItemStack> staging = new LinkedHashMap<ResearchKey, ItemStack>();
     private static int epoch;
     private static boolean syncing;
+    private static int stagingReceivedEntries;
     private static int serverAvailableTotal;
     private static int expectedSyncedTotal;
     private static int previousServerAvailableTotal;
@@ -45,6 +46,7 @@ public final class ClientStackMirror {
         }
         epoch = newEpoch;
         syncing = true;
+        stagingReceivedEntries = 0;
         serverAvailableTotal = Math.max(0, availableTotal);
         expectedSyncedTotal = syncableTotal;
         staging.clear();
@@ -52,13 +54,17 @@ public final class ClientStackMirror {
 
     public static synchronized void addChunk(int chunkEpoch, Iterable<ItemStack> chunk) {
         if (!syncing || chunkEpoch != epoch || chunk == null) return;
-        for (ItemStack stack : chunk) addInternal(staging, stack);
+        for (ItemStack stack : chunk) {
+            stagingReceivedEntries++;
+            addInternal(staging, stack);
+        }
     }
 
     /** Discards only the matching staged epoch and restores metadata for the last complete visible snapshot. */
     public static synchronized void abort(int abortEpoch) {
         if (!syncing || abortEpoch != epoch) return;
         staging.clear();
+        stagingReceivedEntries = 0;
         syncing = false;
         serverAvailableTotal = previousServerAvailableTotal;
         expectedSyncedTotal = previousExpectedSyncedTotal;
@@ -67,13 +73,15 @@ public final class ClientStackMirror {
     /** Commits the matching complete epoch and reports whether the visible stack snapshot was actually replaced. */
     public static synchronized boolean finish(int finishEpoch) {
         if (!syncing || finishEpoch != epoch) return false;
-        if (expectedSyncedTotal >= 0 && staging.size() != expectedSyncedTotal) {
+        if (expectedSyncedTotal >= 0
+            && !ClientSyncCompletionPolicy.mayPublish(expectedSyncedTotal, stagingReceivedEntries, staging.size())) {
             abort(finishEpoch);
             return false;
         }
         stacks.clear();
         stacks.putAll(staging);
         staging.clear();
+        stagingReceivedEntries = 0;
         syncing = false;
         previousServerAvailableTotal = serverAvailableTotal;
         previousExpectedSyncedTotal = expectedSyncedTotal;
@@ -179,6 +187,7 @@ public final class ClientStackMirror {
         syncing = false;
         stacks.clear();
         staging.clear();
+        stagingReceivedEntries = 0;
         serverAvailableTotal = 0;
         expectedSyncedTotal = 0;
         previousServerAvailableTotal = 0;
