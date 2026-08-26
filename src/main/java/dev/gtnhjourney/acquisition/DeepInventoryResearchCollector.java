@@ -2,7 +2,9 @@ package dev.gtnhjourney.acquisition;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
@@ -10,7 +12,7 @@ import net.minecraft.nbt.NBTTagCompound;
 
 import dev.gtnhjourney.minecraft.EmbeddedInventoryPolicy;
 
-/** Manual-only deep scan of real player-owned slots plus structurally proven embedded ItemStack lists. */
+/** Manual-only deep scan of real player-owned slots plus bounded embedded/external container contents. */
 public final class DeepInventoryResearchCollector {
 
     public static final int MAX_EMBEDDED_DEPTH = 8;
@@ -24,6 +26,7 @@ public final class DeepInventoryResearchCollector {
         final int[] topLevel = new int[] { 0 };
         final int[] embedded = new int[] { 0 };
         final int[] skipped = new int[] { 0 };
+        final Set<String> visitedExternalBackpacks = new HashSet<String>();
 
         PlayerInventoryScanner.scan(player, new PlayerInventoryScanner.StackVisitor() {
 
@@ -37,34 +40,116 @@ public final class DeepInventoryResearchCollector {
                     skipped[0]++;
                     return;
                 }
-
-                if (!stack.hasTagCompound() || embedded[0] >= MAX_TOTAL_EMBEDDED_STACKS) return;
-                int remaining = MAX_TOTAL_EMBEDDED_STACKS - embedded[0];
-                List<NBTTagCompound> tags;
-                try {
-                    tags = EmbeddedInventoryPolicy
-                        .embeddedItemTags(stack.getTagCompound(), MAX_EMBEDDED_DEPTH, remaining);
-                } catch (RuntimeException | LinkageError failure) {
-                    skipped[0]++;
-                    return;
-                }
-                for (NBTTagCompound serialized : tags) {
-                    if (embedded[0] >= MAX_TOTAL_EMBEDDED_STACKS) break;
-                    try {
-                        ItemStack nested = ItemStack.loadItemStackFromNBT(serialized);
-                        if (nested == null || nested.getItem() == null || nested.stackSize <= 0) {
-                            skipped[0]++;
-                            continue;
-                        }
-                        candidates.add(nested.copy());
-                        embedded[0]++;
-                    } catch (RuntimeException | LinkageError failure) {
-                        skipped[0]++;
-                    }
-                }
+                collectNestedSources(stack, 0, candidates, embedded, skipped, visitedExternalBackpacks);
             }
         });
         return new Result(candidates, topLevel[0], embedded[0], skipped[0]);
+    }
+
+    private static void collectNestedSources(
+        ItemStack owner,
+        int depth,
+        List<ItemStack> candidates,
+        int[] embedded,
+        int[] skipped,
+        Set<String> visitedExternalBackpacks) {
+        if (owner == null || depth > MAX_EMBEDDED_DEPTH || embedded[0] >= MAX_TOTAL_EMBEDDED_STACKS) return;
+
+        // Normal NBT-embedded inventories. embeddedItemTags already walks descendants, so only external sources of the
+        // discovered items need another recursion here; rescanning their regular NBT would duplicate descendants.
+        if (owner.hasTagCompound()) {
+            int remaining = MAX_TOTAL_EMBEDDED_STACKS - embedded[0];
+            List<NBTTagCompound> tags;
+            try {
+                tags = EmbeddedInventoryPolicy.embeddedItemTags(
+                    owner.getTagCompound(),
+                    Math.max(0, MAX_EMBEDDED_DEPTH - depth),
+                    remaining);
+            } catch (RuntimeException | LinkageError failure) {
+                skipped[0]++;
+                tags = Collections.emptyList();
+            }
+            for (NBTTagCompound serialized : tags) {
+                if (embedded[0] >= MAX_TOTAL_EMBEDDED_STACKS) break;
+                ItemStack nested = loadSerialized(serialized, skipped);
+                if (nested == null) continue;
+                addEmbeddedCandidate(nested, candidates, embedded, skipped);
+                collectExternalBackpack(
+                    nested,
+                    depth + 1,
+                    candidates,
+                    embedded,
+                    skipped,
+                    visitedExternalBackpacks);
+            }
+        }
+
+        collectExternalBackpack(owner, depth, candidates, embedded, skipped, visitedExternalBackpacks);
+    }
+
+    private static void collectExternalBackpack(
+        ItemStack owner,
+        int depth,
+        List<ItemStack> candidates,
+        int[] embedded,
+        int[] skipped,
+        Set<String> visitedExternalBackpacks) {
+        if (depth > MAX_EMBEDDED_DEPTH || embedded[0] >= MAX_TOTAL_EMBEDDED_STACKS) return;
+        String externalId = BackpackExternalInventoryReader.externalInstanceId(owner);
+        if (externalId == null || !visitedExternalBackpacks.add(externalId)) return;
+
+        int remaining = MAX_TOTAL_EMBEDDED_STACKS - embedded[0];
+        List<NBTTagCompound> serialized;
+        try {
+            serialized = BackpackExternalInventoryReader.serializedStacks(owner, remaining);
+        } catch (RuntimeException | LinkageError failure) {
+            skipped[0]++;
+            return;
+        }
+        for (NBTTagCompound tag : serialized) {
+            if (embedded[0] >= MAX_TOTAL_EMBEDDED_STACKS) break;
+            ItemStack nested = loadSerialized(tag, skipped);
+            if (nested == null) continue;
+            if (!addEmbeddedCandidate(nested, candidates, embedded, skipped)) continue;
+            // External contents were not reachable through the owner's ItemStack NBT, so their own regular embedded
+            // inventories and any nested external backpacks still need to be traversed.
+            collectNestedSources(
+                nested,
+                depth + 1,
+                candidates,
+                embedded,
+                skipped,
+                visitedExternalBackpacks);
+        }
+    }
+
+    private static ItemStack loadSerialized(NBTTagCompound serialized, int[] skipped) {
+        try {
+            ItemStack nested = ItemStack.loadItemStackFromNBT(serialized);
+            if (nested == null || nested.getItem() == null || nested.stackSize <= 0) {
+                skipped[0]++;
+                return null;
+            }
+            return nested;
+        } catch (RuntimeException | LinkageError failure) {
+            skipped[0]++;
+            return null;
+        }
+    }
+
+    private static boolean addEmbeddedCandidate(
+        ItemStack nested,
+        List<ItemStack> candidates,
+        int[] embedded,
+        int[] skipped) {
+        try {
+            candidates.add(nested.copy());
+            embedded[0]++;
+            return true;
+        } catch (RuntimeException | LinkageError failure) {
+            skipped[0]++;
+            return false;
+        }
     }
 
     public static final class Result {
