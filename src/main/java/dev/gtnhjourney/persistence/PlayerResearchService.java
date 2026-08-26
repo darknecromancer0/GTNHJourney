@@ -8,6 +8,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
 import net.minecraftforge.common.DimensionManager;
 
+import dev.gtnhjourney.acquisition.ResearchObservationPolicy;
 import dev.gtnhjourney.minecraft.ItemStackKeyFactory;
 import dev.gtnhjourney.recovery.ResearchEntrySnapshot;
 import dev.gtnhjourney.recovery.ResearchStateSnapshot;
@@ -27,7 +28,7 @@ public final class PlayerResearchService {
     }
 
     public List<ItemStack> unlockStates(EntityPlayerMP player, ItemStack stack) {
-        if (player == null || stack == null || stack.getItem() == null) return Collections.emptyList();
+        if (player == null || !ResearchObservationPolicy.shouldObserve(stack)) return Collections.emptyList();
         try {
             List<ItemStack> added = data(player).unlockStates(player.getUniqueID(), stack);
             if (!added.isEmpty()) {
