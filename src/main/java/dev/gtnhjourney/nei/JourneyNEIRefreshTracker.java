@@ -2,13 +2,15 @@ package dev.gtnhjourney.nei;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
+import dev.gtnhjourney.client.ClientActivityMirror;
 import dev.gtnhjourney.client.ClientResearchMirror;
 import dev.gtnhjourney.client.ClientStackMirror;
 
-/** Keeps direct Journey panel ownership synchronized with research and view revisions. */
+/** Keeps direct Journey panel ownership synchronized with research, activity and view revisions. */
 public final class JourneyNEIRefreshTracker {
 
     private long seenResearchRevision = Long.MIN_VALUE;
+    private long seenActivityRevision = Long.MIN_VALUE;
     private long seenViewRevision = Long.MIN_VALUE;
 
     @SubscribeEvent
@@ -16,12 +18,16 @@ public final class JourneyNEIRefreshTracker {
         if (event.phase != TickEvent.Phase.END || ClientStackMirror.isSyncing()) return;
 
         long researchRevision = ClientResearchMirror.revision();
+        long activityRevision = ClientActivityMirror.revision();
         long viewRevision = JourneyViewState.revision();
         boolean researchChanged = researchRevision != seenResearchRevision;
+        boolean activityChanged = activityRevision != seenActivityRevision;
         boolean viewChanged = viewRevision != seenViewRevision;
 
-        JourneyRefreshDecision.Action action = JourneyRefreshDecision
-            .decide(JourneyViewState.mode(), researchChanged, viewChanged);
+        JourneyRefreshDecision.Action action = JourneyRefreshDecision.decide(
+            JourneyViewState.mode(),
+            researchChanged || activityChanged,
+            viewChanged);
         switch (action) {
             case PANEL_REFRESH:
                 JourneyPanelController.refresh(true);
@@ -38,6 +44,7 @@ public final class JourneyNEIRefreshTracker {
         }
 
         seenResearchRevision = researchRevision;
+        seenActivityRevision = activityRevision;
         seenViewRevision = viewRevision;
     }
 
