@@ -46,10 +46,22 @@ public final class FurnaceOwnershipTracker {
         ItemStack output = furnace.getStackInSlot(2);
         boolean occupied = isOccupied(output);
         int signature = occupied ? InventoryStackSignature.of(output) : 0;
-        FurnaceOutputGate gate = new FurnaceOutputGate();
-        boolean claimOutput = gate.claim(signature, occupied);
 
         FurnaceKey key = new FurnaceKey(event.world.provider.dimensionId, event.x, event.y, event.z);
+        TrackedFurnace previous = tracked.get(key);
+        FurnaceOutputGate gate;
+        boolean claimOutput;
+        if (previous != null && player.getUniqueID().equals(previous.ownerId)) {
+            // Reopening the same furnace must not fabricate another observation for an unchanged output. Reuse the
+            // transition gate that server ticks have kept current; a real output change since the last interaction is
+            // still claimed immediately.
+            gate = previous.gate;
+            claimOutput = previous.gate.observe(signature, occupied);
+        } else {
+            // A different last user gets one observation of the output that is already present when they interact.
+            gate = new FurnaceOutputGate();
+            claimOutput = gate.claim(signature, occupied);
+        }
         tracked.put(key, new TrackedFurnace(player.getUniqueID(), gate));
 
         if (claimOutput && output != null) {
