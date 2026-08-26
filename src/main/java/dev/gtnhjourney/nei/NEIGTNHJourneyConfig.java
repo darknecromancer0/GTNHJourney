@@ -16,7 +16,6 @@ public final class NEIGTNHJourneyConfig implements IConfigureNEI {
         if (!REGISTRATION.acquire()) return;
         API.addSubset("Journey.Researched", new JourneySubsetFilter());
         API.addSubset("Journey.Newest", new JourneyNewestFilter());
-        API.addItemFilter(new JourneyGlobalSafetyFilter());
         API.addItemFilter(new JourneyItemFilterProvider());
         API.registerNEIGuiHandler(new JourneyCreativeGuiHandler());
         // Must run before NEI LayoutManager, which otherwise consumes item-panel clicks first.
