@@ -9,12 +9,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 import net.minecraft.nbt.NBTTagCompound;
 
 import org.junit.jupiter.api.Test;
 
+import dev.gtnhjourney.persistence.JourneyRecoveryData;
 import dev.gtnhjourney.persistence.JourneyResearchData;
 import dev.gtnhjourney.research.ResearchKey;
 
@@ -58,5 +60,32 @@ public class JourneyResearchRecoveryAccessTest {
         ResearchStateSnapshot broken = new ResearchStateSnapshot(
             Collections.singletonList(new ResearchEntrySnapshot(missing, null, 0)));
         assertFalse((Boolean) validator.invoke(null, broken));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void snapshotDeletionPlanDeactivatesOnlyActiveRecordsWhoseKeysArePresentInTarget() throws Exception {
+        UUID player = UUID.randomUUID();
+        ResearchKey present = new ResearchKey("minecraft:stone", 0, "");
+        ResearchKey absent = new ResearchKey("minecraft:dirt", 0, "");
+        JourneyRecoveryData recovery = new JourneyRecoveryData();
+        recovery.appendDeletion(player, new DeletionRecord(101L, 1L, new ResearchEntrySnapshot(present, null, 0), true));
+        recovery.appendDeletion(player, new DeletionRecord(102L, 2L, new ResearchEntrySnapshot(absent, null, 1), true));
+
+        ResearchStateSnapshot target = new ResearchStateSnapshot(
+            Collections.singletonList(new ResearchEntrySnapshot(present, null, 0)));
+        Method planner = assertDoesNotThrow(
+            () -> JourneyMutationService.class.getDeclaredMethod(
+                "deletionChangesForTarget",
+                JourneyRecoveryData.class,
+                UUID.class,
+                ResearchStateSnapshot.class));
+        planner.setAccessible(true);
+
+        List<DeletionStateChange> changes = (List<DeletionStateChange>) planner.invoke(null, recovery, player, target);
+        assertEquals(1, changes.size());
+        assertEquals(101L, changes.get(0).deletionId());
+        assertFalse(changes.get(0).activeAfterForward());
+        assertEquals(2, recovery.activeDeletionCount(player));
     }
 }
