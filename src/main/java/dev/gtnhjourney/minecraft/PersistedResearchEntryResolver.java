@@ -54,16 +54,28 @@ public final class PersistedResearchEntryResolver {
             return null;
         } catch (RuntimeException unsafeNbt) {
             return null;
+        } catch (LinkageError unsafeNbt) {
+            return null;
         }
         ResearchKey fallback = new ResearchKey(itemId, meta, fallbackCanonical);
 
         ItemStack reconstructed = reconstruct(fallback, persistedTemplate);
-        if (reconstructed == null) {
-            return new ResolvedEntry(fallback, fallbackTemplate);
-        }
-        if (!ResearchObservationPolicy.shouldObserve(reconstructed)) return null;
+        return resolveReconstructed(fallback, fallbackTemplate, reconstructed);
+    }
 
+    /**
+     * Applies optional-mod semantic migration to one reconstructed legacy stack. Any runtime or linkage failure falls
+     * back to the already validated persisted identity rather than escaping WorldSavedData loading.
+     */
+    static ResolvedEntry resolveReconstructed(
+        ResearchKey fallback,
+        NBTTagCompound fallbackTemplate,
+        ItemStack reconstructed) {
+        if (fallback == null) return null;
+        if (reconstructed == null) return new ResolvedEntry(fallback, fallbackTemplate);
         try {
+            if (!ResearchObservationPolicy.shouldObserve(reconstructed)) return null;
+
             ItemStack semantic = GtChargeStatePolicy.identityStack(reconstructed);
             if (GtChargeStatePolicy.classify(reconstructed) == GtChargeStatePolicy.State.EXACT) {
                 if (OpenComputersChargeStatePolicy.classify(semantic) != OpenComputersChargeStatePolicy.State.EXACT) {
@@ -86,6 +98,8 @@ public final class PersistedResearchEntryResolver {
             return new ResolvedEntry(fallback, fallbackTemplate);
         } catch (RuntimeException ignored) {
             return new ResolvedEntry(fallback, fallbackTemplate);
+        } catch (LinkageError ignored) {
+            return new ResolvedEntry(fallback, fallbackTemplate);
         }
     }
 
@@ -99,6 +113,8 @@ public final class PersistedResearchEntryResolver {
             if (template != null) stack.setTagCompound((NBTTagCompound) template.copy());
             return stack;
         } catch (RuntimeException ignored) {
+            return null;
+        } catch (LinkageError ignored) {
             return null;
         }
     }
