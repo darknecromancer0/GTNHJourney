@@ -49,6 +49,22 @@ public class JourneyActivityDataTest {
             data.snapshotReconciled(player, Arrays.asList(log, stone, potato)));
     }
 
+    @Test
+    public void stalePreMigrationActivityKeyIsReplacedByTheMigratedResearchKeyWithoutDroppingOtherActivity() {
+        UUID player = new UUID(55L, 66L);
+        ResearchKey oldPumpVariant = new ResearchKey("miscutils:handPump", 1001, "{mInit:1b,mFluidAmount:0}");
+        ResearchKey migratedPumpBase = new ResearchKey("miscutils:handPump", 1001, "");
+        ResearchKey stone = key("stone");
+
+        JourneyActivityData data = new JourneyActivityData("test_activity");
+        data.recordUnlock(player, oldPumpVariant);
+        data.recordUnlock(player, stone);
+
+        assertEquals(
+            Arrays.asList(migratedPumpBase, stone),
+            data.snapshotReconciled(player, Arrays.asList(migratedPumpBase, stone)));
+    }
+
     private static ResearchKey key(String name) {
         return new ResearchKey("test:" + name, 0, "");
     }
