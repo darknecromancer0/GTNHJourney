@@ -138,7 +138,10 @@ public final class ItemDebugResearcherTool extends Item {
 
                 @Override
                 public void sync() {
-                    JourneyNetwork.sendFullSync(player, GTNHJourney.RESEARCH.snapshotStacksInUnlockOrder(player));
+                    JourneyNetwork.sendFullSync(
+                        player,
+                        GTNHJourney.RESEARCH.snapshotStacksInUnlockOrder(player),
+                        GTNHJourney.RESEARCH.snapshotActivityOrder(player));
                 }
 
                 @Override
