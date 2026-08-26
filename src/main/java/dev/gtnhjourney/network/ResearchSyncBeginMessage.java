@@ -3,6 +3,7 @@ package dev.gtnhjourney.network;
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
 import cpw.mods.fml.common.network.simpleimpl.MessageContext;
+import dev.gtnhjourney.client.ClientActivityMirror;
 import dev.gtnhjourney.client.ClientNetworkQueue;
 import dev.gtnhjourney.client.ClientStackMirror;
 import dev.gtnhjourney.minecraft.ResearchCompatibilityOptions;
@@ -85,6 +86,7 @@ public final class ResearchSyncBeginMessage implements IMessage {
                         normalizeTconToolWear,
                         normalizeCofhChargeEndpoints);
                     ClientStackMirror.begin(epoch, availableTotal, syncableTotal);
+                    ClientActivityMirror.begin(epoch);
                 }
             });
             return null;
