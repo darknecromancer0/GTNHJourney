@@ -109,6 +109,14 @@ public final class ResearchMutationEngine {
 
     /** Replaces the complete authoritative state and records the replacement as one reversible transaction. */
     public int replaceState(ResearchStateSnapshot target, String description) {
+        return replaceState(target, description, Collections.<DeletionStateChange>emptyList());
+    }
+
+    /** Replaces research and applies related deletion-history state changes in the same reversible transaction. */
+    public int replaceState(
+        ResearchStateSnapshot target,
+        String description,
+        List<DeletionStateChange> deletionChanges) {
         if (target == null) return 0;
         ResearchStateSnapshot before = research.captureState(playerId);
         if (sameState(before, target)) return 0;
@@ -122,13 +130,15 @@ public final class ResearchMutationEngine {
             return 0;
         }
 
+        applyDeletionChanges(deletionChanges, true);
         record(
             new ResearchTransaction(
                 nextId(),
                 System.currentTimeMillis(),
                 description,
                 target.entries(),
-                before.entries()));
+                before.entries(),
+                deletionChanges));
         return target.size();
     }
 
