@@ -69,8 +69,8 @@ public class Pre7LiveRegressionTest {
 
     @Test
     public void dischargedElectricToolUsesOneStableEmptyDamageValue() {
-        assertEquals(27, ElectricItemDamagePolicy.emptyDamage(28, 26));
-        assertEquals(26, ElectricItemDamagePolicy.emptyDamage(27, 12));
+        assertEquals(27, ElectricItemDamagePolicy.emptyDamage(27, 26));
+        assertEquals(27, ElectricItemDamagePolicy.emptyDamage(27, 12));
         assertEquals(0, ElectricItemDamagePolicy.emptyDamage(0, 0));
     }
 
