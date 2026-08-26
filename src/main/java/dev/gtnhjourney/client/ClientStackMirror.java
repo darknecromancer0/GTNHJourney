@@ -51,14 +51,15 @@ public final class ClientStackMirror {
         for (ItemStack stack : chunk) addInternal(staging, stack);
     }
 
-    public static synchronized void finish(int finishEpoch) {
-        if (!syncing || finishEpoch != epoch) return;
+    /** Commits the matching complete epoch and reports whether the visible stack snapshot was actually replaced. */
+    public static synchronized boolean finish(int finishEpoch) {
+        if (!syncing || finishEpoch != epoch) return false;
         if (expectedSyncedTotal >= 0 && staging.size() != expectedSyncedTotal) {
             staging.clear();
             syncing = false;
             serverAvailableTotal = previousServerAvailableTotal;
             expectedSyncedTotal = previousExpectedSyncedTotal;
-            return;
+            return false;
         }
         stacks.clear();
         stacks.putAll(staging);
@@ -67,6 +68,7 @@ public final class ClientStackMirror {
         previousServerAvailableTotal = serverAvailableTotal;
         previousExpectedSyncedTotal = expectedSyncedTotal;
         ClientResearchMirror.replace(stacks.keySet());
+        return true;
     }
 
     public static synchronized void addUnlock(ItemStack stack) {
