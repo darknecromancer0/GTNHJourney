@@ -20,6 +20,18 @@ import dev.gtnhjourney.research.ResearchKey;
 /** Owns NEI's item-panel contents while J or N is active without rebuilding NEI's global item universe. */
 public final class JourneyPanelController {
 
+    interface Presenter {
+        ItemStack present(ItemStack stack);
+    }
+
+    private static final Presenter DEFAULT_PRESENTER = new Presenter() {
+
+        @Override
+        public ItemStack present(ItemStack stack) {
+            return JourneyPresentationSafety.forNei(stack);
+        }
+    };
+
     private static boolean owned;
     private static ArrayList<ItemStack> lastPublishedList;
 
@@ -58,14 +70,13 @@ public final class JourneyPanelController {
             ItemStack original = byKey.get(key);
             if (original == null) continue;
             try {
-                ItemStack display = JourneyPresentationSafety.forNei(original);
+                ItemStack display = safePresentation(original);
                 if (display == null || display.getItem() == null) continue;
                 JourneyPresentationKeyResolver.register(display, key);
                 if (activeFilter == null || activeFilter.matches(display)) visible.add(display);
-            } catch (RuntimeException ignored) {
-                // Omit only the broken display state; retrieval remains server-authoritative and persisted.
-            } catch (LinkageError ignored) {
-                // A renderer/filter integration failure must never crash Journey panel construction.
+            } catch (Throwable ignored) {
+                // Third-party presentation/filter failures omit only this client display entry.
+                JourneyRuntimeCounters.presentationFailure();
             }
         }
 
@@ -74,6 +85,20 @@ public final class JourneyPanelController {
         if (resetPage) ItemPanels.itemPanel.getGrid().setPage(0);
         owned = true;
         lastPublishedList = visible;
+    }
+
+    static ItemStack safePresentation(ItemStack original) {
+        return safePresentation(original, DEFAULT_PRESENTER);
+    }
+
+    static ItemStack safePresentation(ItemStack original, Presenter presenter) {
+        if (original == null || presenter == null) return null;
+        try {
+            return presenter.present(original);
+        } catch (Throwable ignored) {
+            JourneyRuntimeCounters.presentationFailure();
+            return null;
+        }
     }
 
     public static void ensureOwned() {
