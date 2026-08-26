@@ -9,7 +9,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
-import net.minecraft.init.Items;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 
@@ -22,7 +22,7 @@ public class HeldItemResearchCommandTest {
 
     @Test
     public void heldStackIsDefensivelyCopiedWithItsCurrentState() {
-        ItemStack held = new ItemStack(Items.stick, 3, 0);
+        ItemStack held = new ItemStack(new Item(), 3, 0);
         NBTTagCompound tag = new NBTTagCompound();
         tag.setString("JourneyTest", "current");
         held.setTagCompound(tag);
