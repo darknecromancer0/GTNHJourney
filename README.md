@@ -34,7 +34,7 @@ GT New Horizons 1.7.10 addon that automatically researches item states the playe
 - Verified `MetaGeneratedTool` runtime fields `GT.ToolStats.Damage` and `GT.ToolStats.Mode` are ignored in identity and reset in retrieval templates; foreign lookalike NBT stays exact.
 - Filled fluid/container payload remains meaningful research state. Filled cells with different contents stay distinct; no generic `Fluid`/container stripping is applied.
 - GT fluid/container payload (`GT.FluidContent`) remains exact.
-- GT++ `ItemGregtechPump` fluid payload (`mFluid`, `mFluidAmount`, `mInit`) is treated as transient tool state so filling a Hand Pump does not create another researched tool; actual fluid containers remain exact.
+- GT++ `ItemGregtechPump` auto-initialized fluid/tool fields (`mInit`, `mFluid`, `mFluidAmount`, `mMeta`, `mCapacity`, `capacityInit`) are treated as transient derived state, so tooltip/fluid initialization or filling a Hand Pump does not create another researched tool. Its real electric `GT.ItemCharge` remains meaningful and follows charge-endpoint semantics; actual fluid containers remain exact.
 - GT electric items use Journey endpoints: partial charge => BASE; verified max charge => BASE + FULL.
 - IC2 `IElectricItem` stacks use the same BASE/FULL model through the IC2 electric API/manager, not a generic `charge`-NBT heuristic. Legacy visual damage for an empty electric item is normalized to its stable empty value, preventing partial-charge damage steps such as Vajra charge animation from becoming research duplicates.
 - CoFH `IEnergyContainerItem` stacks use the same BASE/FULL model through the CoFH energy API; arbitrary `Energy` NBT on foreign items remains exact.
@@ -110,7 +110,7 @@ Journey deliberately reuses GTNH's existing NEI item panel instead of adding a s
 - Normal unlocks rebuild only the small Journey panel list and do **not** call NEI's full item-universe reload.
 - Returning to ordinary NEI relinquishes Journey panel ownership and requests the normal NEI filter/update path.
 - Renderer-hostile Journey states use client-only presentation copies. If third-party presentation/filter code fails, only that display entry is omitted for the current refresh; authoritative server research and retrieval templates remain intact.
-- Vanilla Creative and NEI also omit only proven renderer-hostile GregTech volumetric-flask permutations whose fluid has no icon; normal flask states remain available. `/journey dump` counts removed Creative permutations as `creativeUnsafeFlaskVariantsRemoved`.
+- Journey presentation and vanilla Creative omit only proven renderer-hostile GregTech volumetric-flask permutations whose fluid has no icon; normal flask states remain available. Ordinary NEI is not globally filtered by Journey. `/journey dump` counts removed vanilla Creative permutations as `creativeUnsafeFlaskVariantsRemoved`.
 - Normal NEI search and recipe/usage browsing remain available and constrain the Journey list without changing J/N chronology among matching states.
 - In Journey/Newest view: left click requests a full stack; right click requests one item.
 - In ordinary NEI: Ctrl + left click requests a full researched stack; Ctrl + right click requests one.
