@@ -49,19 +49,9 @@ public final class FurnaceOwnershipTracker {
 
         FurnaceKey key = new FurnaceKey(event.world.provider.dimensionId, event.x, event.y, event.z);
         TrackedFurnace previous = tracked.get(key);
-        FurnaceOutputGate gate;
-        boolean claimOutput;
-        if (previous != null && player.getUniqueID().equals(previous.ownerId)) {
-            // Reopening the same furnace must not fabricate another observation for an unchanged output. Reuse the
-            // transition gate that server ticks have kept current; a real output change since the last interaction is
-            // still claimed immediately.
-            gate = previous.gate;
-            claimOutput = previous.gate.observe(signature, occupied);
-        } else {
-            // A different last user gets one observation of the output that is already present when they interact.
-            gate = new FurnaceOutputGate();
-            claimOutput = gate.claim(signature, occupied);
-        }
+        boolean sameOwner = previous != null && player.getUniqueID().equals(previous.ownerId);
+        FurnaceOutputGate gate = sameOwner ? previous.gate : new FurnaceOutputGate();
+        boolean claimOutput = claimInteractionOutput(gate, sameOwner, signature, occupied);
         tracked.put(key, new TrackedFurnace(player.getUniqueID(), gate));
 
         if (claimOutput && output != null) {
@@ -118,6 +108,12 @@ public final class FurnaceOwnershipTracker {
 
     public void clear() {
         tracked.clear();
+    }
+
+    /** First ownership claims an existing output; repeat interaction by the same owner requires a real transition. */
+    static boolean claimInteractionOutput(FurnaceOutputGate gate, boolean sameOwner, int signature, boolean occupied) {
+        if (gate == null) return false;
+        return sameOwner ? gate.observe(signature, occupied) : gate.claim(signature, occupied);
     }
 
     private static boolean isDebugResearcherInteraction(ItemStack held) {
