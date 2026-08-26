@@ -1,5 +1,6 @@
 package dev.gtnhjourney;
 
+import net.minecraft.item.Item;
 import net.minecraftforge.common.MinecraftForge;
 
 import cpw.mods.fml.common.FMLCommonHandler;
@@ -9,11 +10,13 @@ import cpw.mods.fml.common.SidedProxy;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.event.FMLServerStartingEvent;
 import cpw.mods.fml.common.event.FMLServerStoppedEvent;
+import cpw.mods.fml.common.registry.GameRegistry;
 import dev.gtnhjourney.acquisition.FurnaceOwnershipTracker;
 import dev.gtnhjourney.acquisition.InventoryResearchTracker;
 import dev.gtnhjourney.acquisition.ResearchObservationService;
 import dev.gtnhjourney.command.CommandJourney;
 import dev.gtnhjourney.config.JourneyConfig;
+import dev.gtnhjourney.debug.ItemDebugResearcherTool;
 import dev.gtnhjourney.network.JourneyNetwork;
 import dev.gtnhjourney.network.ServerRequestQueue;
 import dev.gtnhjourney.network.ServerResearchSyncQueue;
@@ -37,6 +40,7 @@ public final class GTNHJourney {
     public static final PlayerResearchService RESEARCH = new PlayerResearchService();
     public static final JourneySnapshotTicker SNAPSHOT_TICKER = new JourneySnapshotTicker();
     public static JourneyMutationService MUTATIONS;
+    public static Item DEBUG_RESEARCHER_TOOL;
 
     @SidedProxy(clientSide = "dev.gtnhjourney.ClientProxy", serverSide = "dev.gtnhjourney.CommonProxy")
     public static CommonProxy proxy;
@@ -50,6 +54,8 @@ public final class GTNHJourney {
         JourneyNetwork.init();
         proxy.preInit(event);
         MUTATIONS = new JourneyMutationService();
+        DEBUG_RESEARCHER_TOOL = new ItemDebugResearcherTool();
+        GameRegistry.registerItem(DEBUG_RESEARCHER_TOOL, "debug_researcher_tool");
         observations = new ResearchObservationService(RESEARCH, MUTATIONS);
         inventoryTracker = new InventoryResearchTracker(RESEARCH, observations);
         furnaceTracker = new FurnaceOwnershipTracker(observations);
