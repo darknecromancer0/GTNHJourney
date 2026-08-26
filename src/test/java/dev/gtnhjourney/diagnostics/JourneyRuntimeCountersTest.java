@@ -16,6 +16,7 @@ public class JourneyRuntimeCountersTest {
     public void snapshotReportsEveryPre7RuntimeCounter() {
         JourneyRuntimeCounters.reset();
         JourneyRuntimeCounters.panelIncrementalUpdate();
+        JourneyRuntimeCounters.panelPublication(59, 56, 54);
         JourneyRuntimeCounters.fullNeiReloadRequest();
         JourneyRuntimeCounters.unlockNotification();
         JourneyRuntimeCounters.furnaceOutputObservation();
@@ -25,6 +26,9 @@ public class JourneyRuntimeCountersTest {
 
         JourneyRuntimeCounters.Snapshot snapshot = JourneyRuntimeCounters.snapshot();
         assertEquals(1L, snapshot.getPanelIncrementalUpdates());
+        assertEquals(59L, snapshot.getPanelAuthoritativeStacks());
+        assertEquals(56L, snapshot.getPanelSemanticStacks());
+        assertEquals(54L, snapshot.getPanelVisibleStacks());
         assertEquals(1L, snapshot.getFullNeiReloadRequests());
         assertEquals(1L, snapshot.getUnlockNotifications());
         assertEquals(1L, snapshot.getFurnaceOutputObservations());
@@ -39,12 +43,16 @@ public class JourneyRuntimeCountersTest {
     @Test
     public void resetClearsAllCounters() {
         JourneyRuntimeCounters.panelIncrementalUpdate();
+        JourneyRuntimeCounters.panelPublication(7, 6, 5);
         JourneyRuntimeCounters.furnaceOutputObservation();
         JourneyRuntimeCounters.debugResearchScan(4096, 3, 50, 7);
         JourneyRuntimeCounters.reset();
 
         JourneyRuntimeCounters.Snapshot snapshot = JourneyRuntimeCounters.snapshot();
         assertEquals(0L, snapshot.getPanelIncrementalUpdates());
+        assertEquals(0L, snapshot.getPanelAuthoritativeStacks());
+        assertEquals(0L, snapshot.getPanelSemanticStacks());
+        assertEquals(0L, snapshot.getPanelVisibleStacks());
         assertEquals(0L, snapshot.getFullNeiReloadRequests());
         assertEquals(0L, snapshot.getUnlockNotifications());
         assertEquals(0L, snapshot.getFurnaceOutputObservations());
