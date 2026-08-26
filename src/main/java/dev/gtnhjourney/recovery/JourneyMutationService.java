@@ -19,7 +19,6 @@ import dev.gtnhjourney.persistence.JourneyResearchData;
 import dev.gtnhjourney.persistence.JourneySnapshotData;
 import dev.gtnhjourney.persistence.PlayerResearchService;
 import dev.gtnhjourney.research.ResearchKey;
-import dev.gtnhjourney.retrieval.ItemStackTemplateFactory;
 
 /** Server-authoritative facade for explicit Journey mutations and recovery actions. */
 public final class JourneyMutationService {
@@ -111,7 +110,7 @@ public final class JourneyMutationService {
             "before-restore-" + target.id(),
             root.getTotalWorldTime(),
             before);
-        new ResearchMutationEngine(research, recovery, playerId)
+        new ResearchMutationEngine(research, recovery, playerId, RuntimeRecoveryRestorePolicy.INSTANCE)
             .replaceState(targetState, "Restore snapshot " + target.id(), deletionChanges);
         return ResearchMutationEngine.sameState(research.captureState(playerId), targetState);
     }
@@ -196,17 +195,7 @@ public final class JourneyMutationService {
         int expectedIndex = 0;
         for (ResearchEntrySnapshot entry : target.entries()) {
             if (entry == null || entry.timelineIndex() != expectedIndex++ || !seen.add(entry.key())) return false;
-            try {
-                ItemStack rebuilt = ItemStackTemplateFactory.create(entry.key(), entry.template(), 1);
-                if (rebuilt == null || rebuilt.getItem() == null) return false;
-                if (!entry.key().equals(ItemStackKeyFactory.from(rebuilt))) return false;
-            } catch (IllegalArgumentException failure) {
-                return false;
-            } catch (RuntimeException failure) {
-                return false;
-            } catch (LinkageError failure) {
-                return false;
-            }
+            if (!RuntimeRecoveryRestorePolicy.INSTANCE.canRestore(entry)) return false;
         }
         return true;
     }
@@ -228,7 +217,11 @@ public final class JourneyMutationService {
 
     private ResearchMutationEngine engine(EntityPlayerMP player) {
         if (player == null) throw new IllegalArgumentException("player must not be null");
-        return new ResearchMutationEngine(researchData(player), recoveryData(player), player.getUniqueID());
+        return new ResearchMutationEngine(
+            researchData(player),
+            recoveryData(player),
+            player.getUniqueID(),
+            RuntimeRecoveryRestorePolicy.INSTANCE);
     }
 
     private static JourneyResearchData researchData(EntityPlayerMP player) {
