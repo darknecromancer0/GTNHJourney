@@ -11,8 +11,8 @@ import codechicken.nei.ItemList;
 import codechicken.nei.ItemPanel;
 import codechicken.nei.ItemPanels;
 import codechicken.nei.api.ItemFilter;
+import dev.gtnhjourney.client.ClientActivityMirror;
 import dev.gtnhjourney.client.ClientStackMirror;
-import dev.gtnhjourney.config.JourneyConfig;
 import dev.gtnhjourney.diagnostics.JourneyRuntimeCounters;
 import dev.gtnhjourney.minecraft.ItemStackKeyFactory;
 import dev.gtnhjourney.research.ResearchKey;
@@ -60,8 +60,10 @@ public final class JourneyPanelController {
             }
         }
 
-        List<ResearchKey> ordered = JourneyPanelSnapshot
-            .keys(new ArrayList<ResearchKey>(byKey.keySet()), mode, JourneyConfig.newestLimit());
+        List<ResearchKey> ordered = JourneyPanelSnapshot.keys(
+            new ArrayList<ResearchKey>(byKey.keySet()),
+            ClientActivityMirror.snapshotOldestFirst(),
+            mode);
         ArrayList<ItemStack> visible = new ArrayList<ItemStack>(ordered.size());
         ItemFilter activeFilter = ItemList.getItemListFilter();
         JourneyPresentationKeyResolver.clear();
