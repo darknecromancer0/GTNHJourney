@@ -44,11 +44,11 @@ The following are mandatory acceptance criteria:
 - Clearing NEI search while J/N is active returns to the Journey-owned list, not unrestricted ordinary NEI.
 - Existing vanilla furnace output is observed when the player first interacts with the furnace; taking the result is not required.
 - Tracked furnace completion while GUI is closed remains observable for the last user.
-- GT++ Hand Pump fluid payload (`mFluid`, `mFluidAmount`, initialization payload) is transient tool state and does not create separate pump research; actual fluid containers remain exact.
+- GT++ Hand Pump auto-init/fluid fields (`mInit`, `mFluid`, `mFluidAmount`, `mMeta`, `mCapacity`, `capacityInit`) are transient derived tool state and do not create separate pump research. `GT.ItemCharge` remains meaningful and follows electric BASE/FULL semantics; actual fluid containers remain exact.
 - IC2/Vajra partial-charge visual damage does not create charge-step duplicates; BASE uses a stable empty electric-item representation.
 - Debug Researcher Tool is never researchable through ordinary observation, login import, bulk migration or rescan, and old persisted mode variants are rejected during migration.
 - BLOCK and CONTENTS targeted debug-tool interactions reach the authoritative server action instead of being consumed client-side or stolen by a block GUI.
-- Renderer-hostile GregTech volumetric-flask permutations with no fluid icon are prevented from crashing both Journey presentation and vanilla Creative/NEI display without generically stripping valid flask/container states.
+- Renderer-hostile GregTech volumetric-flask permutations with no fluid icon are prevented from crashing Journey presentation and vanilla Creative without generically stripping valid flask/container states. Ordinary NEI is not globally filtered by Journey's Creative crash guard.
 - `/journey dump` exposes `creativeUnsafeFlaskVariantsRemoved` and continues to expose migration/acquisition/presentation counters.
 
 ## Verification authority
