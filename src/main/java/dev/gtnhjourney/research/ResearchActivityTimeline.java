@@ -7,30 +7,20 @@ import java.util.LinkedHashSet;
 import java.util.List;
 
 /**
- * Orders researched states by meaningful Journey activity. First research appends once; successful Journey retrieval
- * moves an existing state to the newest position. Re-observing an already researched item does not change the order.
+ * Orders researched states by meaningful Journey activity. A genuine new-research event and a successful Journey
+ * retrieval both touch the state to newest. Re-observing an already researched item never calls recordUnlock.
  */
 public final class ResearchActivityTimeline {
 
     private final LinkedHashSet<ResearchKey> oldestFirst = new LinkedHashSet<ResearchKey>();
 
+    /** Called only for a state the authoritative research registry has just reported as newly added. */
     public boolean recordUnlock(ResearchKey key) {
-        if (key == null) throw new IllegalArgumentException("key must not be null");
-        return oldestFirst.add(key);
+        return touch(key);
     }
 
     public boolean recordRetrieval(ResearchKey key) {
-        if (key == null) throw new IllegalArgumentException("key must not be null");
-        boolean wasNewest = false;
-        if (!oldestFirst.isEmpty()) {
-            ResearchKey newest = null;
-            for (ResearchKey candidate : oldestFirst) newest = candidate;
-            wasNewest = key.equals(newest);
-        }
-        if (wasNewest) return false;
-        oldestFirst.remove(key);
-        oldestFirst.add(key);
-        return true;
+        return touch(key);
     }
 
     public boolean remove(ResearchKey key) {
@@ -65,5 +55,15 @@ public final class ResearchActivityTimeline {
         List<ResearchKey> all = new ArrayList<ResearchKey>(oldestFirst);
         Collections.reverse(all);
         return Collections.unmodifiableList(all);
+    }
+
+    private boolean touch(ResearchKey key) {
+        if (key == null) throw new IllegalArgumentException("key must not be null");
+        ResearchKey newest = null;
+        for (ResearchKey candidate : oldestFirst) newest = candidate;
+        if (key.equals(newest)) return false;
+        oldestFirst.remove(key);
+        oldestFirst.add(key);
+        return true;
     }
 }
