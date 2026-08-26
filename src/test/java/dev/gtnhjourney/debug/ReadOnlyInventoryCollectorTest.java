@@ -46,6 +46,36 @@ public class ReadOnlyInventoryCollectorTest {
     }
 
     @Test
+    public void brokenStackCopyDoesNotAbortLaterInventoryCandidates() {
+        final Item validItem = new Item();
+        final ItemStack broken = new ItemStack(new Item(), 1, 0) {
+
+            @Override
+            public ItemStack copy() {
+                throw new NoClassDefFoundError("broken optional stack copy");
+            }
+        };
+        final ItemStack valid = new ItemStack(validItem, 4, 3);
+
+        List<ItemStack> result = ReadOnlyInventoryCollector.collect(new ReadOnlyInventoryCollector.SlotSource() {
+
+            @Override
+            public int size() {
+                return 2;
+            }
+
+            @Override
+            public ItemStack get(int slot) {
+                return slot == 0 ? broken : valid;
+            }
+        });
+
+        assertEquals(1, result.size());
+        assertEquals(validItem, result.get(0).getItem());
+        assertEquals(4, result.get(0).stackSize);
+    }
+
+    @Test
     public void brokenSizeFailsClosed() {
         List<ItemStack> result = ReadOnlyInventoryCollector.collect(new ReadOnlyInventoryCollector.SlotSource() {
 
