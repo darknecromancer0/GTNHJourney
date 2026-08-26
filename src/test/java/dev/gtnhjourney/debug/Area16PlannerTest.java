@@ -11,12 +11,12 @@ import org.junit.jupiter.api.Test;
 public class Area16PlannerTest {
 
     @Test
-    public void plansExactlySixteenCubedUniquePositionsWithMinusEightPlusSevenBounds() {
+    public void plansRadiusSixteenInEveryDirectionIncludingBothBounds() {
         List<Area16Planner.Position> positions = Area16Planner.plan(10, 20, 30);
 
-        assertEquals(4096, positions.size());
-        assertEquals(4096, new HashSet<Area16Planner.Position>(positions).size());
-        assertTrue(positions.contains(new Area16Planner.Position(2, 12, 22)));
-        assertTrue(positions.contains(new Area16Planner.Position(17, 27, 37)));
+        assertEquals(35937, positions.size());
+        assertEquals(35937, new HashSet<Area16Planner.Position>(positions).size());
+        assertTrue(positions.contains(new Area16Planner.Position(-6, 4, 14)));
+        assertTrue(positions.contains(new Area16Planner.Position(26, 36, 46)));
     }
 }
