@@ -19,6 +19,7 @@ import dev.gtnhjourney.persistence.JourneyResearchData;
 import dev.gtnhjourney.persistence.JourneySnapshotData;
 import dev.gtnhjourney.persistence.PlayerResearchService;
 import dev.gtnhjourney.research.ResearchKey;
+import dev.gtnhjourney.retrieval.ItemStackTemplateFactory;
 
 /** Server-authoritative facade for explicit Journey mutations and recovery actions. */
 public final class JourneyMutationService {
@@ -93,11 +94,14 @@ public final class JourneyMutationService {
     /** Validates the target first, creates a safety snapshot, then applies the full replacement as one transaction. */
     public boolean restoreSnapshot(EntityPlayerMP player, JourneySnapshot target) {
         if (player == null || target == null) return false;
+        ResearchStateSnapshot targetState = target.state();
+        if (!isRestorableState(targetState)) return false;
+
         World root = rootWorld(player);
         UUID playerId = player.getUniqueID();
         JourneyResearchData research = JourneyResearchData.get(root);
         ResearchStateSnapshot before = research.captureState(playerId);
-        if (ResearchMutationEngine.sameState(before, target.state())) return false;
+        if (ResearchMutationEngine.sameState(before, targetState)) return false;
 
         JourneySnapshotService snapshots = new JourneySnapshotService(JourneySnapshotData.get(root));
         snapshots.createSafety(
@@ -105,8 +109,8 @@ public final class JourneyMutationService {
             "before-restore-" + target.id(),
             root.getTotalWorldTime(),
             before);
-        engine(player).replaceState(target.state(), "Restore snapshot " + target.id());
-        return ResearchMutationEngine.sameState(research.captureState(playerId), target.state());
+        engine(player).replaceState(targetState, "Restore snapshot " + target.id());
+        return ResearchMutationEngine.sameState(research.captureState(playerId), targetState);
     }
 
     public void notePassiveMutation(EntityPlayerMP player) {
@@ -181,6 +185,27 @@ public final class JourneyMutationService {
     public int deletionCount(EntityPlayerMP player) {
         if (player == null) return 0;
         return recoveryData(player).deletionCount(player.getUniqueID());
+    }
+
+    static boolean isRestorableState(ResearchStateSnapshot target) {
+        if (target == null) return false;
+        Set<ResearchKey> seen = new HashSet<ResearchKey>();
+        int expectedIndex = 0;
+        for (ResearchEntrySnapshot entry : target.entries()) {
+            if (entry == null || entry.timelineIndex() != expectedIndex++ || !seen.add(entry.key())) return false;
+            try {
+                ItemStack rebuilt = ItemStackTemplateFactory.create(entry.key(), entry.template(), 1);
+                if (rebuilt == null || rebuilt.getItem() == null) return false;
+                if (!entry.key().equals(ItemStackKeyFactory.from(rebuilt))) return false;
+            } catch (IllegalArgumentException failure) {
+                return false;
+            } catch (RuntimeException failure) {
+                return false;
+            } catch (LinkageError failure) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private ResearchMutationEngine engine(EntityPlayerMP player) {
