@@ -10,6 +10,7 @@ import net.minecraft.item.ItemStack;
 import codechicken.nei.ItemList;
 import codechicken.nei.ItemPanel;
 import codechicken.nei.ItemPanels;
+import codechicken.nei.LayoutManager;
 import codechicken.nei.api.ItemFilter;
 import dev.gtnhjourney.client.ClientActivityMirror;
 import dev.gtnhjourney.client.ClientStackMirror;
@@ -65,7 +66,10 @@ public final class JourneyPanelController {
             ClientActivityMirror.snapshotOldestFirst(),
             mode);
         ArrayList<ItemStack> visible = new ArrayList<ItemStack>(ordered.size());
-        ItemFilter activeFilter = ItemList.getItemListFilter();
+        // Journey already owns the authoritative subset. Re-applying every global NEI ItemFilterProvider here can
+        // silently reject exact Journey templates that were never part of NEI's global item universe. Preserve only
+        // the user's live search expression while J/N/D owns the panel.
+        ItemFilter activeFilter = LayoutManager.searchField == null ? null : LayoutManager.searchField.getFilter();
         JourneyPresentationKeyResolver.clear();
 
         for (ResearchKey key : ordered) {
