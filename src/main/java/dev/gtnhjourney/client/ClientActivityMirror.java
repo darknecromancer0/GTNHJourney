@@ -70,18 +70,13 @@ public final class ClientActivityMirror {
         syncing = false;
     }
 
+    /** Called only when the server has reported an actually new researched state. */
     public static synchronized void recordUnlock(ResearchKey key) {
-        if (key != null && oldestFirst.add(key)) revision++;
+        touch(key);
     }
 
     public static synchronized void recordRetrieval(ResearchKey key) {
-        if (key == null) return;
-        ResearchKey newest = null;
-        for (ResearchKey candidate : oldestFirst) newest = candidate;
-        if (key.equals(newest)) return;
-        oldestFirst.remove(key);
-        oldestFirst.add(key);
-        revision++;
+        touch(key);
     }
 
     public static synchronized void remove(ResearchKey key) {
@@ -104,5 +99,15 @@ public final class ClientActivityMirror {
             oldestFirst.clear();
             revision++;
         }
+    }
+
+    private static void touch(ResearchKey key) {
+        if (key == null) return;
+        ResearchKey newest = null;
+        for (ResearchKey candidate : oldestFirst) newest = candidate;
+        if (key.equals(newest)) return;
+        oldestFirst.remove(key);
+        oldestFirst.add(key);
+        revision++;
     }
 }
