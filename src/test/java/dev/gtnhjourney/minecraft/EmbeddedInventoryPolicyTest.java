@@ -50,6 +50,29 @@ public class EmbeddedInventoryPolicyTest {
     }
 
     @Test
+    public void backpackExternalUuidIsRemovedButNamesSurvive() {
+        NBTTagCompound normal = new NBTTagCompound();
+        normal.setString("backpack-UID", "ffac416a-a337-4426-8154-a7742b2e0415");
+        normal.setString("customName", "Resources Backpack");
+        normal.setString("name", "item.backpack.black.name");
+
+        EmbeddedInventoryPolicy.normalize("Backpack:backpack", normal);
+
+        assertFalse(normal.hasKey("backpack-UID"));
+        assertEquals("Resources Backpack", normal.getString("customName"));
+        assertEquals("item.backpack.black.name", normal.getString("name"));
+
+        NBTTagCompound workbench = new NBTTagCompound();
+        workbench.setString("backpack-UID", "b685283f-9a6b-4be5-95bf-25abaa4990dd");
+        workbench.setString("name", "item.workbenchbackpack.name");
+
+        EmbeddedInventoryPolicy.normalize("Backpack:workbenchbackpack", workbench);
+
+        assertFalse(workbench.hasKey("backpack-UID"));
+        assertEquals("item.workbenchbackpack.name", workbench.getString("name"));
+    }
+
+    @Test
     public void genericSerializedItemsListIsStrippedButLookalikeListIsPreserved() {
         NBTTagCompound real = new NBTTagCompound();
         real.setTag("Items", itemList(391, 1));
