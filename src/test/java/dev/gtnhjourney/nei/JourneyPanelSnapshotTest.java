@@ -25,10 +25,10 @@ public class JourneyPanelSnapshotTest {
     }
 
     @Test
-    public void newestReturnsOnlyTheLastUniqueResearchState() {
+    public void fallbackNReturnsTheSameUniqueResearchSet() {
         List<ResearchKey> input = Arrays.asList(oldest, middle, oldest, newest);
         assertEquals(
-            Collections.singletonList(newest),
+            Arrays.asList(newest, middle, oldest),
             JourneyPanelSnapshot.keys(input, JourneyViewState.Mode.NEWEST, 64));
     }
 
