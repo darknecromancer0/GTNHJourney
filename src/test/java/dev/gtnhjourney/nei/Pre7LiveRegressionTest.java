@@ -23,15 +23,25 @@ import net.minecraft.item.ItemStack;
 public class Pre7LiveRegressionTest {
 
     @Test
-    public void newestButtonShowsOnlyTheLastResearchedState() {
-        ResearchKey oldest = new ResearchKey("test:oldest", 0, "");
-        ResearchKey middle = new ResearchKey("test:middle", 0, "");
-        ResearchKey newest = new ResearchKey("test:newest", 0, "");
-        List<ResearchKey> unlockOrder = Arrays.asList(oldest, middle, newest);
+    public void nShowsTheFullJSetButUsesMeaningfulActivityOrder() {
+        ResearchKey log = new ResearchKey("test:log", 0, "");
+        ResearchKey stone = new ResearchKey("test:stone", 0, "");
+        ResearchKey potato = new ResearchKey("test:potato", 0, "");
+        List<ResearchKey> researchOldestFirst = Arrays.asList(log, stone, potato);
+        List<ResearchKey> activityOldestFirst = Arrays.asList(stone, potato, log);
 
         assertEquals(
-            Arrays.asList(newest),
-            JourneyPanelOrder.keysForMode(unlockOrder, JourneyViewState.Mode.NEWEST, 64));
+            Arrays.asList(potato, stone, log),
+            JourneyPanelOrder.keysForMode(
+                researchOldestFirst,
+                activityOldestFirst,
+                JourneyViewState.Mode.RESEARCHED));
+        assertEquals(
+            Arrays.asList(log, potato, stone),
+            JourneyPanelOrder.keysForMode(
+                researchOldestFirst,
+                activityOldestFirst,
+                JourneyViewState.Mode.NEWEST));
     }
 
     @Test
