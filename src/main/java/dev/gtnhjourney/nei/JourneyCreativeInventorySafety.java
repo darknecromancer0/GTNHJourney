@@ -15,6 +15,7 @@ import net.minecraft.item.ItemStack;
 import cpw.mods.fml.common.FMLLog;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
+import dev.gtnhjourney.diagnostics.JourneyRuntimeCounters;
 
 /**
  * Removes only renderer-hostile GT volumetric-flask permutations from vanilla Creative's backing item list before
@@ -73,6 +74,7 @@ public final class JourneyCreativeInventorySafety {
             });
             if (removed <= 0) return;
 
+            JourneyRuntimeCounters.creativeUnsafeFlaskVariantsRemoved(removed);
             float scroll = currentScrollField().getFloat(creative);
             scrollToMethod(container).invoke(container, Float.valueOf(scroll));
         } catch (Throwable failure) {
