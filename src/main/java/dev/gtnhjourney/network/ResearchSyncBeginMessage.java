@@ -15,6 +15,7 @@ public final class ResearchSyncBeginMessage implements IMessage {
     private int epoch;
     private int availableTotal;
     private int syncableTotal;
+    private int activityTotal;
     private boolean normalizeGtTransientIdentity;
     private boolean resetGtToolTemplateState;
     private boolean normalizeGtChargeEndpoints;
@@ -24,12 +25,13 @@ public final class ResearchSyncBeginMessage implements IMessage {
 
     public ResearchSyncBeginMessage() {}
 
-    public ResearchSyncBeginMessage(int epoch, int availableTotal, int syncableTotal,
+    public ResearchSyncBeginMessage(int epoch, int availableTotal, int syncableTotal, int activityTotal,
         boolean normalizeGtTransientIdentity, boolean resetGtToolTemplateState, boolean normalizeGtChargeEndpoints,
         boolean normalizeIc2ChargeEndpoints, boolean normalizeTconToolWear, boolean normalizeCofhChargeEndpoints) {
         this.epoch = epoch;
         this.availableTotal = Math.max(0, availableTotal);
         this.syncableTotal = Math.max(0, Math.min(this.availableTotal, syncableTotal));
+        this.activityTotal = Math.max(0, activityTotal);
         this.normalizeGtTransientIdentity = normalizeGtTransientIdentity;
         this.resetGtToolTemplateState = resetGtToolTemplateState;
         this.normalizeGtChargeEndpoints = normalizeGtChargeEndpoints;
@@ -42,6 +44,7 @@ public final class ResearchSyncBeginMessage implements IMessage {
         epoch = buf.readInt();
         availableTotal = Math.max(0, buf.readInt());
         syncableTotal = Math.max(0, Math.min(availableTotal, buf.readInt()));
+        activityTotal = Math.max(0, buf.readInt());
         normalizeGtTransientIdentity = buf.readBoolean();
         resetGtToolTemplateState = buf.readBoolean();
         normalizeGtChargeEndpoints = buf.readBoolean();
@@ -54,6 +57,7 @@ public final class ResearchSyncBeginMessage implements IMessage {
         buf.writeInt(epoch);
         buf.writeInt(availableTotal);
         buf.writeInt(syncableTotal);
+        buf.writeInt(activityTotal);
         buf.writeBoolean(normalizeGtTransientIdentity);
         buf.writeBoolean(resetGtToolTemplateState);
         buf.writeBoolean(normalizeGtChargeEndpoints);
@@ -68,6 +72,7 @@ public final class ResearchSyncBeginMessage implements IMessage {
             final int epoch = message.epoch;
             final int availableTotal = message.availableTotal;
             final int syncableTotal = message.syncableTotal;
+            final int activityTotal = message.activityTotal;
             final boolean normalizeGtTransientIdentity = message.normalizeGtTransientIdentity;
             final boolean resetGtToolTemplateState = message.resetGtToolTemplateState;
             final boolean normalizeGtChargeEndpoints = message.normalizeGtChargeEndpoints;
@@ -86,7 +91,7 @@ public final class ResearchSyncBeginMessage implements IMessage {
                         normalizeTconToolWear,
                         normalizeCofhChargeEndpoints);
                     ClientStackMirror.begin(epoch, availableTotal, syncableTotal);
-                    ClientActivityMirror.begin(epoch, availableTotal);
+                    ClientActivityMirror.begin(epoch, activityTotal);
                 }
             });
             return null;
