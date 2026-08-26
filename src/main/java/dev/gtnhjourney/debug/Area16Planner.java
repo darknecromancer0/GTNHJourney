@@ -4,16 +4,19 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/** Pure fixed-volume planner for the migration AREA_16 scan. */
+/** Pure fixed-radius planner for the migration AREA_16 scan. */
 public final class Area16Planner {
+
+    private static final int RADIUS = 16;
+    private static final int DIAMETER = RADIUS * 2 + 1;
 
     private Area16Planner() {}
 
     public static List<Position> plan(int centerX, int centerY, int centerZ) {
-        List<Position> positions = new ArrayList<Position>(16 * 16 * 16);
-        for (int x = centerX - 8; x <= centerX + 7; x++) {
-            for (int y = centerY - 8; y <= centerY + 7; y++) {
-                for (int z = centerZ - 8; z <= centerZ + 7; z++) {
+        List<Position> positions = new ArrayList<Position>(DIAMETER * DIAMETER * DIAMETER);
+        for (int x = centerX - RADIUS; x <= centerX + RADIUS; x++) {
+            for (int y = centerY - RADIUS; y <= centerY + RADIUS; y++) {
+                for (int z = centerZ - RADIUS; z <= centerZ + RADIUS; z++) {
                     positions.add(new Position(x, y, z));
                 }
             }
