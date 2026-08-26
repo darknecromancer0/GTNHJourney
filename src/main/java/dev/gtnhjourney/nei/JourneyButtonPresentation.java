@@ -21,6 +21,12 @@ public final class JourneyButtonPresentation {
         return panelWidth >= DELETE_MIN_WIDTH;
     }
 
+    public static String newestTooltip(boolean active) {
+        return active
+            ? "Newest view: all researched items ordered by recent Journey activity. Click N to show all NEI items."
+            : "Newest view: show all researched items ordered by recent Journey activity.";
+    }
+
     public static String researchTooltip(JourneyViewState.Mode mode, int serverOnlyCount) {
         JourneyViewState.Mode effective = mode == null ? JourneyViewState.Mode.ALL : mode;
         final String base;
