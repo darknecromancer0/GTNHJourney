@@ -86,7 +86,7 @@ public final class ResearchSyncBeginMessage implements IMessage {
                         normalizeTconToolWear,
                         normalizeCofhChargeEndpoints);
                     ClientStackMirror.begin(epoch, availableTotal, syncableTotal);
-                    ClientActivityMirror.begin(epoch);
+                    ClientActivityMirror.begin(epoch, availableTotal);
                 }
             });
             return null;
