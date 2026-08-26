@@ -10,6 +10,7 @@ import dev.gtnhjourney.minecraft.ResearchCompatibilityOptions;
 public final class JourneyConfig {
 
     private static volatile int inventoryScanIntervalTicks = 20;
+    /** @deprecated N now contains the full researched set; retained only so existing config files remain readable. */
     private static volatile int newestLimit = 64;
     private static volatile int inventoryFullRescanIntervalTicks = 200;
     private static volatile boolean normalizeGtTransientIdentity = true;
@@ -38,7 +39,7 @@ public final class JourneyConfig {
                 64,
                 8,
                 512,
-                "Maximum number of recently researched states shown by the NEI Newest view.");
+                "Legacy compatibility setting. Ignored by pre7: N always contains the full researched set and only changes its ordering.");
             inventoryFullRescanIntervalTicks = config.getInt(
                 "inventoryFullRescanIntervalTicks",
                 "research",
@@ -92,6 +93,8 @@ public final class JourneyConfig {
         return inventoryScanIntervalTicks;
     }
 
+    /** @deprecated retained only for binary/source compatibility; N no longer truncates by this value. */
+    @Deprecated
     public static int newestLimit() {
         return newestLimit;
     }
