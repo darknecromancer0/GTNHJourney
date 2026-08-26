@@ -1,0 +1,19 @@
+name: runner-probe
+
+on:
+  push:
+    paths:
+      - '.github/workflows/runner-probe.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    steps:
+      - name: Prove hosted runner allocation
+        run: |
+          echo "runner-probe-ok"
+          uname -a
