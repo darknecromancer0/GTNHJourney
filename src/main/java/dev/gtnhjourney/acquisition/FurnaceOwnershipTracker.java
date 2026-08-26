@@ -84,8 +84,8 @@ public final class FurnaceOwnershipTracker {
             ItemStack output = furnace.getStackInSlot(2);
             boolean occupied = isOccupied(output);
             int signature = occupied ? InventoryStackSignature.of(output) : 0;
-            JourneyRuntimeCounters.furnaceOutputObservation();
             if (!state.gate.observe(signature, occupied)) continue;
+            JourneyRuntimeCounters.furnaceOutputObservation();
 
             EntityPlayerMP owner = findOnlinePlayer(state.ownerId);
             if (!isValidOwner(owner) || output == null) continue;
