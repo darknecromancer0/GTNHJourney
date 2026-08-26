@@ -1,25 +1,17 @@
 package dev.gtnhjourney.minecraft;
 
 import cpw.mods.fml.common.registry.GameRegistry;
+import dev.gtnhjourney.acquisition.ResearchObservationPolicy;
 import dev.gtnhjourney.research.ResearchKey;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 
-/**
- * Rebuilds and migrates persisted research identity without trusting stale or incomplete canonical-NBT text.
- *
- * <p>The original NBT template is authoritative because it is also what retrieval recreates. If a persisted entry
- * claims to have NBT but its template is missing, the entry is rejected instead of silently becoming a different bare
- * item. If the referenced item still exists, the reconstructed stack is passed through the current semantic identity
- * and retrieval-template policies together. This is important for migrations such as partial electric charge: the key
- * must become the base endpoint <em>and</em> the stored template must lose the partial charge in the same operation.</p>
- */
+/** Rebuilds and migrates persisted research identity from the exact stored retrieval template. */
 public final class PersistedResearchEntryResolver {
 
     private PersistedResearchEntryResolver() {}
 
-    /** Immutable migration result containing the identity and the exact template that must be stored under it. */
     public static final class ResolvedEntry {
         private final ResearchKey key;
         private final NBTTagCompound template;
@@ -29,13 +21,15 @@ public final class PersistedResearchEntryResolver {
             this.template = template == null ? null : (NBTTagCompound) template.copy();
         }
 
-        public ResearchKey key() { return key; }
+        public ResearchKey key() {
+            return key;
+        }
+
         public NBTTagCompound template() {
             return template == null ? null : (NBTTagCompound) template.copy();
         }
     }
 
-    /** Backwards-compatible key-only view used by older callers/tests. */
     public static ResearchKey resolve(String itemId, int meta, String persistedCanonicalNbt, NBTTagCompound template) {
         ResolvedEntry resolved = resolveEntry(itemId, meta, persistedCanonicalNbt, template);
         return resolved == null ? null : resolved.key();
@@ -49,7 +43,6 @@ public final class PersistedResearchEntryResolver {
 
         if (itemId == null || itemId.trim().isEmpty()) return null;
 
-        // A non-empty canonical identity without its retrieval payload cannot be recreated safely. Fail closed.
         String persistedCanonical = persistedCanonicalNbt == null ? "" : persistedCanonicalNbt;
         if (persistedTemplate == null && !persistedCanonical.isEmpty()) return null;
 
@@ -58,7 +51,6 @@ public final class PersistedResearchEntryResolver {
         try {
             fallbackCanonical = fallbackTemplate == null ? "" : ResearchNbtIdentity.canonicalize(fallbackTemplate);
         } catch (IllegalArgumentException unsafeNbt) {
-            // A corrupt/hostile old entry must never prevent the entire WorldSavedData from loading.
             return null;
         } catch (RuntimeException unsafeNbt) {
             return null;
@@ -67,13 +59,11 @@ public final class PersistedResearchEntryResolver {
 
         ItemStack reconstructed = reconstruct(fallback, persistedTemplate);
         if (reconstructed == null) {
-            // Keep unavailable/orphaned entries structurally intact so diagnostics, prune and undo still work.
             return new ResolvedEntry(fallback, fallbackTemplate);
         }
+        if (!ResearchObservationPolicy.shouldObserve(reconstructed)) return null;
 
         try {
-            // Apply endpoint semantics to the ItemStack first, then normalize the retrieval template from that same
-            // semantic stack. This keeps ResearchKey and retrieval payload impossible to drift apart during migration.
             ItemStack semantic = GtChargeStatePolicy.identityStack(reconstructed);
             if (GtChargeStatePolicy.classify(reconstructed) == GtChargeStatePolicy.State.EXACT) {
                 if (OpenComputersChargeStatePolicy.classify(semantic) != OpenComputersChargeStatePolicy.State.EXACT) {
