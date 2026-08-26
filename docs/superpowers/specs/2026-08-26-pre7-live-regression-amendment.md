@@ -35,6 +35,17 @@ All bounds are inclusive. The planned cube is therefore `33 x 33 x 33 = 35,937` 
 
 The center remains the player position even if AREA_16 is invoked while pointing at a block. The tool still never force-loads/generates chunks and reads only already-loaded valid positions.
 
+## Strict recovery semantics
+
+For persistent explicit transactions, undo/redo is fail-closed and coherent rather than partial. Before moving a transaction between the undo and redo stacks, every entry that the operation will restore must still reconstruct to the same current-pack `ResearchKey`.
+
+- If any required restore entry is unavailable or no longer reconstructs exactly, the transaction remains on its current stack and authoritative research is left unchanged.
+- An entry already being present before a full-replacement undo/redo is not sufficient proof of safety, because the transaction may remove that overlapping key before restoring it.
+- `/journey restore-deleted` may restore only the individually reconstructable active deletion records it selects; records that cannot currently reconstruct remain active.
+- `prune-missing` therefore cannot promise immediate undo while the underlying item/mod is still unavailable. The history is retained so recovery can succeed after the item becomes reconstructable again.
+
+This supersedes older recovery-design wording that allowed a transactional undo/redo to partially skip an unavailable restore entry.
+
 ## Live-regression requirements added after first pre7 test
 
 The following are mandatory acceptance criteria:
