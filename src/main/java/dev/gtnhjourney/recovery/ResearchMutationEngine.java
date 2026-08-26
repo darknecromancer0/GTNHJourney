@@ -231,7 +231,8 @@ public final class ResearchMutationEngine {
         while (applied < requested) {
             ResearchTransaction transaction = recovery.popRedo(playerId);
             if (transaction == null) break;
-            if (!canRestoreAll(transaction.added())) {
+            if (!canRestoreAll(transaction.added())
+                || !canApplyDelta(transaction.removed(), transaction.added())) {
                 recovery.pushRedo(playerId, transaction);
                 break;
             }
