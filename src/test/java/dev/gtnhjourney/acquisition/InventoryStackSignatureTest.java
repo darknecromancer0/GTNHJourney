@@ -41,4 +41,24 @@ public class InventoryStackSignatureTest {
         assertNotEquals(first, second);
         assertEquals(first, InventoryStackSignature.combineEndpointSignature(sameItemHash, 1001, baseEndpoint));
     }
+
+    @Test
+    public void ic2VisualChargeDamageCollapsesBeforeEndpointSignature() {
+        Item item = new Item().setMaxDamage(100);
+        ItemStack emptyVisual = new ItemStack(item, 1, 100);
+        ItemStack partialVisual = new ItemStack(item, 1, 37);
+
+        assertEquals(100, InventoryStackSignature.stableEndpointMeta(emptyVisual, 201));
+        assertEquals(100, InventoryStackSignature.stableEndpointMeta(partialVisual, 201));
+    }
+
+    @Test
+    public void gtEndpointKeepsSubtypeMetaIdentity() {
+        Item item = new Item().setHasSubtypes(true);
+        ItemStack first = new ItemStack(item, 1, 1001);
+        ItemStack second = new ItemStack(item, 1, 1002);
+
+        assertEquals(1001, InventoryStackSignature.stableEndpointMeta(first, 101));
+        assertEquals(1002, InventoryStackSignature.stableEndpointMeta(second, 101));
+    }
 }
