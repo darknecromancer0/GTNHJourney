@@ -12,7 +12,7 @@ public class InventoryStackSignatureTest {
 
     @Test
     public void subtypeMetadataRemainsPartOfFastIdentity() {
-        Item item = new Item().setHasSubtypes(true);
+        Item item = new TestItem(true, 0);
         ItemStack first = new ItemStack(item, 1, 1001);
         ItemStack second = new ItemStack(item, 1, 1002);
 
@@ -22,7 +22,7 @@ public class InventoryStackSignatureTest {
 
     @Test
     public void classicDurabilityWearDoesNotChurnFastIdentity() {
-        Item item = new Item().setMaxDamage(100);
+        Item item = new TestItem(false, 100);
         ItemStack fresh = new ItemStack(item, 1, 0);
         ItemStack worn = new ItemStack(item, 1, 37);
 
@@ -44,7 +44,7 @@ public class InventoryStackSignatureTest {
 
     @Test
     public void ic2VisualChargeDamageCollapsesBeforeEndpointSignature() {
-        Item item = new Item().setMaxDamage(100);
+        Item item = new TestItem(false, 100);
         ItemStack emptyVisual = new ItemStack(item, 1, 100);
         ItemStack partialVisual = new ItemStack(item, 1, 37);
 
@@ -54,11 +54,19 @@ public class InventoryStackSignatureTest {
 
     @Test
     public void gtEndpointKeepsSubtypeMetaIdentity() {
-        Item item = new Item().setHasSubtypes(true);
+        Item item = new TestItem(true, 0);
         ItemStack first = new ItemStack(item, 1, 1001);
         ItemStack second = new ItemStack(item, 1, 1002);
 
         assertEquals(1001, InventoryStackSignature.stableEndpointMeta(first, 101));
         assertEquals(1002, InventoryStackSignature.stableEndpointMeta(second, 101));
+    }
+
+    private static final class TestItem extends Item {
+
+        TestItem(boolean subtypes, int maxDamage) {
+            setHasSubtypes(subtypes);
+            setMaxDamage(maxDamage);
+        }
     }
 }
