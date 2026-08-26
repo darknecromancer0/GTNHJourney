@@ -1,10 +1,14 @@
 package dev.gtnhjourney.recovery;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
@@ -82,6 +86,47 @@ public class ResearchMutationEngineTest {
         assertEquals(1, engine.redo(1));
         assertEquals(Arrays.asList(b), research.snapshotInUnlockOrder(player));
         assertEquals(2, recovery.activeDeletionCount(player));
+    }
+
+    @Test
+    public void snapshotReplacementCarriesDeletionReconciliationThroughUndoRedo() throws Exception {
+        UUID player = UUID.randomUUID();
+        JourneyResearchData research = new JourneyResearchData();
+        JourneyRecoveryData recovery = new JourneyRecoveryData();
+        ResearchKey a = new ResearchKey("minecraft:stone", 0, "");
+        ResearchKey b = new ResearchKey("minecraft:dirt", 0, "");
+        research.restoreEntry(player, new ResearchEntrySnapshot(a, null, 0));
+        research.restoreEntry(player, new ResearchEntrySnapshot(b, null, 1));
+        ResearchMutationEngine engine = new ResearchMutationEngine(research, recovery, player);
+
+        assertTrue(engine.deleteExact(a, "D delete"));
+        assertEquals(1, recovery.activeDeletionCount(player));
+        DeletionRecord deletion = recovery.newestActiveDeletions(player, 1).get(0);
+
+        ResearchStateSnapshot target = new ResearchStateSnapshot(
+            Arrays.asList(
+                new ResearchEntrySnapshot(a, null, 0),
+                new ResearchEntrySnapshot(b, null, 1)));
+        List<DeletionStateChange> changes = Collections.singletonList(new DeletionStateChange(deletion.id(), false));
+        Method replace = assertDoesNotThrow(
+            () -> ResearchMutationEngine.class.getDeclaredMethod(
+                "replaceState",
+                ResearchStateSnapshot.class,
+                String.class,
+                List.class));
+        replace.setAccessible(true);
+
+        assertEquals(2, ((Integer) replace.invoke(engine, target, "Restore snapshot", changes)).intValue());
+        assertEquals(Arrays.asList(a, b), research.snapshotInUnlockOrder(player));
+        assertEquals(0, recovery.activeDeletionCount(player));
+
+        assertEquals(1, engine.undo(1));
+        assertEquals(Arrays.asList(b), research.snapshotInUnlockOrder(player));
+        assertEquals(1, recovery.activeDeletionCount(player));
+
+        assertEquals(1, engine.redo(1));
+        assertEquals(Arrays.asList(a, b), research.snapshotInUnlockOrder(player));
+        assertEquals(0, recovery.activeDeletionCount(player));
     }
 
     @Test
