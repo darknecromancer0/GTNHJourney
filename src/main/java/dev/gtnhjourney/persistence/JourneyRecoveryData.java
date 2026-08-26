@@ -107,6 +107,11 @@ public final class JourneyRecoveryData extends WorldSavedData {
         markDirty();
     }
 
+    public List<DeletionRecord> deletions(UUID playerId) {
+        PlayerHistory history = histories.get(playerId);
+        return history == null ? new ArrayList<DeletionRecord>() : new ArrayList<DeletionRecord>(history.deletions);
+    }
+
     public List<DeletionRecord> newestActiveDeletions(UUID playerId, int limit) {
         List<DeletionRecord> result = new ArrayList<DeletionRecord>();
         PlayerHistory history = histories.get(playerId);
