@@ -35,6 +35,13 @@ public final class ClientActivityMirror {
         for (ResearchFingerprint fingerprint : fingerprints) if (fingerprint != null) staging.add(fingerprint);
     }
 
+    /** Discards only the matching staged epoch. A stale End must never cancel a newer sync already in flight. */
+    public static synchronized void abort(int abortEpoch) {
+        if (!syncing || abortEpoch != epoch) return;
+        staging.clear();
+        syncing = false;
+    }
+
     public static synchronized void finish(int finishEpoch, Collection<ResearchKey> researchOldestFirst) {
         if (!syncing || finishEpoch != epoch) return;
         List<ResearchKey> research = researchOldestFirst == null ? Collections.<ResearchKey>emptyList()
