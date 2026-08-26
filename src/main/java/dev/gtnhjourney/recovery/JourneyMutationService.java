@@ -103,13 +103,16 @@ public final class JourneyMutationService {
         ResearchStateSnapshot before = research.captureState(playerId);
         if (ResearchMutationEngine.sameState(before, targetState)) return false;
 
+        JourneyRecoveryData recovery = JourneyRecoveryData.get(root);
+        List<DeletionStateChange> deletionChanges = deletionChangesForTarget(recovery, playerId, targetState);
         JourneySnapshotService snapshots = new JourneySnapshotService(JourneySnapshotData.get(root));
         snapshots.createSafety(
             playerId,
             "before-restore-" + target.id(),
             root.getTotalWorldTime(),
             before);
-        engine(player).replaceState(targetState, "Restore snapshot " + target.id());
+        new ResearchMutationEngine(research, recovery, playerId)
+            .replaceState(targetState, "Restore snapshot " + target.id(), deletionChanges);
         return ResearchMutationEngine.sameState(research.captureState(playerId), targetState);
     }
 
@@ -206,6 +209,21 @@ public final class JourneyMutationService {
             }
         }
         return true;
+    }
+
+    static List<DeletionStateChange> deletionChangesForTarget(
+        JourneyRecoveryData recovery,
+        UUID playerId,
+        ResearchStateSnapshot target) {
+        if (recovery == null || playerId == null || target == null || target.isEmpty()) return Collections.emptyList();
+        Set<ResearchKey> targetKeys = keySet(target);
+        List<DeletionStateChange> changes = new ArrayList<DeletionStateChange>();
+        for (DeletionRecord record : recovery.newestActiveDeletions(playerId, 1000)) {
+            if (record != null && targetKeys.contains(record.entry().key())) {
+                changes.add(new DeletionStateChange(record.id(), false));
+            }
+        }
+        return Collections.unmodifiableList(changes);
     }
 
     private ResearchMutationEngine engine(EntityPlayerMP player) {
