@@ -74,6 +74,7 @@ public final class ClientStackMirror {
         ResearchKey key = addInternal(stacks, stack);
         if (key != null && stacks.size() > before) {
             ClientResearchMirror.add(key);
+            ClientActivityMirror.recordUnlock(key);
             serverAvailableTotal++;
             expectedSyncedTotal++;
         }
@@ -86,16 +87,11 @@ public final class ClientStackMirror {
     /** Applies one server-authoritative exact removal without rebuilding the global NEI item universe. */
     public static synchronized boolean remove(ResearchFingerprint fingerprint) {
         if (fingerprint == null || stacks.isEmpty()) return false;
-        ResearchKey found = null;
-        for (ResearchKey key : stacks.keySet()) {
-            if (fingerprint.equals(ResearchFingerprint.of(key))) {
-                found = key;
-                break;
-            }
-        }
+        ResearchKey found = keyForFingerprint(fingerprint);
         if (found == null) return false;
         stacks.remove(found);
         ClientResearchMirror.remove(found);
+        ClientActivityMirror.remove(found);
         serverAvailableTotal = Math.max(0, serverAvailableTotal - 1);
         if (expectedSyncedTotal >= 0) expectedSyncedTotal = Math.max(0, expectedSyncedTotal - 1);
         previousServerAvailableTotal = serverAvailableTotal;
@@ -111,7 +107,19 @@ public final class ClientStackMirror {
         return Collections.unmodifiableList(out);
     }
 
-    /** Returns the most recently unlocked templates first. Full sync must arrive oldest-first. */
+    public static synchronized List<ResearchKey> snapshotKeysInResearchOrder() {
+        return Collections.unmodifiableList(new ArrayList<ResearchKey>(stacks.keySet()));
+    }
+
+    public static synchronized ResearchKey keyForFingerprint(ResearchFingerprint fingerprint) {
+        if (fingerprint == null) return null;
+        for (ResearchKey key : stacks.keySet()) {
+            if (fingerprint.equals(ResearchFingerprint.of(key))) return key;
+        }
+        return null;
+    }
+
+    /** Returns the most recently unlocked templates first. Retained for diagnostics/backward compatibility. */
     public static synchronized List<ItemStack> snapshotNewest(int limit) {
         if (limit <= 0 || stacks.isEmpty()) return Collections.emptyList();
         List<ItemStack> all = new ArrayList<ItemStack>();
@@ -155,6 +163,7 @@ public final class ClientStackMirror {
         previousServerAvailableTotal = 0;
         previousExpectedSyncedTotal = 0;
         ClientResearchMirror.clear();
+        ClientActivityMirror.clear();
     }
 
     private static ResearchKey addInternal(Map<ResearchKey, ItemStack> target, ItemStack stack) {
