@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -20,7 +19,7 @@ class Pre6RegressionContractTest {
 
     @SuppressWarnings("unchecked")
     @Test
-    void journeyPanelOrderKeepsResearchNewestFirstAndNShowsOnlyLastState() throws Exception {
+    void journeyPanelOrderKeepsFullResearchSetForBothJourneyModesWithoutActivityOverlay() throws Exception {
         Class<?> planner = Class.forName("dev.gtnhjourney.nei.JourneyPanelOrder");
         Method keysForMode = planner.getDeclaredMethod(
             "keysForMode",
@@ -38,8 +37,8 @@ class Pre6RegressionContractTest {
             Arrays.asList(newest, middle, oldest),
             (List<ResearchKey>) keysForMode.invoke(null, unlockOrder, JourneyViewState.Mode.RESEARCHED, 2));
         assertEquals(
-            Collections.singletonList(newest),
-            (List<ResearchKey>) keysForMode.invoke(null, unlockOrder, JourneyViewState.Mode.NEWEST, 64));
+            Arrays.asList(newest, middle, oldest),
+            (List<ResearchKey>) keysForMode.invoke(null, unlockOrder, JourneyViewState.Mode.NEWEST, 2));
     }
 
     @Test
