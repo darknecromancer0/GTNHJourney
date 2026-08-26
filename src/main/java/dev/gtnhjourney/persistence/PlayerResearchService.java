@@ -8,6 +8,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
 import net.minecraftforge.common.DimensionManager;
 
+import dev.gtnhjourney.minecraft.ItemStackKeyFactory;
 import dev.gtnhjourney.recovery.ResearchEntrySnapshot;
 import dev.gtnhjourney.recovery.ResearchStateSnapshot;
 import dev.gtnhjourney.research.ResearchFingerprint;
@@ -28,7 +29,16 @@ public final class PlayerResearchService {
     public List<ItemStack> unlockStates(EntityPlayerMP player, ItemStack stack) {
         if (player == null || stack == null || stack.getItem() == null) return Collections.emptyList();
         try {
-            return data(player).unlockStates(player.getUniqueID(), stack);
+            List<ItemStack> added = data(player).unlockStates(player.getUniqueID(), stack);
+            if (!added.isEmpty()) {
+                JourneyActivityData activity = activityData(player);
+                for (ItemStack unlocked : added) {
+                    try {
+                        activity.recordUnlock(player.getUniqueID(), ItemStackKeyFactory.from(unlocked));
+                    } catch (IllegalArgumentException ignored) {}
+                }
+            }
+            return added;
         } catch (RuntimeException failure) {
             recordObservationFailure(stack, failure);
             return Collections.emptyList();
@@ -62,6 +72,12 @@ public final class PlayerResearchService {
         return data(player).snapshotStacksInUnlockOrder(player.getUniqueID());
     }
 
+    public List<ResearchKey> snapshotActivityOrder(EntityPlayerMP player) {
+        JourneyResearchData research = data(player);
+        return activityData(player)
+            .snapshotReconciled(player.getUniqueID(), research.snapshotInUnlockOrder(player.getUniqueID()));
+    }
+
     public List<ResearchKey> snapshotNewest(EntityPlayerMP player, int limit) {
         return data(player).snapshotNewest(player.getUniqueID(), limit);
     }
@@ -87,6 +103,19 @@ public final class PlayerResearchService {
             .create(key, data.template(player.getUniqueID(), key), requestedAmount);
     }
 
+    public ResearchKey resolve(EntityPlayerMP player, ResearchFingerprint fingerprint) {
+        if (player == null || fingerprint == null) return null;
+        return data(player).registry(player.getUniqueID())
+            .find(fingerprint);
+    }
+
+    public void recordRetrieval(EntityPlayerMP player, ResearchKey key) {
+        if (player == null || key == null) return;
+        if (!data(player).registry(player.getUniqueID())
+            .contains(key)) return;
+        activityData(player).recordRetrieval(player.getUniqueID(), key);
+    }
+
     public boolean forget(EntityPlayerMP player, ResearchKey key) {
         return data(player).forget(player.getUniqueID(), key);
     }
@@ -108,11 +137,17 @@ public final class PlayerResearchService {
     }
 
     private static JourneyResearchData data(EntityPlayerMP player) {
+        return JourneyResearchData.get(rootWorld(player));
+    }
+
+    private static JourneyActivityData activityData(EntityPlayerMP player) {
+        return JourneyActivityData.get(rootWorld(player));
+    }
+
+    private static World rootWorld(EntityPlayerMP player) {
         if (player == null) throw new IllegalArgumentException("player must not be null");
-        // WorldSavedData attached to the overworld gives one research database for the entire save.
         World rootWorld = DimensionManager.getWorld(0);
-        if (rootWorld == null) rootWorld = player.worldObj;
-        return JourneyResearchData.get(rootWorld);
+        return rootWorld == null ? player.worldObj : rootWorld;
     }
 
     private static void recordObservationFailure(ItemStack stack, Throwable failure) {
