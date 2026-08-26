@@ -213,7 +213,8 @@ public final class ResearchMutationEngine {
         while (applied < requested) {
             ResearchTransaction transaction = recovery.popUndo(playerId);
             if (transaction == null) break;
-            if (!canRestoreAll(transaction.removed())) {
+            if (!canRestoreAll(transaction.removed())
+                || !canApplyDelta(transaction.added(), transaction.removed())) {
                 recovery.pushUndo(playerId, transaction);
                 break;
             }
@@ -275,6 +276,43 @@ public final class ResearchMutationEngine {
             boolean active = forward ? change.activeAfterForward() : !change.activeAfterForward();
             recovery.setDeletionActive(playerId, change.deletionId(), active);
         }
+    }
+
+    /**
+     * Rejects a recovery delta before mutation when an existing same-key state no longer matches the snapshot that
+     * this transaction expects to remove or restore. This keeps passive reacquisition from being silently overwritten
+     * by an older explicit undo while still allowing already-desired exact states to make the operation idempotent.
+     */
+    private boolean canApplyDelta(
+        List<ResearchEntrySnapshot> removals,
+        List<ResearchEntrySnapshot> restorations) {
+        Map<ResearchKey, ResearchEntrySnapshot> current = new LinkedHashMap<ResearchKey, ResearchEntrySnapshot>();
+        for (ResearchEntrySnapshot entry : research.captureState(playerId).entries()) current.put(entry.key(), entry);
+
+        Set<ResearchKey> removalKeys = new LinkedHashSet<ResearchKey>();
+        if (removals != null) {
+            for (ResearchEntrySnapshot removal : removals) {
+                if (removal == null) continue;
+                removalKeys.add(removal.key());
+                ResearchEntrySnapshot existing = current.get(removal.key());
+                if (existing != null && !sameEntry(existing, removal)) return false;
+            }
+        }
+
+        if (restorations != null) {
+            for (ResearchEntrySnapshot restoration : restorations) {
+                if (restoration == null) continue;
+                ResearchEntrySnapshot existing = current.get(restoration.key());
+                if (existing == null || removalKeys.contains(restoration.key())) continue;
+                if (!sameEntry(existing, restoration)) return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean sameEntry(ResearchEntrySnapshot left, ResearchEntrySnapshot right) {
+        return left != null && right != null && left.key().equals(right.key())
+            && left.timelineIndex() == right.timelineIndex() && sameTemplate(left.template(), right.template());
     }
 
     private boolean canRestoreAll(List<ResearchEntrySnapshot> entries) {
