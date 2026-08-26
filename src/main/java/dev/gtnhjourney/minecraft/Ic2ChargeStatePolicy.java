@@ -9,16 +9,7 @@ import java.util.List;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 
-/**
- * Optional IC2 electric-item endpoint semantics without a hard compile/runtime dependency on IC2.
- *
- * <p>
- * Only objects proven to implement {@code ic2.api.item.IElectricItem} are touched. The current/max charge values
- * come from the IC2 API. Base templates are discharged through {@code ElectricItem.manager} on a copy and the verified
- * IC2 charge field is then removed, preventing partial EU values from becoming thousands of Journey states while
- * preserving every unrelated NBT field.
- * </p>
- */
+/** Optional IC2 electric-item endpoint semantics without a hard compile/runtime dependency on IC2. */
 public final class Ic2ChargeStatePolicy {
 
     private static final String CHARGE_KEY = "charge";
@@ -123,6 +114,7 @@ public final class Ic2ChargeStatePolicy {
                 double remaining = number(API.getCharge.invoke(manager, copy));
                 if (remaining > 0.000001D) return null;
             }
+            copy.setItemDamage(ElectricItemDamagePolicy.emptyDamage(copy.getMaxDamage(), copy.getItemDamage()));
             if (copy.hasTagCompound()) {
                 NBTTagCompound tag = (NBTTagCompound) copy.getTagCompound()
                     .copy();
