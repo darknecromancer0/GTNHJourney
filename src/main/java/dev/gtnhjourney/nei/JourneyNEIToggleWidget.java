@@ -46,8 +46,7 @@ public final class JourneyNEIToggleWidget
 
         @Override
         public String getButtonTip() {
-            return JourneyViewState.isNewest() ? "Newest view: last researched item. Click to show all NEI items."
-                : "Newest view: show only the last researched item.";
+            return JourneyButtonPresentation.newestTooltip(JourneyViewState.isNewest());
         }
 
         @Override
