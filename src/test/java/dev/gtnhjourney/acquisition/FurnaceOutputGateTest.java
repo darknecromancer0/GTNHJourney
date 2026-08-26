@@ -39,9 +39,7 @@ public class FurnaceOutputGateTest {
 
     @Test
     public void trackedFurnaceCounterAdvancesOnlyAfterTheOutputGateAcceptsAChange() throws Exception {
-        String source = new String(
-            Files.readAllBytes(Paths.get("src/main/java/dev/gtnhjourney/acquisition/FurnaceOwnershipTracker.java")),
-            StandardCharsets.UTF_8);
+        String source = trackerSource();
         int tickStart = source.indexOf("public void onServerTick");
         int tickEnd = source.indexOf("public void onLogout", tickStart);
         String tickBody = source.substring(tickStart, tickEnd);
@@ -54,6 +52,22 @@ public class FurnaceOutputGateTest {
     }
 
     @Test
+    public void repeatedInteractionBySameOwnerReusesTheTrackedOutputGate() throws Exception {
+        String source = trackerSource();
+        int interactStart = source.indexOf("public void onInteract");
+        int interactEnd = source.indexOf("public void onServerTick", interactStart);
+        String interactBody = source.substring(interactStart, interactEnd);
+
+        assertTrue(interactBody.contains("TrackedFurnace previous = tracked.get(key);"));
+        assertTrue(interactBody.contains("player.getUniqueID().equals(previous.ownerId)"));
+        assertTrue(interactBody.contains("previous.gate.observe(signature, occupied)"));
+        assertTrue(
+            interactBody.indexOf("previous.gate.observe(signature, occupied)")
+                < interactBody.indexOf("JourneyRuntimeCounters.furnaceOutputObservation();"),
+            "same-owner reopen must pass the existing gate before counting another output observation");
+    }
+
+    @Test
     public void debugResearcherToolInteractionIsExcludedFromFurnaceTracking() throws Exception {
         Method predicate = assertDoesNotThrow(
             () -> FurnaceOwnershipTracker.class.getDeclaredMethod("isDebugResearcherInteraction", ItemStack.class));
@@ -62,5 +76,11 @@ public class FurnaceOutputGateTest {
         ItemStack debugTool = new ItemStack(new ItemDebugResearcherTool(), 1, 0);
         assertTrue((Boolean) predicate.invoke(null, debugTool));
         assertFalse((Boolean) predicate.invoke(null, new Object[] { null }));
+    }
+
+    private static String trackerSource() throws Exception {
+        return new String(
+            Files.readAllBytes(Paths.get("src/main/java/dev/gtnhjourney/acquisition/FurnaceOwnershipTracker.java")),
+            StandardCharsets.UTF_8);
     }
 }
