@@ -71,7 +71,13 @@ public final class JourneyResearchData extends WorldSavedData {
     public List<ItemStack> unlockStates(UUID playerId, ItemStack stack) {
         if (playerId == null || stack == null || stack.getItem() == null) return Collections.emptyList();
         ResearchRegistry registry = research.forPlayer(playerId);
-        List<ItemStack> addedStacks = new ArrayList<ItemStack>();
+        List<ResearchKey> preparedKeys = new ArrayList<ResearchKey>();
+        List<NBTTagCompound> preparedTags = new ArrayList<NBTTagCompound>();
+        List<ItemStack> preparedClientTemplates = new ArrayList<ItemStack>();
+
+        // Prepare every failure-prone semantic/template operation before mutating authoritative research. If optional
+        // integration code fails on any endpoint, the caller can safely report an observation failure with no partial
+        // registry/template/timeline commit left behind.
         for (ItemStack candidate : ResearchStateExpander.expand(stack)) {
             if (candidate == null || candidate.getItem() == null) continue;
             ResearchKey key;
@@ -80,16 +86,26 @@ public final class JourneyResearchData extends WorldSavedData {
             } catch (IllegalArgumentException ignored) {
                 continue;
             }
-            if (!registry.unlock(key)) continue;
+            if (registry.contains(key)) continue;
+
             NBTTagCompound savedTag = copyTag(candidate);
-            templateMap(playerId).put(key, savedTag);
-            timeline(playerId).record(key);
             ItemStack clientTemplate = dev.gtnhjourney.retrieval.ItemStackTemplateFactory.create(key, savedTag, 1);
             if (clientTemplate == null) {
                 clientTemplate = candidate.copy();
                 clientTemplate.stackSize = 1;
             }
-            addedStacks.add(clientTemplate);
+            preparedKeys.add(key);
+            preparedTags.add(savedTag);
+            preparedClientTemplates.add(clientTemplate);
+        }
+
+        List<ItemStack> addedStacks = new ArrayList<ItemStack>();
+        for (int i = 0; i < preparedKeys.size(); i++) {
+            ResearchKey key = preparedKeys.get(i);
+            if (!registry.unlock(key)) continue;
+            templateMap(playerId).put(key, preparedTags.get(i));
+            timeline(playerId).record(key);
+            addedStacks.add(preparedClientTemplates.get(i));
         }
         if (!addedStacks.isEmpty()) markDirty();
         return Collections.unmodifiableList(addedStacks);
