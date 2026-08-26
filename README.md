@@ -32,6 +32,7 @@ GT New Horizons 1.7.10 addon that automatically researches item states the playe
 - Compound NBT key order is canonicalized deterministically; list order remains significant.
 - Classic durability on non-subtyped items is treated as wear, not a new researched item.
 - Verified `MetaGeneratedTool` runtime fields `GT.ToolStats.Damage` and `GT.ToolStats.Mode` are ignored in identity and reset in retrieval templates; foreign lookalike NBT stays exact.
+- Filled fluid/container payload remains meaningful research state. Filled cells with different contents stay distinct; no generic `Fluid`/container stripping is applied.
 - GT fluid/container payload (`GT.FluidContent`) remains exact.
 - GT electric items use Journey endpoints: partial charge => BASE; verified max charge => BASE + FULL.
 - IC2 `IElectricItem` stacks use the same BASE/FULL model through the IC2 electric API/manager, not a generic `charge`-NBT heuristic.
@@ -40,13 +41,18 @@ GT New Horizons 1.7.10 addon that automatically researches item states the playe
 - Tinkers Construct `ToolCore` durability/render wear is normalized while `ToolLevel`, XP counters, modifiers, materials and other meaningful tool payload remain intact. Legacy pre5 templates that already lost XP counters are repaired to zero progress instead of stripping progression state again.
 - Botania magnet rings ignore the verified per-tick `cooldown` field in research identity and retrieval templates.
 - Draconic Evolution `ToolBase` items ignore only the auto-created five-empty-profile initialization payload; real profile contents remain exact.
+- `EMT:itemArmorQuantumChestplate` removes only observed zero-value `unequip`/`wing` initialization noise. Non-zero values and unrelated upgrades/enchantments remain exact.
+- `DraconicEvolution:wyvernChest` removes only verified runtime `ProtectionPoints`/`ShieldEntropy`; energy, configuration, upgrades and unrelated payload remain meaningful.
+- Wearable rules are exact registry-id scoped. Foreign armor carrying similarly named NBT stays untouched.
 - Unknown mod NBT remains exact by default. Compatibility rules fail closed rather than merging unknown states.
 
 ### Persistence and recovery
 
 - Exact server retrieval templates are stored alongside research keys.
 - Save-format migration rebuilds both identity and template through the same current semantic policy.
-- Broken NBT-backed entries with no retrieval template are rejected instead of becoming a bare item.
+- When old entries collapse to one canonical pre7 state, the first valid/earliest persisted occurrence keeps the chronology position and template deterministically.
+- Broken NBT-backed entries with no retrieval template are rejected instead of becoming a bare item; a later valid occurrence may then become the migration survivor.
+- Existing drill/electric endpoints and filled-cell research are preserved when their semantic states remain distinct.
 - Removed mod items remain diagnosable as orphan research until explicitly pruned.
 - Explicit destructive/recovery operations are transaction-aware and persist undo/redo state.
 - `/journey forget`, `/journey clear confirm` and `/journey prune-missing confirm` are undoable through the recovery journal.
@@ -91,19 +97,22 @@ Recommended old-world workflow: back up the save, walk through important parts o
 
 ## NEI GUI
 
-Journey deliberately reuses GTNH's existing NEI item panel instead of adding a second item browser.
+Journey deliberately reuses GTNH's existing NEI item panel instead of adding a second item browser. While J/N is active, Journey owns the small visible panel list directly from its synchronized research mirror instead of rebuilding or injecting variants into NEI's global item universe.
 
-- `J` toggles **Journey / Researched** view and orders researched states oldest-first, matching discovery order.
-- `N` toggles **Newest** view and orders the newest tail newest-first.
-- Exact synchronized NBT variants are injected only while `J`/`N` is active and are removed from normal NEI view.
-- A BASE item/meta state is reused when NEI already has that exact native state; if the exact BASE state is missing (for example some IC2 electric tools), Journey temporarily injects it instead of hiding the research entry.
-- Renderer-hostile volumetric-flask states use client-only presentation copies in NEI; clicks still resolve to the authoritative original research key/NBT for retrieval.
-- Normal NEI search and recipe/usage browsing remain available.
+- `J` toggles **Journey / Researched** and shows all researched states **newest-first**.
+- `N` toggles **Newest** and shows only the configured newest tail, also **newest-first**.
+- A newly researched state is index 0 and appears in the upper-left slot of page 1 after the incremental Journey refresh.
+- Stored Drill/Diamond Drill/Iridium Drill and filled-cell states are eligible directly from Journey chronology; visibility does not depend on NEI having a native permutation for them.
+- Normal unlocks rebuild only the small Journey panel list and do **not** call NEI's full item-universe reload.
+- Returning to ordinary NEI relinquishes Journey panel ownership and requests the normal NEI filter/update path.
+- Renderer-hostile states use client-only presentation copies. If third-party presentation/filter code fails, only that display entry is omitted for the current refresh; authoritative server research and retrieval templates remain intact.
+- Volumetric-flask display sanitization is Journey-local. pre7 does not claim to patch GregTech's global Creative Inventory renderer.
+- Normal NEI search and recipe/usage browsing remain available and constrain the Journey list without changing Journey chronology among matching states.
 - In Journey/Newest view: left click requests a full stack; right click requests one item.
 - In ordinary NEI: Ctrl + left click requests a full researched stack; Ctrl + right click requests one.
 - `Journey.Researched` and `Journey.Newest` remain fallback subsets for layouts too narrow to show both buttons.
 - Researched tooltips are marked and include Journey retrieval hotkey hints.
-- Migration actions update Journey through the existing direct/full research sync path and do not require a global NEI item-list rebuild.
+- Migration actions update Journey through the research sync path and do not require a global NEI item-list rebuild.
 
 The NEI built-in infinite/cheat item path is intentionally **not** used because it would bypass Journey's server-side research validation.
 
@@ -116,7 +125,7 @@ Diagnostics and ordinary player operations keep `/journey` permission level 0. T
 - `/journey debug`
 - `/journey debugtool` - grants the admin migration/recovery tool to the integrated owner or an operator
 - `/journey trace [on|off]` - opt-in live unlock chat/log trace for this server session
-- `/journey dump` - writes an attachable diagnostic file into `logs/`, including semantic-policy, recovery and pre7 migration counters
+- `/journey dump` - writes an attachable diagnostic file into `logs/`, including semantic-policy, presentation/performance, recovery and pre7 migration counters
 - `/journey hotspots [limit]`
 - `/journey list [page]`
 - `/journey newest [limit]`
@@ -128,7 +137,7 @@ Diagnostics and ordinary player operations keep `/journey` permission level 0. T
 - `/journey snapshot [name]`
 - `/journey snapshots`
 - `/journey restore <snapshot-id-or-name>`
-- `/journey inspect` - reports normalized identity, wire/sync information, GT/IC2/CoFH/OpenComputers charge classification, GT/TCon ownership, Botania magnet state, Draconic tool state and semantic endpoint count
+- `/journey inspect` - reports normalized identity, wire/sync information, GT/IC2/CoFH/OpenComputers charge classification, GT/TCon ownership, Botania magnet state, Draconic tool state, wearable-transient matching and semantic endpoint count
 - `/journey rescan`
 - `/journey prune-missing confirm`
 - `/journey clear confirm`
@@ -137,7 +146,7 @@ Diagnostics and ordinary player operations keep `/journey` permission level 0. T
 
 `config/gtnhjourney.cfg`:
 
-- `research.inventoryScanIntervalTicks` (default `2`)
+- `research.inventoryScanIntervalTicks` (default `20`, one-second fallback reconciliation)
 - `research.inventoryFullRescanIntervalTicks` (default `200`, safety deep-rescan while stable slots use cheap signatures)
 - `client.newestLimit` (default `64`)
 - `compatibility.normalizeGtTransientIdentity` (default `true`)
@@ -158,7 +167,7 @@ gradle spotlessApply --stacktrace
 gradle build --stacktrace
 ```
 
-`gradle build` includes the regression suite for chronology, semantic endpoint classification, renderer-safe presentation, acquisition, recovery transactions/snapshots and the pre7 Debug Researcher Tool. CI also verifies that the Java `VERSION`, production jar filename and packaged `mcmod.info` version agree before uploading production, dev and sources jars.
+`gradle build` includes the regression suite for chronology, semantic endpoint classification, filled-container exactness, wearable normalization/migration, renderer-safe presentation, acquisition, recovery transactions/snapshots and the pre7 Debug Researcher Tool. CI also verifies that the Java `VERSION`, production jar filename and packaged `mcmod.info` version agree before uploading production, dev and sources jars.
 
 For pre7 release verification, the debug package must contain no forced chunk-loading path and no global NEI reload path. AREA_16 is bounded to exactly 4096 planned positions and skips unavailable/unloaded cells.
 
