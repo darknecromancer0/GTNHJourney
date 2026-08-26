@@ -17,7 +17,8 @@ Expected:
 - ordinary NEI remains usable and Journey does not leak private panel variants into normal view;
 - existing valid research survives migration;
 - old entries newly collapsed by verified pre7 normalization keep the earliest valid chronology position/template;
-- old GT++ Hand Pump fluid-payload variants collapse to the same tool state rather than remaining separate because of `mFluid`/`mFluidAmount`;
+- old GT++ Hand Pump variants caused by auto-init/fluid fields (`mInit`, `mFluid`, `mFluidAmount`, `mMeta`, `mCapacity`, `capacityInit`) collapse to the same tool charge endpoint rather than remaining as separate research states;
+- Hand Pump `GT.ItemCharge` is not stripped and still follows electric BASE/FULL semantics;
 - partial-charge Vajra visual-damage variants collapse to the stable IC2 BASE endpoint where the IC2 manager is available;
 - accidentally persisted Debug Researcher Tool mode variants are removed and cannot be imported again;
 - migration itself produces no `Unlocked:` spam.
@@ -98,7 +99,8 @@ Expected:
 - existing filled-cell research survives migration;
 - J/N visibility comes from Journey research, not native NEI permutations;
 - retrieval preserves researched fluid identity/content for real containers;
-- changing/filling a GT++ Hand Pump does **not** create another researched pump solely because of `mFluid`, `mFluidAmount` or initialization payload;
+- changing/filling or merely initializing a GT++ Hand Pump does **not** create another researched pump solely because of `mInit`, `mFluid`, `mFluidAmount`, `mMeta`, `mCapacity` or `capacityInit`;
+- changing Hand Pump electric charge follows BASE/FULL semantics rather than being erased with the fluid-init payload;
 - Hand Pump normalization does not become a generic rule that strips fluid data from real containers or volumetric flasks.
 
 ## 7. Furnace output research
@@ -176,16 +178,17 @@ Expected:
 
 ## 11. Volumetric flask renderer safety
 
-Test the previously renderer-hostile GregTech volumetric flask/fluid state if available, including opening the global Creative inventory where it previously crashed.
+Test the previously renderer-hostile GregTech volumetric flask/fluid state if available, including opening the global vanilla Creative inventory where it previously crashed.
 
 Expected:
 - Journey J/N does not crash while constructing/hovering a saved flask state;
 - renderer-safe Journey display copies do not mutate authoritative server research/templates;
 - clicks/retrieval still resolve to the original authoritative research key;
 - a third-party Journey presentation failure may omit only that display entry for the current refresh and increments `presentationFailures`;
-- vanilla Creative and normal NEI do not crash on a GT volumetric-flask permutation whose fluid has no icon;
-- only proven unsafe volumetric-flask permutations are removed from the display list; normal flask states remain available;
-- after exercising Creative, `/journey dump` may show `creativeUnsafeFlaskVariantsRemoved > 0` as direct evidence that the safety path ran.
+- vanilla Creative no longer crashes on the proven GT volumetric-flask permutation whose fluid has no icon;
+- only proven unsafe volumetric-flask permutations are removed from Journey presentation or the vanilla Creative list; normal flask states remain available;
+- ordinary NEI remains usable but is **not** globally filtered by Journey's Creative crash guard;
+- after exercising Creative, `/journey dump` may show `creativeUnsafeFlaskVariantsRemoved > 0` as direct evidence that the Creative safety path ran.
 
 ## 12. Retrieval sanity
 
@@ -315,7 +318,7 @@ For one AREA_16 action, `debugResearchPositionsVisited` should advance by 35,937
 1. Back up the save.
 2. Launch the final pre7 jar and first confirm old research/drills/filled cells survived and known duplicate Hand Pump/Vajra/debugtool states collapsed as expected.
 3. Run `/journey debugtool`.
-4. Walk important parts of the base and use overlapping AREA_16 scans.
+4. Walk important parts of the base and use overlapping `AREA_16` scans.
 5. Use BLOCK for individual placed-state misses and CONTENTS for a specific inventory miss.
 6. Use undo/redo/snapshots and `/journey dump` if anything unexpected is imported.
 
