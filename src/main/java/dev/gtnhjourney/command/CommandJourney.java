@@ -194,7 +194,7 @@ public final class CommandJourney extends CommandBase {
             List<ResearchKey> unavailable = unavailableKeys(player);
             int removed = GTNHJourney.MUTATIONS.deleteMany(player, unavailable, "Prune unavailable research");
             if (removed > 0) sync(player);
-            tell(player, "Pruned " + removed + " unavailable states. /journey undo reverses the operation.");
+            tell(player, JourneyCommandPolicy.pruneMissingResult(removed));
             return;
         }
         if ("rescan".equals(action)) {
