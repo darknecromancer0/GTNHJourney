@@ -5,6 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 import org.junit.jupiter.api.Test;
 
@@ -32,6 +35,22 @@ public class FurnaceOutputGateTest {
         assertFalse(gate.observe(12345, true));
         assertFalse(gate.observe(0, false));
         assertTrue(gate.observe(12345, true));
+    }
+
+    @Test
+    public void trackedFurnaceCounterAdvancesOnlyAfterTheOutputGateAcceptsAChange() throws Exception {
+        String source = new String(
+            Files.readAllBytes(Paths.get("src/main/java/dev/gtnhjourney/acquisition/FurnaceOwnershipTracker.java")),
+            StandardCharsets.UTF_8);
+        int tickStart = source.indexOf("public void onServerTick");
+        int tickEnd = source.indexOf("public void onLogout", tickStart);
+        String tickBody = source.substring(tickStart, tickEnd);
+
+        int gate = tickBody.indexOf("if (!state.gate.observe(signature, occupied)) continue;");
+        int counter = tickBody.indexOf("JourneyRuntimeCounters.furnaceOutputObservation();");
+
+        assertTrue(gate >= 0);
+        assertTrue(counter > gate, "unchanged tracked output must not inflate furnaceOutputObservations");
     }
 
     @Test
