@@ -17,6 +17,7 @@ import dev.gtnhjourney.minecraft.ItemStackKeyFactory;
 import dev.gtnhjourney.persistence.JourneyRecoveryData;
 import dev.gtnhjourney.persistence.JourneyResearchData;
 import dev.gtnhjourney.persistence.JourneySnapshotData;
+import dev.gtnhjourney.persistence.PlayerResearchService;
 import dev.gtnhjourney.research.ResearchKey;
 
 /** Server-authoritative facade for explicit Journey mutations and recovery actions. */
@@ -134,6 +135,7 @@ public final class JourneyMutationService {
     public int applyBulkAdd(EntityPlayerMP player, List<ItemStack> observedStacks, String description) {
         if (player == null || observedStacks == null || observedStacks.isEmpty()) return 0;
         JourneyResearchData research = researchData(player);
+        PlayerResearchService researchService = new PlayerResearchService();
         UUID playerId = player.getUniqueID();
         ResearchStateSnapshot before = research.captureState(playerId);
         Set<ResearchKey> beforeKeys = keySet(before);
@@ -141,7 +143,7 @@ public final class JourneyMutationService {
         for (ItemStack stack : observedStacks) {
             if (!BulkResearchCandidatePolicy.shouldObserve(stack)) continue;
             try {
-                research.unlockStates(playerId, stack);
+                researchService.unlockStates(player, stack);
             } catch (RuntimeException ignored) {
                 // Broken optional-mod observations must not abort a migration batch.
             } catch (LinkageError ignored) {
