@@ -45,6 +45,8 @@ public final class JourneyNetwork {
             ResearchActivityTouchMessage.class,
             10,
             Side.CLIENT);
+        CHANNEL.registerMessage(InventoryScanRequestMessage.Handler.class, InventoryScanRequestMessage.class, 11, Side.SERVER);
+        CHANNEL.registerMessage(DebugToolRequestMessage.Handler.class, DebugToolRequestMessage.class, 12, Side.SERVER);
     }
 
     public static void requestRetrieve(ResearchKey key, int amount) {
@@ -53,6 +55,14 @@ public final class JourneyNetwork {
 
     public static void requestDelete(ResearchKey key) {
         if (key != null) CHANNEL.sendToServer(new DeleteRequestMessage(ResearchFingerprint.of(key)));
+    }
+
+    public static void requestInventoryScan() {
+        CHANNEL.sendToServer(new InventoryScanRequestMessage());
+    }
+
+    public static void requestDebugTool() {
+        CHANNEL.sendToServer(new DebugToolRequestMessage());
     }
 
     public static void sendFullSync(EntityPlayerMP player, List<ItemStack> stacks) {
