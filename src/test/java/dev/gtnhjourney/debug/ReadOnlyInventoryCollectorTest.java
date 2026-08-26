@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
 
 public class ReadOnlyInventoryCollectorTest {
 
@@ -47,14 +48,9 @@ public class ReadOnlyInventoryCollectorTest {
 
     @Test
     public void brokenStackCopyDoesNotAbortLaterInventoryCandidates() {
+        final ItemStack broken = new ItemStack(new Item(), 1, 0);
+        broken.setTagCompound(new LinkageFailingCopyTag());
         final Item validItem = new Item();
-        final ItemStack broken = new ItemStack(new Item(), 1, 0) {
-
-            @Override
-            public ItemStack copy() {
-                throw new NoClassDefFoundError("broken optional stack copy");
-            }
-        };
         final ItemStack valid = new ItemStack(validItem, 4, 3);
 
         List<ItemStack> result = ReadOnlyInventoryCollector.collect(new ReadOnlyInventoryCollector.SlotSource() {
@@ -91,5 +87,13 @@ public class ReadOnlyInventoryCollectorTest {
         });
 
         assertEquals(0, result.size());
+    }
+
+    private static final class LinkageFailingCopyTag extends NBTTagCompound {
+
+        @Override
+        public NBTTagCompound copy() {
+            throw new NoClassDefFoundError("broken optional stack copy");
+        }
     }
 }
