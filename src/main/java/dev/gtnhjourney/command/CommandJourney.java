@@ -26,7 +26,7 @@ public final class CommandJourney extends CommandBase {
 
     @Override
     public String getCommandUsage(ICommandSender sender) {
-        return "/journey <count|stats|debug|trace|dump|hotspots|list|newest|get|forget|undo|redo|restore-deleted|snapshot|snapshots|restore|inspect|rescan|prune-missing|clear>";
+        return "/journey <count|stats|debug|debugtool|trace|dump|hotspots|list|newest|get|forget|undo|redo|restore-deleted|snapshot|snapshots|restore|inspect|rescan|prune-missing|clear>";
     }
 
     @Override
@@ -53,6 +53,14 @@ public final class CommandJourney extends CommandBase {
         }
         if ("debug".equals(action)) {
             for (String line : dev.gtnhjourney.diagnostics.RuntimeCompatibilityReport.lines()) tell(player, line);
+            return;
+        }
+        if ("debugtool".equals(action)) {
+            if (!DebugToolPermissionPolicy.mayUse(player)) {
+                tell(player, "Debug Researcher Tool requires the integrated-server owner or operator permission.");
+                return;
+            }
+            giveDebugTool(player);
             return;
         }
         if ("trace".equals(action)) {
@@ -286,6 +294,18 @@ public final class CommandJourney extends CommandBase {
         player.inventory.addItemStackToInventory(stack);
         if (stack.stackSize > 0) player.dropPlayerItemWithRandomChoice(stack, false);
         player.inventoryContainer.detectAndSendChanges();
+    }
+
+    private void giveDebugTool(EntityPlayerMP player) {
+        if (GTNHJourney.DEBUG_RESEARCHER_TOOL == null) {
+            tell(player, "Debug Researcher Tool is not registered.");
+            return;
+        }
+        ItemStack tool = new ItemStack(GTNHJourney.DEBUG_RESEARCHER_TOOL, 1, 0);
+        player.inventory.addItemStackToInventory(tool);
+        if (tool.stackSize > 0) player.dropPlayerItemWithRandomChoice(tool, false);
+        player.inventoryContainer.detectAndSendChanges();
+        tell(player, "Debug Researcher Tool granted. Shift+right-click cycles BLOCK / CONTENTS / AREA_16.");
     }
 
     private void inspect(EntityPlayerMP player) {
