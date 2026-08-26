@@ -6,6 +6,8 @@ public final class JourneyButtonPresentation {
     // At 114px the second 16px button overlaps the centered "page/total" label. Keep a small safety gap.
     private static final int NEWEST_MIN_WIDTH = 132;
     private static final int DELETE_MIN_WIDTH = 150;
+    private static final int SCAN_MIN_WIDTH = 168;
+    private static final int DEBUG_TOOL_MIN_WIDTH = 186;
 
     private JourneyButtonPresentation() {}
 
@@ -19,6 +21,22 @@ public final class JourneyButtonPresentation {
 
     public static boolean deleteVisible(int panelWidth) {
         return panelWidth >= DELETE_MIN_WIDTH;
+    }
+
+    public static boolean scanVisible(int panelWidth) {
+        return panelWidth >= SCAN_MIN_WIDTH;
+    }
+
+    public static boolean debugToolVisible(int panelWidth) {
+        return panelWidth >= DEBUG_TOOL_MIN_WIDTH;
+    }
+
+    public static String scanTooltip() {
+        return "Scan inventory: deep-scan player inventory and embedded container contents, then refresh Journey.";
+    }
+
+    public static String debugToolTooltip() {
+        return "Give Debug Researcher Tool (integrated-server owner/operator only).";
     }
 
     public static String newestTooltip(boolean active) {
