@@ -34,6 +34,13 @@ public final class ResearchSyncEndMessage implements IMessage {
 
                 @Override
                 public void run() {
+                    // Research and N chronology form one visible snapshot. Never publish the research half if the
+                    // matching activity stream is incomplete; both mirrors retain the last complete epoch instead.
+                    if (!ClientActivityMirror.isComplete(epoch)) {
+                        ClientStackMirror.abort(epoch);
+                        ClientActivityMirror.abort(epoch);
+                        return;
+                    }
                     if (ClientStackMirror.finish(epoch)) {
                         ClientActivityMirror.finish(epoch, ClientStackMirror.snapshotKeysInResearchOrder());
                     } else {
