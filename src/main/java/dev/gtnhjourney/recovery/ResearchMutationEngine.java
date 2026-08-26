@@ -137,7 +137,7 @@ public final class ResearchMutationEngine {
         ResearchStateSnapshot target,
         String description,
         List<DeletionStateChange> deletionChanges) {
-        if (target == null || !canRestoreAll(target.entries(), false)) return 0;
+        if (target == null || !canRestoreAll(target.entries())) return 0;
         ResearchStateSnapshot before = research.captureState(playerId);
         if (sameState(before, target)) return 0;
 
@@ -213,7 +213,7 @@ public final class ResearchMutationEngine {
         while (applied < requested) {
             ResearchTransaction transaction = recovery.popUndo(playerId);
             if (transaction == null) break;
-            if (!canRestoreAll(transaction.removed(), true)) {
+            if (!canRestoreAll(transaction.removed())) {
                 recovery.pushUndo(playerId, transaction);
                 break;
             }
@@ -230,7 +230,7 @@ public final class ResearchMutationEngine {
         while (applied < requested) {
             ResearchTransaction transaction = recovery.popRedo(playerId);
             if (transaction == null) break;
-            if (!canRestoreAll(transaction.added(), true)) {
+            if (!canRestoreAll(transaction.added())) {
                 recovery.pushRedo(playerId, transaction);
                 break;
             }
@@ -277,12 +277,10 @@ public final class ResearchMutationEngine {
         }
     }
 
-    private boolean canRestoreAll(List<ResearchEntrySnapshot> entries, boolean existingIsEnough) {
+    private boolean canRestoreAll(List<ResearchEntrySnapshot> entries) {
         if (entries == null) return true;
         for (ResearchEntrySnapshot entry : entries) {
-            if (entry == null) continue;
-            if (existingIsEnough && research.registry(playerId).contains(entry.key())) continue;
-            if (!restorePolicy.canRestore(entry)) return false;
+            if (entry != null && !restorePolicy.canRestore(entry)) return false;
         }
         return true;
     }
