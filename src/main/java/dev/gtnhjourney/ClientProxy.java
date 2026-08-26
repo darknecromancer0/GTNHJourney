@@ -4,6 +4,7 @@ import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import dev.gtnhjourney.client.ClientConnectionTracker;
 import dev.gtnhjourney.client.ClientNetworkQueue;
+import dev.gtnhjourney.nei.JourneyCreativeInventorySafety;
 
 /** Client lifecycle that must exist before NEI config discovery or the first server research sync. */
 public final class ClientProxy extends CommonProxy {
@@ -16,5 +17,8 @@ public final class ClientProxy extends CommonProxy {
         FMLCommonHandler.instance()
             .bus()
             .register(new ClientNetworkQueue());
+        FMLCommonHandler.instance()
+            .bus()
+            .register(new JourneyCreativeInventorySafety());
     }
 }
