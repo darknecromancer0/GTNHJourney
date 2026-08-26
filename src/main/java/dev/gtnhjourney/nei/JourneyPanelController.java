@@ -86,6 +86,7 @@ public final class JourneyPanelController {
             }
         }
 
+        JourneyRuntimeCounters.panelPublication(authoritative.size(), byKey.size(), visible.size());
         ItemPanel.updateItemList(visible);
         JourneyRuntimeCounters.panelIncrementalUpdate();
         if (resetPage) ItemPanels.itemPanel.getGrid().setPage(0);
