@@ -31,7 +31,8 @@ final class JourneyPresentationSafety {
         return out.func_150296_c().isEmpty() ? null : out;
     }
 
-    private static boolean hasUnsafeFluidIcon(ItemStack stack) {
+    static boolean hasUnsafeFluidIcon(ItemStack stack) {
+        if (stack == null || !stack.hasTagCompound() || !stack.getTagCompound().hasKey("Fluid", 10)) return false;
         try {
             FluidStack fluidStack = FluidStack.loadFluidStackFromNBT(stack.getTagCompound().getCompoundTag("Fluid"));
             if (fluidStack == null) return false;
@@ -42,7 +43,8 @@ final class JourneyPresentationSafety {
         }
     }
 
-    private static boolean isVolumetricFlask(ItemStack stack) {
+    static boolean isVolumetricFlask(ItemStack stack) {
+        if (stack == null || stack.getItem() == null) return false;
         Class<?> type = stack.getItem().getClass();
         while (type != null) {
             if (VOLUMETRIC_FLASK.equals(type.getName())) return true;
