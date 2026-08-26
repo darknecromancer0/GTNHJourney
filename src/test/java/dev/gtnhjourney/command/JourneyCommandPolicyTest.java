@@ -27,4 +27,11 @@ public class JourneyCommandPolicyTest {
         assertEquals(1, JourneyCommandPolicy.parseUndoRedoCount("not-a-number"));
         assertEquals(1, JourneyCommandPolicy.parseRestoreDeletedCount(""));
     }
+
+    @Test
+    public void pruneMissingResultDoesNotPromiseImpossibleImmediateUndo() {
+        assertEquals(
+            "Pruned 3 unavailable states. Undo is retained, but restore is blocked until those items exist again.",
+            JourneyCommandPolicy.pruneMissingResult(3));
+    }
 }
