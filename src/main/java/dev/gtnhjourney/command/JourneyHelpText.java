@@ -4,19 +4,35 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-/** Compact chat help. Commands are grouped so the full reference does not flood the player's screen. */
+/** Chat help with one short, literal command description per line. */
 public final class JourneyHelpText {
 
     private static final List<String> LINES = Collections.unmodifiableList(
         Arrays.asList(
             "GTNH Journey commands:",
-            "/journey count | /journey stats | /journey inspect - research summary and held item diagnostics.",
-            "/journey research | /journey rescan - research the held item or rescan your real inventory.",
-            "/journey list [page] | /journey newest [n] | /journey get <index> [amount] - browse and retrieve research.",
-            "/journey forget <index> | /journey undo [n] | /journey redo [n] | /journey restore-deleted [n] - delete and recover states.",
-            "/journey snapshot [name] | /journey snapshots | /journey restore <id|name> - create, list and restore snapshots.",
-            "/journey debug | /journey trace [on|off] | /journey dump | /journey hotspots [n] - diagnostics and troubleshooting.",
-            "/journey debugtool | /journey prune-missing confirm | /journey clear confirm - migration and destructive tools."));
+            "/journey help - Show this help.",
+            "/journey count - Show researched state count.",
+            "/journey stats - Show research statistics.",
+            "/journey inspect - Inspect the held item's Journey identity.",
+            "/journey research - Research or refresh the held item.",
+            "/journey rescan - Rescan your real inventory.",
+            "/journey list [page] - List researched states.",
+            "/journey newest [n] - List newest researched states.",
+            "/journey get <index> [amount] - Retrieve a researched state.",
+            "/journey forget <index> - Forget a researched state.",
+            "/journey undo [n] - Undo Journey changes.",
+            "/journey redo [n] - Redo Journey changes.",
+            "/journey restore-deleted [n] - Restore deleted states.",
+            "/journey snapshot [name] - Create a snapshot.",
+            "/journey snapshots - List snapshots.",
+            "/journey restore <id|name> - Restore a snapshot.",
+            "/journey debug - Show compatibility diagnostics.",
+            "/journey trace [on|off] - Toggle research tracing.",
+            "/journey dump - Write a diagnostic dump.",
+            "/journey hotspots [n] - Show items with many stored states.",
+            "/journey debugtool - Give the Debug Researcher Tool.",
+            "/journey prune-missing confirm - Remove unavailable researched states.",
+            "/journey clear confirm - Clear all Journey research."));
 
     private JourneyHelpText() {}
 
