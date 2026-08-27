@@ -1,6 +1,6 @@
 # GTNH Journey
 
-Current release: `1.0.0`.
+Current release: `1.0.1`.
 
 GT New Horizons 1.7.10 addon that automatically researches item states the player genuinely obtains and allows server-authoritative infinite retrieval through the existing NEI frontend.
 
@@ -68,7 +68,7 @@ Journey reuses GTNH's normal NEI item panel rather than adding a second browser.
 
 NEI's native `G` expand/collapse control is not replaced or owned by Journey. It remains NEI's normal Collapsible Items display control and must not change Journey's authoritative research membership.
 
-Journey search handling uses the current NEI search expression while the direct Journey panel is active. Global NEI item-universe filters are not allowed to discard authoritative Journey templates merely because those exact NBT variants are absent from ordinary NEI permutations.
+Journey search handling uses the current NEI search expression only while the NEI search field is actually visible. Hidden search fields may retain stale text from another GUI and are ignored while Journey owns the item panel. Global NEI item-universe filters are not allowed to discard authoritative Journey templates merely because those exact NBT variants are absent from ordinary NEI permutations.
 
 Journey/Newest clicks:
 
@@ -159,7 +159,7 @@ Network/security hard limits and AREA_16 radius remain compile-time constants.
 
 - authoritative/client-mirror stack count;
 - semantic stack count after Journey keying;
-- visible panel stack count after the active search expression.
+- visible panel stack count after the active visible search expression.
 
 This makes a server-research versus client-sync versus panel-visibility loss distinguishable in one dump.
 
@@ -174,4 +174,4 @@ gradle build --stacktrace
 
 CI verifies checkout provenance, runs the complete regression suite, checks that `GTNHJourney.VERSION`, the production JAR filename and packaged `mcmod.info` version agree, then uploads production/dev/sources JARs.
 
-See `docs/first-live-test.md` for the 1.0.0 live-world regression matrix.
+See `docs/first-live-test.md` for the 1.0.x live-world regression matrix.
