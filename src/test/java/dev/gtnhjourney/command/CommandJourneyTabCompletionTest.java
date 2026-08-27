@@ -10,6 +10,31 @@ import org.junit.jupiter.api.Test;
 
 public class CommandJourneyTabCompletionTest {
 
+    private static final List<String> ALL_COMMANDS = Arrays.asList(
+        "help",
+        "count",
+        "stats",
+        "inspect",
+        "research",
+        "rescan",
+        "list",
+        "newest",
+        "get",
+        "forget",
+        "undo",
+        "redo",
+        "restore-deleted",
+        "snapshot",
+        "snapshots",
+        "restore",
+        "debug",
+        "trace",
+        "dump",
+        "hotspots",
+        "debugtool",
+        "prune-missing",
+        "clear");
+
     private final CommandJourney command = new CommandJourney();
 
     @Test
@@ -36,7 +61,7 @@ public class CommandJourneyTabCompletionTest {
     public void rootCompletionIncludesEveryJourneyCommand() {
         List<?> options = command.addTabCompletionOptions(null, new String[] { "" });
 
-        for (String expected : JourneyCommandCompletion.subcommands()) {
+        for (String expected : ALL_COMMANDS) {
             assertTrue(options.contains(expected), "missing completion for " + expected);
         }
     }
