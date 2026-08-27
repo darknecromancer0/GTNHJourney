@@ -23,7 +23,7 @@ public class JourneyResearchV7MigrationTest {
 
         NBTTagCompound rewritten = new NBTTagCompound();
         data.writeToNBT(rewritten);
-        assertEquals(8, rewritten.getInteger("Version"));
+        assertEquals(9, rewritten.getInteger("Version"));
         assertEquals(0, rewritten.getTagList("UndoPlayers", 10).tagCount());
         assertEquals(1, rewritten.getTagList("Players", 10).tagCount());
         assertEquals(2, rewritten.getTagList("Players", 10).getCompoundTagAt(0).getTagList("Entries", 10).tagCount());
