@@ -5,9 +5,10 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 
 import cpw.mods.fml.common.registry.GameRegistry;
+import dev.gtnhjourney.minecraft.GtToolStatePolicy;
 import dev.gtnhjourney.research.ResearchKey;
 
-/** Reconstructs only a server-persisted researched stack template. */
+/** Reconstructs only a server-persisted researched stack template that is still issuable by the live runtime. */
 public final class ItemStackTemplateFactory {
 
     private ItemStackTemplateFactory() {}
@@ -28,6 +29,7 @@ public final class ItemStackTemplateFactory {
 
             ItemStack stack = new ItemStack(item, 1, key.getMeta());
             if (originalTag != null) stack.setTagCompound((NBTTagCompound) originalTag.copy());
+            if (GtToolStatePolicy.isKnownInvalidToolState(stack)) return null;
             // Some modded items derive their stack limit from NBT, so clamp only after restoring the exact tag.
             stack.stackSize = RetrievalPolicy.clampAmount(requestedAmount, stack.getMaxStackSize());
             return stack;
