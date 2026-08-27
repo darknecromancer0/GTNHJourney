@@ -18,6 +18,7 @@ public final class ResearchNbtIdentity {
         WearableTransientStatePolicy.normalize(stack, identityTag);
         TransientToolFluidPolicy.normalize(stack, identityTag);
         EmbeddedInventoryPolicy.normalize(stack, identityTag);
+        ForestryGeneticsNbtPolicy.normalize(stack, identityTag);
         if (identityTag.func_150296_c()
             .isEmpty()) return "";
         final boolean normalizeToolState = ResearchCompatibilityOptions.normalizeGtTransientIdentity()
@@ -35,7 +36,7 @@ public final class ResearchNbtIdentity {
                         || "RenderBroken".equals(key)
                         || "ToolEXP".equals(key)
                         || "HeadEXP".equals(key)
-                        || "ExtraRedstone".equals(key)))
+                        || TconToolStatePolicy.isTransientIguanaCounterKey(key)))
                     return false;
                 return true;
             }
