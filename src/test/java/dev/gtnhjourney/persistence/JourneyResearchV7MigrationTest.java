@@ -23,7 +23,9 @@ public class JourneyResearchV7MigrationTest {
 
         NBTTagCompound rewritten = new NBTTagCompound();
         data.writeToNBT(rewritten);
-        assertEquals(9, rewritten.getInteger("Version"));
+        // 1.0.4 changes semantic resolution, not the serialized schema. Existing entries are re-resolved on every load,
+        // so equivalent partial/runtime states can migrate and dedupe without a format-version bump.
+        assertEquals(8, rewritten.getInteger("Version"));
         assertEquals(0, rewritten.getTagList("UndoPlayers", 10).tagCount());
         assertEquals(1, rewritten.getTagList("Players", 10).tagCount());
         assertEquals(2, rewritten.getTagList("Players", 10).getCompoundTagAt(0).getTagList("Entries", 10).tagCount());
