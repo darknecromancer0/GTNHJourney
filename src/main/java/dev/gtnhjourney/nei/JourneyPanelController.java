@@ -5,6 +5,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.item.ItemStack;
 
 import codechicken.nei.ItemList;
@@ -66,10 +69,10 @@ public final class JourneyPanelController {
             ClientActivityMirror.snapshotOldestFirst(),
             mode);
         ArrayList<ItemStack> visible = new ArrayList<ItemStack>(ordered.size());
-        // Journey already owns the authoritative subset. Re-applying every global NEI ItemFilterProvider here can
-        // silently reject exact Journey templates that were never part of NEI's global item universe. Preserve only
-        // the user's live search expression while its field is actually visible; a hidden field can retain stale text
-        // from another GUI and must not silently hide researched Journey states.
+        // Journey publishes from a client tick, while NEI updates search-widget visibility from GUI layout. Refresh the
+        // current container layout first so a hidden search field cannot retain visible=true from the previous GUI and
+        // silently apply its stale text to Journey's authoritative research set.
+        synchronizeSearchWidgetVisibility();
         ItemFilter activeFilter = LayoutManager.searchField == null || !LayoutManager.searchField.isVisible()
             ? null
             : LayoutManager.searchField.getFilter();
@@ -95,6 +98,15 @@ public final class JourneyPanelController {
         if (resetPage) ItemPanels.itemPanel.getGrid().setPage(0);
         owned = true;
         lastPublishedList = visible;
+    }
+
+    private static void synchronizeSearchWidgetVisibility() {
+        Minecraft minecraft = Minecraft.getMinecraft();
+        if (minecraft == null) return;
+        GuiScreen currentScreen = Minecraft.getMinecraft().currentScreen;
+        if (currentScreen instanceof GuiContainer) {
+            LayoutManager.layout((GuiContainer) currentScreen);
+        }
     }
 
     static ItemStack safePresentation(ItemStack original) {
