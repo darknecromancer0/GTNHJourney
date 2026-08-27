@@ -68,8 +68,11 @@ public final class JourneyPanelController {
         ArrayList<ItemStack> visible = new ArrayList<ItemStack>(ordered.size());
         // Journey already owns the authoritative subset. Re-applying every global NEI ItemFilterProvider here can
         // silently reject exact Journey templates that were never part of NEI's global item universe. Preserve only
-        // the user's live search expression while J/N/D owns the panel.
-        ItemFilter activeFilter = LayoutManager.searchField == null ? null : LayoutManager.searchField.getFilter();
+        // the user's live search expression while its field is actually visible; a hidden field can retain stale text
+        // from another GUI and must not silently hide researched Journey states.
+        ItemFilter activeFilter = LayoutManager.searchField == null || !LayoutManager.searchField.isVisible()
+            ? null
+            : LayoutManager.searchField.getFilter();
         JourneyPresentationKeyResolver.clear();
 
         for (ResearchKey key : ordered) {
