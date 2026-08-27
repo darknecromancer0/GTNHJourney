@@ -74,7 +74,7 @@ public final class PersistedResearchEntryResolver {
         if (fallback == null) return null;
         if (reconstructed == null) return new ResolvedEntry(fallback, fallbackTemplate);
         try {
-            if (!ResearchObservationPolicy.shouldObserve(reconstructed)) return null;
+            if (!ResearchObservationPolicy.shouldPersist(reconstructed)) return null;
 
             ItemStack semantic = GtChargeStatePolicy.identityStack(reconstructed);
             if (GtChargeStatePolicy.classify(reconstructed) == GtChargeStatePolicy.State.EXACT) {
