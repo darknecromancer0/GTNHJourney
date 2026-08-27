@@ -1,6 +1,7 @@
 package dev.gtnhjourney.command;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
@@ -19,6 +20,10 @@ import dev.gtnhjourney.research.ResearchKey;
 /** Diagnostic, recovery and fallback UI for Journey research. */
 public final class CommandJourney extends CommandBase {
 
+    private static final String[] SUBCOMMANDS = { "help", "count", "stats", "inspect", "research", "rescan", "list",
+        "newest", "get", "forget", "undo", "redo", "restore-deleted", "snapshot", "snapshots", "restore", "debug",
+        "trace", "dump", "hotspots", "debugtool", "prune-missing", "clear" };
+
     @Override
     public String getCommandName() {
         return "journey";
@@ -32,6 +37,20 @@ public final class CommandJourney extends CommandBase {
     @Override
     public int getRequiredPermissionLevel() {
         return 0;
+    }
+
+    @Override
+    @SuppressWarnings("rawtypes")
+    public List addTabCompletionOptions(ICommandSender sender, String[] args) {
+        if (args.length == 1) return getListOfStringsMatchingLastWord(args, SUBCOMMANDS);
+        if (args.length == 2) {
+            String action = args[0].toLowerCase(Locale.ROOT);
+            if ("trace".equals(action)) return getListOfStringsMatchingLastWord(args, "on", "off");
+            if ("clear".equals(action) || "prune-missing".equals(action)) {
+                return getListOfStringsMatchingLastWord(args, "confirm");
+            }
+        }
+        return Collections.emptyList();
     }
 
     @Override
