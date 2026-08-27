@@ -1,6 +1,7 @@
 package dev.gtnhjourney.command;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
@@ -61,6 +62,7 @@ public class CommandJourneyTabCompletionTest {
     public void rootCompletionIncludesEveryJourneyCommand() {
         List<?> options = command.addTabCompletionOptions(null, new String[] { "" });
 
+        assertNotNull(options);
         for (String expected : ALL_COMMANDS) {
             assertTrue(options.contains(expected), "missing completion for " + expected);
         }
