@@ -12,17 +12,20 @@ import org.junit.jupiter.api.Test;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraftforge.fluids.FluidRegistry;
+import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidContainerItem;
 
 public class FluidContainerStatePolicyTest {
 
+    private static final Fluid WATER = new Fluid("journey_test_water");
+    private static final Fluid LAVA = new Fluid("journey_test_lava");
+
     @Test
     public void oneMilliBucketProvesSingleFullEndpoint() {
         TestTankItem item = new TestTankItem(1000);
         ItemStack partial = new ItemStack(item, 1, 0);
-        item.fill(partial, new FluidStack(FluidRegistry.WATER, 1), true);
+        item.fill(partial, new FluidStack(WATER, 1), true);
 
         List<ItemStack> expanded = ResearchStateExpander.expand(partial);
 
@@ -30,7 +33,7 @@ public class FluidContainerStatePolicyTest {
         FluidStack full = item.getFluid(expanded.get(0));
         assertNotNull(full);
         assertEquals(1000, full.amount);
-        assertEquals(FluidRegistry.WATER, full.getFluid());
+        assertEquals(WATER, full.getFluid());
     }
 
     @Test
@@ -38,8 +41,8 @@ public class FluidContainerStatePolicyTest {
         TestTankItem item = new TestTankItem(8000);
         ItemStack one = new ItemStack(item, 1, 0);
         ItemStack sevenThousand = new ItemStack(item, 1, 0);
-        item.fill(one, new FluidStack(FluidRegistry.WATER, 1), true);
-        item.fill(sevenThousand, new FluidStack(FluidRegistry.WATER, 7000), true);
+        item.fill(one, new FluidStack(WATER, 1), true);
+        item.fill(sevenThousand, new FluidStack(WATER, 7000), true);
 
         ItemStack oneFull = ResearchStateExpander.expand(one).get(0);
         ItemStack sevenFull = ResearchStateExpander.expand(sevenThousand).get(0);
@@ -54,8 +57,8 @@ public class FluidContainerStatePolicyTest {
         TestTankItem item = new TestTankItem(1000);
         ItemStack water = new ItemStack(item, 1, 0);
         ItemStack lava = new ItemStack(item, 1, 0);
-        item.fill(water, new FluidStack(FluidRegistry.WATER, 1), true);
-        item.fill(lava, new FluidStack(FluidRegistry.LAVA, 1), true);
+        item.fill(water, new FluidStack(WATER, 1), true);
+        item.fill(lava, new FluidStack(LAVA, 1), true);
 
         ItemStack waterFull = ResearchStateExpander.expand(water).get(0);
         ItemStack lavaFull = ResearchStateExpander.expand(lava).get(0);
