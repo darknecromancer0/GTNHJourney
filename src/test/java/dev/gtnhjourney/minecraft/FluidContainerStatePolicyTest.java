@@ -88,8 +88,11 @@ public class FluidContainerStatePolicyTest {
         public FluidStack getFluid(ItemStack container) {
             if (container == null || !container.hasTagCompound()) return null;
             NBTTagCompound root = container.getTagCompound();
-            if (!root.hasKey("Fluid", 10)) return null;
-            return FluidStack.loadFluidStackFromNBT(root.getCompoundTag("Fluid"));
+            if (!root.hasKey("FluidKind", 8)) return null;
+            Fluid fluid = "water".equals(root.getString("FluidKind")) ? WATER
+                : "lava".equals(root.getString("FluidKind")) ? LAVA : null;
+            if (fluid == null) return null;
+            return new FluidStack(fluid, root.getInteger("Amount"));
         }
 
         @Override
@@ -101,17 +104,14 @@ public class FluidContainerStatePolicyTest {
         public int fill(ItemStack container, FluidStack resource, boolean doFill) {
             if (container == null || resource == null || resource.getFluid() == null) return 0;
             FluidStack current = getFluid(container);
-            if (current != null && !current.isFluidEqual(resource)) return 0;
+            if (current != null && current.getFluid() != resource.getFluid()) return 0;
             int currentAmount = current == null ? 0 : current.amount;
             int accepted = Math.min(capacity - currentAmount, resource.amount);
             if (accepted <= 0) return 0;
             if (doFill) {
-                FluidStack stored = resource.copy();
-                stored.amount = currentAmount + accepted;
                 NBTTagCompound root = container.hasTagCompound() ? container.getTagCompound() : new NBTTagCompound();
-                NBTTagCompound fluid = new NBTTagCompound();
-                stored.writeToNBT(fluid);
-                root.setTag("Fluid", fluid);
+                root.setString("FluidKind", resource.getFluid() == WATER ? "water" : "lava");
+                root.setInteger("Amount", currentAmount + accepted);
                 container.setTagCompound(root);
             }
             return accepted;
@@ -122,18 +122,13 @@ public class FluidContainerStatePolicyTest {
             FluidStack current = getFluid(container);
             if (current == null || maxDrain <= 0) return null;
             int drainedAmount = Math.min(maxDrain, current.amount);
-            FluidStack drained = current.copy();
-            drained.amount = drainedAmount;
+            FluidStack drained = new FluidStack(current.getFluid(), drainedAmount);
             if (doDrain) {
                 int left = current.amount - drainedAmount;
                 if (left <= 0) {
-                    container.getTagCompound().removeTag("Fluid");
-                    if (container.getTagCompound().func_150296_c().isEmpty()) container.setTagCompound(null);
+                    container.setTagCompound(null);
                 } else {
-                    current.amount = left;
-                    NBTTagCompound fluid = new NBTTagCompound();
-                    current.writeToNBT(fluid);
-                    container.getTagCompound().setTag("Fluid", fluid);
+                    container.getTagCompound().setInteger("Amount", left);
                 }
             }
             return drained;
