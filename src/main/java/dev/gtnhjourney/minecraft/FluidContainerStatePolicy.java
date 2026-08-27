@@ -36,8 +36,11 @@ public final class FluidContainerStatePolicy {
                 FluidStack topUp = fluid.copy();
                 int needed = target - fluid.amount;
                 topUp.amount = needed;
+                // IFluidContainerItem implementations disagree on whether fill() reports the accepted delta or the
+                // resulting contained amount. The postcondition below is authoritative, so only require a positive
+                // mutation result here and verify the actual FULL state afterwards.
                 int accepted = container.fill(full, topUp, true);
-                if (accepted != needed) return null;
+                if (accepted <= 0) return null;
             }
 
             FluidStack result = container.getFluid(full);
