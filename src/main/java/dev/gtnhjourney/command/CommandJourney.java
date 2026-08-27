@@ -12,7 +12,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.ChatComponentText;
 
 import dev.gtnhjourney.GTNHJourney;
-import dev.gtnhjourney.acquisition.PlayerInventoryScanner;
+import dev.gtnhjourney.acquisition.ManualInventoryResearchService;
 import dev.gtnhjourney.network.JourneyNetwork;
 import dev.gtnhjourney.recovery.JourneySnapshot;
 import dev.gtnhjourney.research.ResearchKey;
@@ -237,18 +237,11 @@ public final class CommandJourney extends CommandBase {
             return;
         }
         if ("rescan".equals(action)) {
-            final List<ItemStack> observed = new ArrayList<ItemStack>();
-            PlayerInventoryScanner.scan(player, new PlayerInventoryScanner.StackVisitor() {
-
-                @Override
-                public void visit(ItemStack stack) {
-                    if (stack == null || stack.getItem() == null || stack.stackSize <= 0) return;
-                    observed.add(stack.copy());
-                }
-            });
-            int added = GTNHJourney.MUTATIONS.applyBulkAdd(player, observed, "Inventory rescan");
-            if (added > 0) sync(player);
-            tell(player, "Rescan complete. New: " + added);
+            ManualInventoryResearchService.Result result = ManualInventoryResearchService.scan(
+                player,
+                GTNHJourney.RESEARCH,
+                GTNHJourney.MUTATIONS);
+            tell(player, result.summary());
             return;
         }
         if ("clear".equals(action)) {
