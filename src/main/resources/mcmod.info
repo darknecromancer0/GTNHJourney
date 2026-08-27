@@ -3,7 +3,7 @@
     "modid": "gtnhjourney",
     "name": "GTNH Journey",
     "description": "Automatic research and infinite retrieval for GT New Horizons, integrated with NEI.",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "mcversion": "1.7.10",
     "url": "",
     "updateUrl": "",
