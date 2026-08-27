@@ -1,6 +1,6 @@
 # GTNH Journey
 
-Current release: `1.0.1`.
+Current release: `1.0.3`.
 
 GT New Horizons 1.7.10 addon that automatically researches item states the player genuinely obtains and allows server-authoritative infinite retrieval through the existing NEI frontend.
 
@@ -24,6 +24,7 @@ Representative compatibility rules include:
 - verified GregTech electric items use BASE/FULL charge endpoints;
 - IC2, CoFH and supported OpenComputers electric items use equivalent endpoint semantics through their APIs;
 - verified GregTech tool wear/mode counters, supported Tinkers wear, Botania magnet cooldown, selected Draconic runtime shield/profile noise and known wearable runtime fields are normalized without generically stripping unrelated NBT;
+- obsolete GregTech generated-tool metas that the live runtime positively identifies as unregistered remain preserved in old Journey history, but are not newly researched, shown or issued;
 - real filled fluid containers remain exact, including their fluid contents;
 - GT++ Hand Pump transient internal fluid/init fields are normalized while its electric state remains meaningful.
 
