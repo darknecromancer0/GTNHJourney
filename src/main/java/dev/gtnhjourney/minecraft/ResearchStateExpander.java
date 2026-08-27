@@ -14,6 +14,13 @@ public final class ResearchStateExpander {
         if (observed == null || observed.getItem() == null) return Collections.emptyList();
         ItemStack exact = observed.copy();
         exact.stackSize = 1;
+
+        // A real Forge fluid container with any positive amount proves the full endpoint for that same fluid. Partial
+        // fill amounts are runtime state, not separate Journey discoveries. Empty containers continue through normal
+        // identity handling below.
+        ItemStack fullFluidContainer = FluidContainerStatePolicy.fullEquivalent(exact);
+        if (fullFluidContainer != null) return Collections.singletonList(fullFluidContainer);
+
         GtChargeStatePolicy.State chargeState = ResearchCompatibilityOptions.normalizeGtChargeEndpoints()
             ? GtChargeStatePolicy.classify(observed) : GtChargeStatePolicy.State.EXACT;
         if (chargeState == GtChargeStatePolicy.State.BASE) {
