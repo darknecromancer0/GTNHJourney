@@ -1,18 +1,17 @@
 package dev.gtnhjourney.minecraft;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.List;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidContainerItem;
@@ -45,7 +44,7 @@ public class FluidContainerStatePolicyTest {
         ItemStack oneFull = ResearchStateExpander.expand(one).get(0);
         ItemStack sevenFull = ResearchStateExpander.expand(sevenThousand).get(0);
 
-        assertEquals(ItemStackKeyFactory.from(oneFull), ItemStackKeyFactory.from(sevenFull));
+        assertEquals(ResearchNbtIdentity.canonicalize(oneFull), ResearchNbtIdentity.canonicalize(sevenFull));
         assertEquals(8000, item.getFluid(oneFull).amount);
         assertEquals(8000, item.getFluid(sevenFull).amount);
     }
@@ -61,7 +60,7 @@ public class FluidContainerStatePolicyTest {
         ItemStack waterFull = ResearchStateExpander.expand(water).get(0);
         ItemStack lavaFull = ResearchStateExpander.expand(lava).get(0);
 
-        assertFalse(ItemStackKeyFactory.from(waterFull).equals(ItemStackKeyFactory.from(lavaFull)));
+        assertFalse(ResearchNbtIdentity.canonicalize(waterFull).equals(ResearchNbtIdentity.canonicalize(lavaFull)));
     }
 
     @Test
@@ -72,7 +71,7 @@ public class FluidContainerStatePolicyTest {
         List<ItemStack> expanded = ResearchStateExpander.expand(empty);
 
         assertEquals(1, expanded.size());
-        assertTrue(item.getFluid(expanded.get(0)) == null);
+        assertNull(item.getFluid(expanded.get(0)));
     }
 
     private static final class TestTankItem extends Item implements IFluidContainerItem {
