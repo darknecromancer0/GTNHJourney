@@ -20,9 +20,9 @@ public class CommandJourneyRescanContractTest {
         int start = text.indexOf("if (\"rescan\".equals(action))");
         int end = text.indexOf("if (\"clear\".equals(action))", start);
         assertTrue(start >= 0 && end > start);
-        String block = text.substring(start, end);
+        String compact = text.substring(start, end).replaceAll("\\s+", "");
 
-        assertTrue(block.contains("ManualInventoryResearchService.scan("));
-        assertFalse(block.contains("PlayerInventoryScanner.scan("));
+        assertTrue(compact.contains("ManualInventoryResearchService.scan("));
+        assertFalse(compact.contains("PlayerInventoryScanner.scan("));
     }
 }
