@@ -11,6 +11,7 @@ import net.minecraft.nbt.NBTTagCompound;
 
 import org.junit.jupiter.api.Test;
 
+import dev.gtnhjourney.minecraft.NbtCanonicalizer;
 import dev.gtnhjourney.recovery.DeletionRecord;
 import dev.gtnhjourney.recovery.ResearchEntrySnapshot;
 import dev.gtnhjourney.recovery.ResearchTransaction;
@@ -59,18 +60,18 @@ public class JourneyRecoveryDataTest {
     @Test
     public void recoveryEntriesAreRecanonicalizedAndSemanticDuplicatesCollapseOnLoad() {
         UUID player = UUID.randomUUID();
-        ResearchEntrySnapshot wornBowOne = entry("minecraft:bow", 1, 4);
-        ResearchEntrySnapshot wornBowTwo = entry("minecraft:bow", 2, 5);
+        ResearchEntrySnapshot chiselOne = legacyChiselEntry("minecraft:stone", 4);
+        ResearchEntrySnapshot chiselTwo = legacyChiselEntry("minecraft:dirt", 5);
         JourneyRecoveryData original = new JourneyRecoveryData();
         original.pushUndo(
             player,
             new ResearchTransaction(
                 20L,
                 200L,
-                "legacy duplicate wear",
-                Arrays.asList(wornBowOne, wornBowTwo),
+                "legacy duplicate chisel target",
+                Arrays.asList(chiselOne, chiselTwo),
                 Collections.<ResearchEntrySnapshot>emptyList()));
-        original.appendDeletion(player, new DeletionRecord(7L, 210L, wornBowOne, true));
+        original.appendDeletion(player, new DeletionRecord(7L, 210L, chiselOne, true));
 
         NBTTagCompound root = new NBTTagCompound();
         original.writeToNBT(root);
@@ -80,10 +81,13 @@ public class JourneyRecoveryDataTest {
         ResearchTransaction transaction = restored.popUndo(player);
 
         assertEquals(1, transaction.added().size());
-        assertEquals(0, transaction.added().get(0).key().getMeta());
+        assertEquals("chisel:chisel", transaction.added().get(0).key().getItemId());
+        assertEquals("", transaction.added().get(0).key().getCanonicalNbt());
+        assertNull(transaction.added().get(0).template());
         assertEquals(4, transaction.added().get(0).timelineIndex());
         assertEquals(1, restored.deletions(player).size());
-        assertEquals(0, restored.deletions(player).get(0).entry().key().getMeta());
+        assertEquals("", restored.deletions(player).get(0).entry().key().getCanonicalNbt());
+        assertNull(restored.deletions(player).get(0).entry().template());
     }
 
     private static ResearchTransaction tx(long id) {
@@ -95,7 +99,14 @@ public class JourneyRecoveryDataTest {
             Collections.emptyList());
     }
 
-    private static ResearchEntrySnapshot entry(String itemId, int meta, int timelineIndex) {
-        return new ResearchEntrySnapshot(new ResearchKey(itemId, meta, ""), null, timelineIndex);
+    private static ResearchEntrySnapshot legacyChiselEntry(String targetId, int timelineIndex) {
+        NBTTagCompound target = new NBTTagCompound();
+        target.setString("id", targetId);
+        NBTTagCompound tag = new NBTTagCompound();
+        tag.setTag("chiselTarget", target);
+        return new ResearchEntrySnapshot(
+            new ResearchKey("chisel:chisel", 0, NbtCanonicalizer.canonicalize(tag)),
+            tag,
+            timelineIndex);
     }
 }
