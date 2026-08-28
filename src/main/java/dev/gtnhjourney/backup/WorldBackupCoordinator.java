@@ -87,8 +87,11 @@ public final class WorldBackupCoordinator {
                         result = WorldBackupResult.failure("Backup failed safely: " + safeMessage(failure));
                     }
                     if (result == null) result = WorldBackupResult.failure("Backup failed safely: no result.");
-                    workerResult = result;
-                    workerFinished = true;
+                    synchronized (WorldBackupCoordinator.this) {
+                        workerResult = result;
+                        workerFinished = true;
+                        WorldBackupCoordinator.this.notifyAll();
+                    }
                 }
             });
             return WorldBackupResult.started();
@@ -123,6 +126,23 @@ public final class WorldBackupCoordinator {
         lastResult = result;
         if (result.isSuccess()) lastSuccessfulBackupMillis = now;
         clearActiveBackup();
+        return result;
+    }
+
+    /** Stops accepting new backups and safely drains an active worker before the server saves during shutdown. */
+    public synchronized WorldBackupResult finishForShutdown() {
+        stopping = true;
+        boolean interrupted = false;
+        while (running && !workerFinished) {
+            try {
+                wait();
+            } catch (InterruptedException ignored) {
+                interrupted = true;
+            }
+        }
+
+        WorldBackupResult result = running ? pollCompletion() : null;
+        if (interrupted) Thread.currentThread().interrupt();
         return result;
     }
 
