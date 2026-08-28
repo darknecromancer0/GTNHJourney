@@ -13,9 +13,9 @@ public final class JourneyRetrieveClickPolicy {
         return (button == 0 || button == 1) && (journeyView || controlDown);
     }
 
-    /** RMB or Shift requests one; plain LMB requests one natural max stack. */
+    /** LMB requests one item; RMB requests one natural max stack. Shift does not change the amount. */
     public static int requestedAmount(int button, boolean shiftDown, int maxStackSize) {
-        if (button == 1 || shiftDown) return 1;
-        return Math.max(1, maxStackSize);
+        if (button == 1) return Math.max(1, maxStackSize);
+        return 1;
     }
 }
