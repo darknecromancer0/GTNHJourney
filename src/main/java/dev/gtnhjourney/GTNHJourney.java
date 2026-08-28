@@ -14,6 +14,7 @@ import cpw.mods.fml.common.registry.GameRegistry;
 import dev.gtnhjourney.acquisition.FurnaceOwnershipTracker;
 import dev.gtnhjourney.acquisition.InventoryResearchTracker;
 import dev.gtnhjourney.acquisition.ResearchObservationService;
+import dev.gtnhjourney.backup.WorldBackupCoordinator;
 import dev.gtnhjourney.command.CommandJourney;
 import dev.gtnhjourney.config.JourneyConfig;
 import dev.gtnhjourney.debug.ItemDebugResearcherTool;
@@ -23,6 +24,8 @@ import dev.gtnhjourney.network.ServerResearchSyncQueue;
 import dev.gtnhjourney.persistence.PlayerResearchService;
 import dev.gtnhjourney.recovery.JourneyMutationService;
 import dev.gtnhjourney.recovery.JourneySnapshotTicker;
+import dev.gtnhjourney.safety.ExplosionGuard;
+import dev.gtnhjourney.safety.PlayerCleanseService;
 
 @Mod(
     modid = GTNHJourney.MODID,
@@ -39,6 +42,9 @@ public final class GTNHJourney {
     public static final String TARGET_NEI = "2.8.111-GTNH";
     public static final PlayerResearchService RESEARCH = new PlayerResearchService();
     public static final JourneySnapshotTicker SNAPSHOT_TICKER = new JourneySnapshotTicker();
+    public static final WorldBackupCoordinator WORLD_BACKUPS = new WorldBackupCoordinator();
+    public static final ExplosionGuard EXPLOSION_GUARD = new ExplosionGuard();
+    public static final PlayerCleanseService CLEANSE = new PlayerCleanseService();
     public static JourneyMutationService MUTATIONS;
     public static Item DEBUG_RESEARCHER_TOOL;
 
