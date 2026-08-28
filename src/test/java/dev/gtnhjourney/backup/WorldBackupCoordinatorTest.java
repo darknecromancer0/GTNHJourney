@@ -121,6 +121,33 @@ class WorldBackupCoordinatorTest {
         assertFalse(coordinator.isRunning());
     }
 
+    @Test
+    void shutdownFinalizationRestoresSnapshotAndRejectsNewBackupWork() throws Exception {
+        MutableClock clock = new MutableClock();
+        RecordingPreparedBackup prepared = new RecordingPreparedBackup(WorldBackupResult.success(null));
+        ManualWorkerLauncher launcher = new ManualWorkerLauncher();
+        WorldBackupCoordinator coordinator = new WorldBackupCoordinator(
+            clock,
+            new MutableSettings(true, 300),
+            new RecordingOperation(prepared),
+            launcher);
+
+        assertTrue(coordinator.tryBackup(null, true).isSuccess());
+        launcher.runPending();
+        clock.now = 4_000L;
+
+        WorldBackupResult completed = coordinator.finishForShutdown();
+
+        assertNotNull(completed);
+        assertTrue(completed.isSuccess());
+        assertEquals(1, prepared.restoreCalls);
+        assertFalse(coordinator.isRunning());
+        assertEquals(4_000L, coordinator.lastDurationMillis());
+        WorldBackupResult rejected = coordinator.tryBackup(null, true);
+        assertFalse(rejected.isSuccess());
+        assertTrue(rejected.getMessage().contains("stopping"));
+    }
+
     private static final class MutableClock implements WorldBackupCoordinator.Clock {
 
         private long now;
