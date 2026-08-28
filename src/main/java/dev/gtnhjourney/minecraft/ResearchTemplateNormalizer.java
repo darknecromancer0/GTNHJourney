@@ -32,6 +32,7 @@ public final class ResearchTemplateNormalizer {
             if (rawInfiTool instanceof NBTTagCompound) {
                 out.setTag("InfiTool", normalizeTconWearState((NBTTagCompound) rawInfiTool));
                 TconToolStatePolicy.normalizeAmmoState(out);
+                TconToolStatePolicy.normalizeDisplayName(out);
             }
         }
         return out.func_150296_c()
