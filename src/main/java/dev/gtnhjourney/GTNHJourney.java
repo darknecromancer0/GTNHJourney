@@ -11,6 +11,7 @@ import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.event.FMLServerStartedEvent;
 import cpw.mods.fml.common.event.FMLServerStartingEvent;
 import cpw.mods.fml.common.event.FMLServerStoppedEvent;
+import cpw.mods.fml.common.event.FMLServerStoppingEvent;
 import cpw.mods.fml.common.registry.GameRegistry;
 import dev.gtnhjourney.acquisition.FurnaceOwnershipTracker;
 import dev.gtnhjourney.acquisition.InventoryResearchTracker;
@@ -124,6 +125,11 @@ public final class GTNHJourney {
     @EventHandler
     public void serverStarted(FMLServerStartedEvent event) {
         WORLD_BACKUPS.markWorldLoaded();
+    }
+
+    @EventHandler
+    public void serverStopping(FMLServerStoppingEvent event) {
+        WORLD_BACKUPS.finishForShutdown();
     }
 
     @EventHandler
