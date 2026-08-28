@@ -1,6 +1,7 @@
 package dev.gtnhjourney.persistence;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.Arrays;
 import java.util.UUID;
@@ -9,6 +10,7 @@ import net.minecraft.nbt.NBTTagCompound;
 
 import org.junit.jupiter.api.Test;
 
+import dev.gtnhjourney.minecraft.NbtCanonicalizer;
 import dev.gtnhjourney.recovery.JourneySnapshot;
 import dev.gtnhjourney.recovery.ResearchEntrySnapshot;
 import dev.gtnhjourney.recovery.ResearchStateSnapshot;
@@ -50,10 +52,8 @@ public class JourneySnapshotDataTest {
         UUID player = UUID.randomUUID();
         JourneySnapshotData original = new JourneySnapshotData();
         ResearchStateSnapshot state = new ResearchStateSnapshot(
-            Arrays.asList(
-                new ResearchEntrySnapshot(new ResearchKey("minecraft:bow", 1, ""), null, 0),
-                new ResearchEntrySnapshot(new ResearchKey("minecraft:bow", 2, ""), null, 1)));
-        original.add(player, new JourneySnapshot(10L, "legacy-wear", 12346L, SnapshotKind.MANUAL, state));
+            Arrays.asList(legacyChiselEntry("minecraft:stone", 0), legacyChiselEntry("minecraft:dirt", 1)));
+        original.add(player, new JourneySnapshot(10L, "legacy-chisel-target", 12346L, SnapshotKind.MANUAL, state));
 
         NBTTagCompound root = new NBTTagCompound();
         original.writeToNBT(root);
@@ -63,8 +63,21 @@ public class JourneySnapshotDataTest {
         JourneySnapshot snapshot = restored.manualSnapshots(player).get(0);
 
         assertEquals(1, snapshot.state().size());
-        assertEquals("minecraft:bow", snapshot.state().entries().get(0).key().getItemId());
+        assertEquals("chisel:chisel", snapshot.state().entries().get(0).key().getItemId());
         assertEquals(0, snapshot.state().entries().get(0).key().getMeta());
+        assertEquals("", snapshot.state().entries().get(0).key().getCanonicalNbt());
+        assertNull(snapshot.state().entries().get(0).template());
         assertEquals(0, snapshot.state().entries().get(0).timelineIndex());
+    }
+
+    private static ResearchEntrySnapshot legacyChiselEntry(String targetId, int timelineIndex) {
+        NBTTagCompound target = new NBTTagCompound();
+        target.setString("id", targetId);
+        NBTTagCompound tag = new NBTTagCompound();
+        tag.setTag("chiselTarget", target);
+        return new ResearchEntrySnapshot(
+            new ResearchKey("chisel:chisel", 0, NbtCanonicalizer.canonicalize(tag)),
+            tag,
+            timelineIndex);
     }
 }
