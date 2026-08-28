@@ -15,6 +15,10 @@ public final class WorldBackupResult {
         this.message = message == null ? "" : message;
     }
 
+    public static WorldBackupResult started() {
+        return new WorldBackupResult(true, null, "Backup started in background.");
+    }
+
     public static WorldBackupResult success(File archive) {
         return new WorldBackupResult(true, archive, archive == null ? "Backup completed." : "Backup completed: " + archive.getPath());
     }
