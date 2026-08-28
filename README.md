@@ -1,6 +1,6 @@
 # GTNH Journey
 
-Current release: `1.0.3`.
+Current release: `1.1.0`.
 
 GT New Horizons 1.7.10 addon that automatically researches item states the player genuinely obtains and allows server-authoritative infinite retrieval through the existing NEI frontend.
 
@@ -95,6 +95,35 @@ Recovery features include:
 - snapshot restore as one undoable transaction;
 - automatic reconciliation of active/inactive deletion records against restored snapshots.
 
+## World safety
+
+GTNH Journey 1.1.0 adds server-side world protection features that are independent of Journey research state.
+
+### World backups
+
+Automatic world backups are enabled by default. They use wall-clock time, run every `300` seconds and retain the newest `3` successful ZIP archives. Backups are stored outside the active save directory under:
+
+`gtnhjourney-backups/<world-name>/`
+
+For a normal Prism/Minecraft instance this directory is rooted at the instance level rather than inside `saves/<world>`. Each backup first saves player data and loaded worlds, waits for threaded chunk I/O to finish, then creates the ZIP synchronously. This consistency guarantee means a large world may briefly pause while an archive is being written.
+
+A new archive is written to a temporary file and promoted only after successful completion. Rotation happens afterwards, so a failed new backup does not delete previous successful backups.
+
+- `/journey backup status` is available to the player and reports the current automatic setting, interval and retention.
+- `/journey backup now` creates a manual backup immediately and still works when automatic backups are disabled.
+- `/journey backup on` and `/journey backup off` persist the automatic-backup toggle.
+- `backup now`, `backup on` and `backup off` require the integrated-server owner or a level-2 operator.
+
+### Explosion guard
+
+Explosions are enabled by default. `/journey explosions off` globally cancels Forge explosion start events until explosions are enabled again. Cancellation itself is never throttled. Operator diagnostics are throttled to one message per five seconds and include best-effort source information and coordinates, with suppressed explosion counts aggregated into the next message.
+
+`/journey explosions status` is read-only. `/journey explosions on|off` requires the integrated-server owner or a level-2 operator and persists the setting.
+
+### Cleanse
+
+`/journey cleanse` removes the caller's currently active potion effects whose registered `Potion` reports `isBadEffect()`. Positive effects are preserved. IC2 radiation is covered because it is registered as a harmful potion effect. The command does not rewrite player NBT or clear persistent non-potion systems such as Warp.
+
 ## Debug Researcher Tool
 
 Use the NEI `T` button or `/journey debugtool` as the integrated singleplayer owner or a dedicated-server operator.
@@ -112,7 +141,7 @@ Modes cycle with Shift+right-click:
 
 ## Commands
 
-`/journey help` prints the same list in-game with one command per line. Minecraft 1.7.10 native Tab completion is supported for Journey subcommands and fixed arguments such as `trace on/off` and destructive `confirm` arguments. Up/down arrows remain vanilla command history.
+`/journey help` prints the same list in-game with one command per line. Minecraft 1.7.10 native Tab completion is supported for Journey subcommands and fixed arguments such as `trace on/off`, world-safety actions and destructive `confirm` arguments. Up/down arrows remain vanilla command history.
 
 - `/journey help` - show command help
 - `/journey count` - show researched state count
@@ -130,6 +159,9 @@ Modes cycle with Shift+right-click:
 - `/journey snapshot [name]` - create a manual snapshot
 - `/journey snapshots` - list snapshots
 - `/journey restore <id|name>` - restore a snapshot
+- `/journey backup status|now|on|off` - inspect, run or toggle world backups
+- `/journey explosions status|on|off` - inspect or toggle the global explosion guard
+- `/journey cleanse` - remove the caller's active negative potion effects
 - `/journey debug` - show runtime compatibility diagnostics
 - `/journey trace [on|off]` - toggle live research tracing
 - `/journey dump` - write an attachable diagnostic dump into `logs/`
@@ -151,6 +183,10 @@ Modes cycle with Shift+right-click:
 - `compatibility.normalizeIc2ChargeEndpoints`: default `true`
 - `compatibility.normalizeTconToolWear`: default `true`
 - `compatibility.normalizeCofhChargeEndpoints`: default `true`
+- `backup.worldBackupsEnabled`: default `true`
+- `backup.worldBackupIntervalSeconds`: default `300`, bounded to `60..86400`
+- `backup.worldBackupRetention`: default `3`, bounded to `1..32`
+- `safety.explosionsEnabled`: default `true`
 
 Network/security hard limits and AREA_16 radius remain compile-time constants.
 
@@ -175,4 +211,4 @@ gradle build --stacktrace
 
 CI verifies checkout provenance, runs the complete regression suite, checks that `GTNHJourney.VERSION`, the production JAR filename and packaged `mcmod.info` version agree, then uploads production/dev/sources JARs.
 
-See `docs/first-live-test.md` for the 1.0.x live-world regression matrix.
+See `docs/first-live-test.md` for the core live-world regression matrix.
