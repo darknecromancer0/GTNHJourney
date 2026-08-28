@@ -22,6 +22,7 @@ import cpw.mods.fml.common.registry.GameRegistry;
 public final class EmbeddedInventoryPolicy {
 
     private static final String LUNCH_BAG = "SpiceOfLife:lunchbag";
+    private static final String LUNCH_BOX = "SpiceOfLife:lunchbox";
     private static final String IC2_TOOLBOX = "IC2:itemToolbox";
     private static final String BACKPACK = "Backpack:backpack";
     private static final String WORKBENCH_BACKPACK = "Backpack:workbenchbackpack";
@@ -36,7 +37,7 @@ public final class EmbeddedInventoryPolicy {
 
     public static void normalize(String registryId, NBTTagCompound tag) {
         if (tag == null) return;
-        if (LUNCH_BAG.equals(registryId)) {
+        if (LUNCH_BAG.equals(registryId) || LUNCH_BOX.equals(registryId)) {
             tag.removeTag("Inventory");
             tag.removeTag("Open");
             tag.removeTag("UUID");
