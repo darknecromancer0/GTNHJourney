@@ -15,6 +15,7 @@ public final class KnownTransientItemStatePolicy {
     private static final String OVEN_GLOVE_ALT = "dreamcraft:item.OvenGlove";
     private static final int OVEN_GLOVE_FULL_DURABILITY = 1000;
     private static final String GT_META_ITEM_01 = "gregtech:gt.metaitem.01";
+    private static final String GT_BLOCK_MACHINES = "gregtech:gt.blockmachines";
     private static final int GT_UNIVERSAL_FLUID_CELL_META = 32405;
     private static final int GT_UNIVERSAL_FLUID_CELL_CAPACITY = 8000;
 
@@ -44,6 +45,11 @@ public final class KnownTransientItemStatePolicy {
         if (GOLDEN_LASSO.equals(registryId) && meta == 1) normalizeCapturedEntityRuntime(tag);
         if (JABBA_MOVER.equals(registryId)) tag.removeTag("Container");
         if (OVEN_GLOVE.equals(registryId) || OVEN_GLOVE_ALT.equals(registryId)) normalizeOvenGlove(tag);
+        if (GT_BLOCK_MACHINES.equals(registryId)) {
+            // Covers are attachments to a machine/pipe stack, not a distinct research target. Keeping them would also
+            // make Journey retrieval duplicate the installed cover, so remove the payload from identity and template.
+            tag.removeTag("gt.covers");
+        }
         if (GT_META_ITEM_01.equals(registryId) && meta == GT_UNIVERSAL_FLUID_CELL_META) {
             normalizeUniversalFluidCell(tag);
         }
