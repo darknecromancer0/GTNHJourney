@@ -10,6 +10,9 @@ public final class KnownTransientItemStatePolicy {
 
     private static final String AIR_FILTER = "miscutils:itemAirFilter";
     private static final String GOLDEN_LASSO = "ExtraUtilities:golden_lasso";
+    private static final String OVEN_GLOVE = "dreamcraft:OvenGlove";
+    private static final String OVEN_GLOVE_ALT = "dreamcraft:item.OvenGlove";
+    private static final int OVEN_GLOVE_FULL_DURABILITY = 1000;
     private static final String GT_META_ITEM_01 = "gregtech:gt.metaitem.01";
     private static final int GT_UNIVERSAL_FLUID_CELL_META = 32405;
     private static final int GT_UNIVERSAL_FLUID_CELL_CAPACITY = 8000;
@@ -38,6 +41,7 @@ public final class KnownTransientItemStatePolicy {
 
         if (AIR_FILTER.equals(registryId)) normalizeAirFilter(tag);
         if (GOLDEN_LASSO.equals(registryId) && meta == 1) normalizeCapturedEntityRuntime(tag);
+        if (OVEN_GLOVE.equals(registryId) || OVEN_GLOVE_ALT.equals(registryId)) normalizeOvenGlove(tag);
         if (GT_META_ITEM_01.equals(registryId) && meta == GT_UNIVERSAL_FLUID_CELL_META) {
             normalizeUniversalFluidCell(tag);
         }
@@ -49,6 +53,14 @@ public final class KnownTransientItemStatePolicy {
         NBTTagCompound filter = (NBTTagCompound) raw;
         filter.removeTag("Damage");
         if (filter.func_150296_c().isEmpty()) tag.removeTag("AirFilter");
+    }
+
+    private static void normalizeOvenGlove(NBTTagCompound tag) {
+        if (!tag.hasKey("Durability", 99)) return;
+        int observed = tag.getInteger("Durability");
+        if (observed > 0 && observed <= OVEN_GLOVE_FULL_DURABILITY) {
+            tag.setInteger("Durability", OVEN_GLOVE_FULL_DURABILITY);
+        }
     }
 
     private static void normalizeUniversalFluidCell(NBTTagCompound tag) {
