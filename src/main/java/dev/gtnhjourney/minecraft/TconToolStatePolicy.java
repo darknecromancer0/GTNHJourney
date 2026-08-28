@@ -5,6 +5,8 @@ import java.util.HashSet;
 import java.util.Set;
 
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTBase;
+import net.minecraft.nbt.NBTTagCompound;
 
 /** Ownership check for Tinkers' Construct 1.7.10 ToolCore runtime durability and Iguana leveling state. */
 public final class TconToolStatePolicy {
@@ -38,6 +40,24 @@ public final class TconToolStatePolicy {
 
     static boolean isTransientIguanaCounterKey(String key) {
         return key != null && TRANSIENT_IGUANA_COUNTERS.contains(key);
+    }
+
+    /** TCon ammunition stores roughly one usable projectile per ten durability points, rounded up. */
+    static int fullAmmoForDurability(int totalDurability) {
+        if (totalDurability <= 0) return 0;
+        return (int) (((long) totalDurability + 9L) / 10L);
+    }
+
+    /** Normalizes depleted ArrowAmmo/BoltAmmo-like ToolCore stacks back to their proven full ammunition endpoint. */
+    static void normalizeAmmoState(NBTTagCompound root) {
+        if (root == null) return;
+        NBTBase raw = root.getTag("InfiTool");
+        if (!(raw instanceof NBTTagCompound)) return;
+        NBTTagCompound infiTool = (NBTTagCompound) raw;
+        if (!infiTool.hasKey("Ammo", 99) || !infiTool.hasKey("TotalDurability", 99)) return;
+        if (infiTool.getInteger("Ammo") < 0) return;
+        int fullAmmo = fullAmmoForDurability(infiTool.getInteger("TotalDurability"));
+        if (fullAmmo > 0) infiTool.setInteger("Ammo", fullAmmo);
     }
 
     public static boolean isRuntimeAvailable() {
