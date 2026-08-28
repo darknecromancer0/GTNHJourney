@@ -73,9 +73,7 @@ public final class JourneyPanelController {
         // current container layout first so a hidden search field cannot retain visible=true from the previous GUI and
         // silently apply its stale text to Journey's authoritative research set.
         synchronizeSearchWidgetVisibility();
-        ItemFilter activeFilter = LayoutManager.searchField == null || !LayoutManager.searchField.isVisible()
-            ? null
-            : LayoutManager.searchField.getFilter();
+        List<ItemFilter> activeFilters = JourneyNeiFilterPipeline.snapshotActiveFilters();
         JourneyPresentationKeyResolver.clear();
 
         for (ResearchKey key : ordered) {
@@ -85,7 +83,7 @@ public final class JourneyPanelController {
                 ItemStack display = safePresentation(original);
                 if (display == null || display.getItem() == null) continue;
                 JourneyPresentationKeyResolver.register(display, key);
-                if (activeFilter == null || activeFilter.matches(display)) visible.add(display);
+                if (JourneyNeiFilterPipeline.matchesAll(display, activeFilters)) visible.add(display);
             } catch (Throwable ignored) {
                 // Third-party presentation/filter failures omit only this client display entry.
                 JourneyRuntimeCounters.presentationFailure();
