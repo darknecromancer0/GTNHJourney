@@ -45,8 +45,13 @@ final class JourneySafetyCommandHandler {
         if ("status".equals(action)) {
             tell(
                 player,
-                "Automatic world backups " + (JourneyConfig.worldBackupsEnabled() ? "enabled" : "disabled") + " ("
-                    + JourneyConfig.worldBackupIntervalSeconds() + "s, keep " + JourneyConfig.worldBackupRetention() + ").");
+                backupStatusText(
+                    JourneyConfig.worldBackupsEnabled(),
+                    JourneyConfig.worldBackupIntervalSeconds(),
+                    JourneyConfig.worldBackupRetention(),
+                    GTNHJourney.WORLD_BACKUPS.isRunning(),
+                    GTNHJourney.WORLD_BACKUPS.lastDurationMillis(),
+                    GTNHJourney.WORLD_BACKUPS.lastResult()));
             return;
         }
         if ("on".equals(action)) {
@@ -62,6 +67,22 @@ final class JourneySafetyCommandHandler {
 
         WorldBackupResult result = GTNHJourney.WORLD_BACKUPS.tryBackup(MinecraftServer.getServer(), true);
         tell(player, result.getMessage());
+    }
+
+    static String backupStatusText(
+        boolean enabled,
+        int intervalSeconds,
+        int retention,
+        boolean running,
+        long lastDurationMillis,
+        WorldBackupResult lastResult) {
+        String duration = lastDurationMillis < 0L
+            ? "n/a"
+            : String.format(java.util.Locale.ROOT, "%.1fs", lastDurationMillis / 1000.0D);
+        String result = lastResult == null ? "No result." : lastResult.getMessage();
+        return "Automatic world backups " + (enabled ? "enabled" : "disabled") + " (" + intervalSeconds + "s, keep "
+            + retention + "). State: " + (running ? "running" : "idle") + "; last duration " + duration
+            + "; last result: " + result;
     }
 
     private static void handleExplosions(EntityPlayerMP player, String[] args) {
