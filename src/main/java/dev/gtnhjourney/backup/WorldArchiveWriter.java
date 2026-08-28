@@ -48,7 +48,7 @@ public final class WorldArchiveWriter {
             temporary = WorldBackupPaths.temporaryArchive(target);
             Files.deleteIfExists(temporary.toPath());
 
-            writeZip(worldDir, temporary, archiveRootName(worldDir, worldName));
+            writeZip(worldDir, temporary, archiveRootName(worldDir));
             promote(temporary, target);
             temporary = null;
             rotateSuccessfulArchives(backupDir, retention);
@@ -73,13 +73,13 @@ public final class WorldArchiveWriter {
         }
     }
 
-    private static String archiveRootName(File worldDir, String worldName) {
-        String candidate = worldName == null || worldName.trim().length() == 0 ? worldDir.getName() : worldName.trim();
+    private static String archiveRootName(File worldDir) {
+        String candidate = worldDir.getName();
         candidate = candidate.replace('/', '_').replace('\\', '_');
         while (candidate.startsWith(".")) {
             candidate = candidate.substring(1);
         }
-        return candidate.length() == 0 ? worldDir.getName() : candidate;
+        return candidate.length() == 0 ? "world" : candidate;
     }
 
     private File chooseAvailableFinalArchive(File backupDir, Date timestamp) {
