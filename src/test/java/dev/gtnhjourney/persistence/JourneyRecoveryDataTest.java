@@ -3,6 +3,7 @@ package dev.gtnhjourney.persistence;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
 
@@ -10,7 +11,10 @@ import net.minecraft.nbt.NBTTagCompound;
 
 import org.junit.jupiter.api.Test;
 
+import dev.gtnhjourney.recovery.DeletionRecord;
+import dev.gtnhjourney.recovery.ResearchEntrySnapshot;
 import dev.gtnhjourney.recovery.ResearchTransaction;
+import dev.gtnhjourney.research.ResearchKey;
 
 public class JourneyRecoveryDataTest {
 
@@ -52,6 +56,36 @@ public class JourneyRecoveryDataTest {
         assertEquals(3L, restored.popRedo(player).id());
     }
 
+    @Test
+    public void recoveryEntriesAreRecanonicalizedAndSemanticDuplicatesCollapseOnLoad() {
+        UUID player = UUID.randomUUID();
+        ResearchEntrySnapshot wornBowOne = entry("minecraft:bow", 1, 4);
+        ResearchEntrySnapshot wornBowTwo = entry("minecraft:bow", 2, 5);
+        JourneyRecoveryData original = new JourneyRecoveryData();
+        original.pushUndo(
+            player,
+            new ResearchTransaction(
+                20L,
+                200L,
+                "legacy duplicate wear",
+                Arrays.asList(wornBowOne, wornBowTwo),
+                Collections.<ResearchEntrySnapshot>emptyList()));
+        original.appendDeletion(player, new DeletionRecord(7L, 210L, wornBowOne, true));
+
+        NBTTagCompound root = new NBTTagCompound();
+        original.writeToNBT(root);
+
+        JourneyRecoveryData restored = new JourneyRecoveryData();
+        restored.readFromNBT(root);
+        ResearchTransaction transaction = restored.popUndo(player);
+
+        assertEquals(1, transaction.added().size());
+        assertEquals(0, transaction.added().get(0).key().getMeta());
+        assertEquals(4, transaction.added().get(0).timelineIndex());
+        assertEquals(1, restored.deletions(player).size());
+        assertEquals(0, restored.deletions(player).get(0).entry().key().getMeta());
+    }
+
     private static ResearchTransaction tx(long id) {
         return new ResearchTransaction(
             id,
@@ -59,5 +93,9 @@ public class JourneyRecoveryDataTest {
             "tx-" + id,
             Collections.emptyList(),
             Collections.emptyList());
+    }
+
+    private static ResearchEntrySnapshot entry(String itemId, int meta, int timelineIndex) {
+        return new ResearchEntrySnapshot(new ResearchKey(itemId, meta, ""), null, timelineIndex);
     }
 }
