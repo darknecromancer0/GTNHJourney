@@ -60,6 +60,18 @@ public final class TconToolStatePolicy {
         if (fullAmmo > 0) infiTool.setInteger("Ammo", fullAmmo);
     }
 
+    /** Iguana/TCon can repeatedly prepend the same white format code while updating a tool's generated name. */
+    static void normalizeDisplayName(NBTTagCompound root) {
+        if (root == null) return;
+        NBTBase raw = root.getTag("display");
+        if (!(raw instanceof NBTTagCompound)) return;
+        NBTTagCompound display = (NBTTagCompound) raw;
+        if (!display.hasKey("Name", 8)) return;
+        String name = display.getString("Name");
+        while (name.startsWith("§f§f")) name = name.substring(2);
+        display.setString("Name", name);
+    }
+
     public static boolean isRuntimeAvailable() {
         return TOOL_CORE != null;
     }
