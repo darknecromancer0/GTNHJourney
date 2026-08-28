@@ -1,6 +1,6 @@
 # GTNH Journey
 
-Current release: `1.1.1`.
+Current release: `1.1.2`.
 
 GT New Horizons 1.7.10 addon that automatically researches item states the player genuinely obtains and allows server-authoritative infinite retrieval through the existing NEI frontend.
 
@@ -69,14 +69,14 @@ Journey reuses GTNH's normal NEI item panel rather than adding a second browser.
 
 NEI's native `G` expand/collapse control is not replaced or owned by Journey. It remains NEI's normal Collapsible Items display control and must not change Journey's authoritative research membership.
 
-Journey search handling uses the current NEI search expression only while the NEI search field is actually visible. Hidden search fields may retain stale text from another GUI and are ignored while Journey owns the item panel. Global NEI item-universe filters are not allowed to discard authoritative Journey templates merely because those exact NBT variants are absent from ordinary NEI permutations.
+While Journey owns the item panel, it preserves J/N chronology and then applies NEI's currently active native filters as visibility predicates. This includes Item Subsets and the normal NEI search parser, so configured prefixes such as `@`, `#`, `%` and other registered search providers work on Journey entries too. Journey's own filter is excluded from this second pass to avoid recursion. A hidden search field is still ignored so stale text from another GUI cannot silently filter Journey.
 
 Journey/Newest clicks:
 
-- left click requests a full stack;
-- right click requests one item.
+- left click requests one item;
+- right click requests one natural full stack.
 
-In ordinary NEI, Ctrl+left/Ctrl+right uses the Journey retrieval path only when that exact state is researched. The server resolves a fixed research fingerprint against authoritative persisted research before recreating the stored template.
+Shift does not change the requested amount. In ordinary NEI, Ctrl+left/Ctrl+right uses the Journey retrieval path only when that exact state is researched. The server resolves a fixed research fingerprint against authoritative persisted research before recreating the stored template.
 
 ## Persistence, sync and recovery
 
@@ -200,7 +200,7 @@ Network/security hard limits and AREA_16 radius remain compile-time constants.
 
 - authoritative/client-mirror stack count;
 - semantic stack count after Journey keying;
-- visible panel stack count after the active visible search expression.
+- visible panel stack count after active NEI visibility filters.
 
 This makes a server-research versus client-sync versus panel-visibility loss distinguishable in one dump.
 
