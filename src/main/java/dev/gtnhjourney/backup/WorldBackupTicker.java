@@ -5,7 +5,7 @@ import net.minecraft.server.MinecraftServer;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
-/** Starts due automatic backups from the authoritative server END tick. */
+/** Finalizes background backups and starts due automatic backups from the authoritative server END tick. */
 public final class WorldBackupTicker {
 
     private final WorldBackupCoordinator coordinator;
@@ -19,8 +19,14 @@ public final class WorldBackupTicker {
         return phase == TickEvent.Phase.END && due;
     }
 
+    static boolean shouldPollCompletion(TickEvent.Phase phase) {
+        return phase == TickEvent.Phase.END;
+    }
+
     @SubscribeEvent
     public void onServerTick(TickEvent.ServerTickEvent event) {
+        if (!shouldPollCompletion(event.phase)) return;
+        coordinator.pollCompletion();
         if (!shouldRun(event.phase, coordinator.isAutomaticDue())) return;
         MinecraftServer server = MinecraftServer.getServer();
         if (server != null) coordinator.tryBackup(server, false);
