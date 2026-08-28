@@ -17,6 +17,7 @@ public final class ResearchTemplateNormalizer {
         DraconicTransientStatePolicy.normalize(stack, out);
         WearableTransientStatePolicy.normalize(stack, out);
         TransientToolFluidPolicy.normalize(stack, out);
+        KnownTransientItemStatePolicy.normalize(stack, out);
         EmbeddedInventoryPolicy.normalize(stack, out);
         if (ResearchCompatibilityOptions.resetGtToolTemplateState() && GtToolStatePolicy.isVerifiedTool(stack)) {
             NBTBase rawToolStats = out.getTag("GT.ToolStats");
@@ -30,6 +31,7 @@ public final class ResearchTemplateNormalizer {
             NBTBase rawInfiTool = out.getTag("InfiTool");
             if (rawInfiTool instanceof NBTTagCompound) {
                 out.setTag("InfiTool", normalizeTconWearState((NBTTagCompound) rawInfiTool));
+                TconToolStatePolicy.normalizeAmmoState(out);
             }
         }
         return out.func_150296_c()
