@@ -95,18 +95,19 @@ public final class JourneySnapshotData extends WorldSavedData {
     @Override
     public void readFromNBT(NBTTagCompound root) {
         snapshots.clear();
+        boolean migrated = root.getInteger("Version") != DATA_VERSION;
         NBTTagList players = root.getTagList("Players", 10);
         for (int i = 0; i < players.tagCount(); i++) {
             NBTTagCompound playerTag = players.getCompoundTagAt(i);
             UUID playerId = new UUID(playerTag.getLong("UuidMost"), playerTag.getLong("UuidLeast"));
             PlayerSnapshots player = new PlayerSnapshots();
-            readSnapshots(playerTag.getTagList("Rotating", 10), player.rotating);
-            readSnapshots(playerTag.getTagList("Manual", 10), player.manual);
+            migrated |= readSnapshots(playerTag.getTagList("Rotating", 10), player.rotating);
+            migrated |= readSnapshots(playerTag.getTagList("Manual", 10), player.manual);
             trim(player.rotating, MAX_ROTATING);
             trim(player.manual, MAX_MANUAL);
             if (!player.rotating.isEmpty() || !player.manual.isEmpty()) snapshots.put(playerId, player);
         }
-        if (root.getInteger("Version") != DATA_VERSION) markDirty();
+        if (migrated) markDirty();
     }
 
     @Override
@@ -174,29 +175,29 @@ public final class JourneySnapshotData extends WorldSavedData {
         return list;
     }
 
-    private static void readSnapshots(NBTTagList list, List<JourneySnapshot> out) {
+    private static boolean readSnapshots(NBTTagList list, List<JourneySnapshot> out) {
+        boolean migrated = false;
         for (int i = 0; i < list.tagCount(); i++) {
             NBTTagCompound tag = list.getCompoundTagAt(i);
             SnapshotKind kind;
             try {
                 kind = SnapshotKind.valueOf(tag.getString("Kind"));
             } catch (IllegalArgumentException ignored) {
+                migrated = true;
                 continue;
             }
-            List<ResearchEntrySnapshot> entries = new ArrayList<ResearchEntrySnapshot>();
-            NBTTagList entryTags = tag.getTagList("Entries", 10);
-            for (int j = 0; j < entryTags.tagCount(); j++) {
-                ResearchEntrySnapshot entry = readEntry(entryTags.getCompoundTagAt(j));
-                if (entry != null) entries.add(entry);
-            }
+            PersistedResearchHistoryResolver.ListResult resolved = PersistedResearchHistoryResolver
+                .resolveEntries(tag.getTagList("Entries", 10), true);
+            migrated |= resolved.changed();
             out.add(
                 new JourneySnapshot(
                     tag.getLong("Id"),
                     tag.getString("Name"),
                     tag.getLong("WorldTick"),
                     kind,
-                    new ResearchStateSnapshot(entries)));
+                    new ResearchStateSnapshot(resolved.entries())));
         }
+        return migrated;
     }
 
     private static NBTTagCompound writeEntry(ResearchEntrySnapshot entry) {
@@ -209,14 +210,6 @@ public final class JourneySnapshotData extends WorldSavedData {
         NBTTagCompound template = entry.template();
         if (template != null) tag.setTag("Tag", template);
         return tag;
-    }
-
-    private static ResearchEntrySnapshot readEntry(NBTTagCompound tag) {
-        String itemId = tag.getString("ItemId");
-        if (itemId == null || itemId.isEmpty()) return null;
-        ResearchKey key = new ResearchKey(itemId, tag.getInteger("Meta"), tag.getString("CanonicalNbt"));
-        NBTTagCompound template = tag.hasKey("Tag", 10) ? tag.getCompoundTag("Tag") : null;
-        return new ResearchEntrySnapshot(key, template, Math.max(0, tag.getInteger("TimelineIndex")));
     }
 
     private static final class PlayerSnapshots {
