@@ -3,6 +3,7 @@ package dev.gtnhjourney.backup;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
@@ -23,7 +24,7 @@ class WorldArchiveWriterTest {
     File temp;
 
     @Test
-    void writesCompleteSaveAndKeepsOnlyNewestThreeSuccessfulArchives() throws Exception {
+    void writesCompleteSaveUnderWorldDirectoryAndKeepsOnlyNewestThreeSuccessfulArchives() throws Exception {
         File world = createWorldTree();
         File backupDir = new File(temp, "gtnhjourney-backups/TestWorld");
         WorldArchiveWriter writer = new WorldArchiveWriter();
@@ -38,10 +39,14 @@ class WorldArchiveWriterTest {
         assertEquals(3, archives.size());
         assertEquals("backup-1970-01-01_00-05-00.zip", archives.get(0).getName());
 
+        String worldFolder = world.getName() + "/";
         try (ZipFile zip = new ZipFile(archives.get(archives.size() - 1))) {
-            assertNotNull(zip.getEntry("level.dat"));
-            assertNotNull(zip.getEntry("region/r.0.0.mca"));
-            assertNotNull(zip.getEntry("DIM-1/region/r.0.0.mca"));
+            assertNotNull(zip.getEntry(worldFolder + "level.dat"));
+            assertNotNull(zip.getEntry(worldFolder + "region/r.0.0.mca"));
+            assertNotNull(zip.getEntry(worldFolder + "DIM-1/region/r.0.0.mca"));
+            assertNull(zip.getEntry("level.dat"));
+            assertNull(zip.getEntry("region/r.0.0.mca"));
+            assertNull(zip.getEntry("DIM-1/region/r.0.0.mca"));
         }
     }
 
