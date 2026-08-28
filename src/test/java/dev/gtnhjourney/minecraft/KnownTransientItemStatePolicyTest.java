@@ -143,17 +143,43 @@ public class KnownTransientItemStatePolicyTest {
     }
 
     @Test
+    public void jabbaMoverCapturedTileEntityIsUseStateNotResearchIdentity() throws Exception {
+        NBTTagCompound tag = new NBTTagCompound();
+        NBTTagCompound container = new NBTTagCompound();
+        container.setString("Block", "minecraft:chest");
+        container.setInteger("Meta", 2);
+        container.setString("TEClass", "net.minecraft.tileentity.TileEntityChest");
+        NBTTagCompound tile = new NBTTagCompound();
+        tile.setString("id", "Chest");
+        tile.setInteger("x", 490);
+        tile.setInteger("y", 74);
+        tile.setInteger("z", -26);
+        container.setTag("NBT", tile);
+        tag.setTag("Container", container);
+        tag.setString("Marker", "keep");
+
+        normalize("JABBA:mover", 0, tag);
+
+        assertFalse(tag.hasKey("Container"));
+        assertEquals("keep", tag.getString("Marker"));
+    }
+
+    @Test
     public void unrelatedItemsKeepSameNamedFields() throws Exception {
         NBTTagCompound tag = new NBTTagCompound();
         tag.setInteger("Damage", 34);
         tag.setLong("UUIDMost", 123L);
         tag.setTag("Pos", doubles(1.0D, 2.0D, 3.0D));
+        NBTTagCompound container = new NBTTagCompound();
+        container.setString("Payload", "keep");
+        tag.setTag("Container", container);
 
         normalize("example:customItem", 0, tag);
 
         assertEquals(34, tag.getInteger("Damage"));
         assertEquals(123L, tag.getLong("UUIDMost"));
         assertTrue(tag.hasKey("Pos"));
+        assertTrue(tag.hasKey("Container"));
     }
 
     private static void normalize(String registryId, int meta, NBTTagCompound tag) throws Exception {
