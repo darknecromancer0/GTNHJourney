@@ -22,7 +22,7 @@ import dev.gtnhjourney.research.ResearchKey;
 public final class JourneyRecoveryData extends WorldSavedData {
 
     public static final String DATA_NAME = "gtnhjourney_recovery";
-    private static final int DATA_VERSION = 2;
+    private static final int DATA_VERSION = 3;
     private static final int MAX_TRANSACTIONS = 100;
     private static final int MAX_DELETION_RECORDS = 1000;
 
@@ -335,21 +335,12 @@ public final class JourneyRecoveryData extends WorldSavedData {
     }
 
     private static List<ResearchEntrySnapshot> readEntries(NBTTagList list) {
-        List<ResearchEntrySnapshot> entries = new ArrayList<ResearchEntrySnapshot>();
-        for (int i = 0; i < list.tagCount(); i++) {
-            ResearchEntrySnapshot entry = readEntry(list.getCompoundTagAt(i));
-            if (entry != null) entries.add(entry);
-        }
-        return entries;
+        PersistedResearchHistoryResolver.ListResult resolved = PersistedResearchHistoryResolver.resolveEntries(list, false);
+        return resolved.entries();
     }
 
     private static ResearchEntrySnapshot readEntry(NBTTagCompound tag) {
-        if (tag == null) return null;
-        String itemId = tag.getString("ItemId");
-        if (itemId == null || itemId.isEmpty()) return null;
-        ResearchKey key = new ResearchKey(itemId, tag.getInteger("Meta"), tag.getString("CanonicalNbt"));
-        NBTTagCompound template = tag.hasKey("Tag", 10) ? tag.getCompoundTag("Tag") : null;
-        return new ResearchEntrySnapshot(key, template, Math.max(0, tag.getInteger("TimelineIndex")));
+        return PersistedResearchHistoryResolver.resolveEntry(tag).entry();
     }
 
     private static final class PlayerHistory {
