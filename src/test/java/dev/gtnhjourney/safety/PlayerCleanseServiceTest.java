@@ -13,8 +13,6 @@ import net.minecraft.potion.PotionEffect;
 
 import org.junit.jupiter.api.Test;
 
-import ic2.core.IC2Potion;
-
 class PlayerCleanseServiceTest {
 
     @Test
@@ -36,9 +34,9 @@ class PlayerCleanseServiceTest {
     }
 
     @Test
-    void ic2RadiationIsRecognizedAsNegative() {
-        assertTrue(IC2Potion.radiation.isBadEffect());
-        assertTrue(PlayerCleanseService.isNegativePotionEffect(new PotionEffect(IC2Potion.radiation.id, 200, 0)));
+    void negativePotionClassificationUsesRegisteredBadEffectFlag() {
+        assertTrue(PlayerCleanseService.isNegativePotionEffect(new PotionEffect(Potion.poison.id, 200, 0)));
+        assertFalse(PlayerCleanseService.isNegativePotionEffect(new PotionEffect(Potion.moveSpeed.id, 200, 0)));
     }
 
     @Test
