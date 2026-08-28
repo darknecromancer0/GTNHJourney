@@ -32,6 +32,24 @@ public class EmbeddedInventoryPolicyTest {
     }
 
     @Test
+    public void lunchBoxUsesSameEmptyContainerIdentityAsLunchBag() {
+        NBTTagCompound tag = new NBTTagCompound();
+        NBTTagCompound inventory = new NBTTagCompound();
+        inventory.setTag("Items", new NBTTagList());
+        tag.setTag("Inventory", inventory);
+        tag.setBoolean("Open", true);
+        tag.setString("UUID", "11229aae-6981-4a0e-a638-c3931bdedce0");
+        tag.setString("CustomLabel", "keep");
+
+        EmbeddedInventoryPolicy.normalize("SpiceOfLife:lunchbox", tag);
+
+        assertFalse(tag.hasKey("Inventory"));
+        assertFalse(tag.hasKey("Open"));
+        assertFalse(tag.hasKey("UUID"));
+        assertEquals("keep", tag.getString("CustomLabel"));
+    }
+
+    @Test
     public void toolboxBecomesEmptyButNameAndRepairCostSurvive() {
         NBTTagCompound tag = new NBTTagCompound();
         tag.setTag("Items", itemList(7442, 1));
