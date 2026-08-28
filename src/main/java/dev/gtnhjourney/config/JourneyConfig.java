@@ -10,6 +10,10 @@ import dev.gtnhjourney.minecraft.ResearchCompatibilityOptions;
 public final class JourneyConfig {
 
     public static final int DEFAULT_INVENTORY_SCAN_INTERVAL_TICKS = 5;
+    public static final int DEFAULT_WORLD_BACKUP_INTERVAL_SECONDS = 300;
+    public static final int DEFAULT_WORLD_BACKUP_RETENTION = 3;
+
+    private static volatile File configFile;
     private static volatile int inventoryScanIntervalTicks = DEFAULT_INVENTORY_SCAN_INTERVAL_TICKS;
     /** @deprecated N now contains the full researched set; retained only so existing config files remain readable. */
     private static volatile int newestLimit = 64;
@@ -20,10 +24,15 @@ public final class JourneyConfig {
     private static volatile boolean normalizeIc2ChargeEndpoints = true;
     private static volatile boolean normalizeTconToolWear = true;
     private static volatile boolean normalizeCofhChargeEndpoints = true;
+    private static volatile boolean worldBackupsEnabled = true;
+    private static volatile int worldBackupIntervalSeconds = DEFAULT_WORLD_BACKUP_INTERVAL_SECONDS;
+    private static volatile int worldBackupRetention = DEFAULT_WORLD_BACKUP_RETENTION;
+    private static volatile boolean explosionsEnabled = true;
 
     private JourneyConfig() {}
 
     public static void load(File file) {
+        configFile = file;
         Configuration config = new Configuration(file);
         try {
             config.load();
@@ -79,6 +88,32 @@ public final class JourneyConfig {
                 "compatibility",
                 true,
                 "Use base/FULL Journey semantics for verified CoFH IEnergyContainerItem stacks. Disable only for compatibility debugging.");
+            worldBackupsEnabled = config.getBoolean(
+                "worldBackupsEnabled",
+                "backup",
+                true,
+                "Create synchronous rotating world backups while the server is running.");
+            worldBackupIntervalSeconds = normalizeWorldBackupIntervalSeconds(
+                config.getInt(
+                    "worldBackupIntervalSeconds",
+                    "backup",
+                    DEFAULT_WORLD_BACKUP_INTERVAL_SECONDS,
+                    60,
+                    86400,
+                    "Seconds of server uptime between automatic world backups."));
+            worldBackupRetention = normalizeWorldBackupRetention(
+                config.getInt(
+                    "worldBackupRetention",
+                    "backup",
+                    DEFAULT_WORLD_BACKUP_RETENTION,
+                    1,
+                    32,
+                    "Number of successful rotating world backups to keep."));
+            explosionsEnabled = config.getBoolean(
+                "explosionsEnabled",
+                "safety",
+                true,
+                "Whether explosions are allowed. Set false or use /journey explosions off to cancel Forge explosions globally.");
             ResearchCompatibilityOptions.configure(
                 normalizeGtTransientIdentity,
                 resetGtToolTemplateState,
@@ -93,6 +128,14 @@ public final class JourneyConfig {
 
     public static int normalizeInventoryScanIntervalTicks(int configured) {
         return Math.max(DEFAULT_INVENTORY_SCAN_INTERVAL_TICKS, Math.min(40, configured));
+    }
+
+    public static int normalizeWorldBackupIntervalSeconds(int configured) {
+        return Math.max(60, Math.min(86400, configured));
+    }
+
+    public static int normalizeWorldBackupRetention(int configured) {
+        return Math.max(1, Math.min(32, configured));
     }
 
     public static int inventoryScanIntervalTicks() {
@@ -131,5 +174,43 @@ public final class JourneyConfig {
 
     public static boolean normalizeCofhChargeEndpoints() {
         return normalizeCofhChargeEndpoints;
+    }
+
+    public static boolean worldBackupsEnabled() {
+        return worldBackupsEnabled;
+    }
+
+    public static int worldBackupIntervalSeconds() {
+        return worldBackupIntervalSeconds;
+    }
+
+    public static int worldBackupRetention() {
+        return worldBackupRetention;
+    }
+
+    public static boolean explosionsEnabled() {
+        return explosionsEnabled;
+    }
+
+    public static synchronized void setWorldBackupsEnabled(boolean enabled) {
+        worldBackupsEnabled = enabled;
+        persistBoolean("backup", "worldBackupsEnabled", enabled);
+    }
+
+    public static synchronized void setExplosionsEnabled(boolean enabled) {
+        explosionsEnabled = enabled;
+        persistBoolean("safety", "explosionsEnabled", enabled);
+    }
+
+    private static void persistBoolean(String category, String key, boolean value) {
+        File file = configFile;
+        if (file == null) return;
+        Configuration config = new Configuration(file);
+        try {
+            config.load();
+            config.get(category, key, value).set(value);
+        } finally {
+            if (config.hasChanged()) config.save();
+        }
     }
 }
