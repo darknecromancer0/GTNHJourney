@@ -12,7 +12,7 @@ class ExplosionGuardTest {
 
     @Test
     void enabledExplosionsRemainUncancelled() {
-        ExplosionEvent.Start event = new ExplosionEvent.Start(null, null);
+        ExplosionEvent.Start event = new CancelableStart();
 
         ExplosionGuard.cancelBeforeDiagnostics(event, true, new Runnable() {
 
@@ -27,7 +27,7 @@ class ExplosionGuardTest {
 
     @Test
     void disabledExplosionsAreCancelledBeforeDiagnostics() {
-        final ExplosionEvent.Start event = new ExplosionEvent.Start(null, null);
+        final ExplosionEvent.Start event = new CancelableStart();
 
         RuntimeException thrown = assertThrows(RuntimeException.class, () -> ExplosionGuard.cancelBeforeDiagnostics(
             event,
@@ -43,5 +43,18 @@ class ExplosionGuardTest {
 
         assertTrue(event.isCanceled());
         assertTrue(thrown.getMessage().contains("resolver failed"));
+    }
+
+    /** Forge normally adds cancelability to @Cancelable event classes through its runtime event transformer. */
+    private static final class CancelableStart extends ExplosionEvent.Start {
+
+        private CancelableStart() {
+            super(null, null);
+        }
+
+        @Override
+        public boolean isCancelable() {
+            return true;
+        }
     }
 }
