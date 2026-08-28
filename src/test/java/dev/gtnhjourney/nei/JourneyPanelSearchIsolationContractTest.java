@@ -14,15 +14,17 @@ import org.junit.jupiter.api.Test;
 public class JourneyPanelSearchIsolationContractTest {
 
     @Test
-    public void directJourneyPanelUsesOnlyCurrentVisibleNeiSearchInsteadOfAllGlobalItemFilters() throws IOException {
+    public void directJourneyPanelUsesNativeNeiFiltersWithoutReintroducingHiddenSearch() throws IOException {
         Path source = Paths.get("src/main/java/dev/gtnhjourney/nei/JourneyPanelController.java");
         String text = new String(Files.readAllBytes(source), StandardCharsets.UTF_8);
 
         assertTrue(text.contains("synchronizeSearchWidgetVisibility();"));
         assertTrue(text.contains("Minecraft.getMinecraft().currentScreen"));
         assertTrue(text.contains("LayoutManager.layout((GuiContainer) currentScreen);"));
-        assertTrue(text.indexOf("synchronizeSearchWidgetVisibility();") < text.indexOf("LayoutManager.searchField.isVisible()"));
-        assertTrue(text.contains("LayoutManager.searchField.getFilter()"));
+        assertTrue(text.contains("JourneyNeiFilterPipeline.snapshotActiveFilters()"));
+        assertTrue(text.indexOf("synchronizeSearchWidgetVisibility();")
+            < text.indexOf("JourneyNeiFilterPipeline.snapshotActiveFilters()"));
+        assertFalse(text.contains("LayoutManager.searchField.getFilter()"));
         assertFalse(text.contains("ItemList.getItemListFilter()"));
     }
 }
