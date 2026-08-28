@@ -15,6 +15,7 @@ import dev.gtnhjourney.acquisition.FurnaceOwnershipTracker;
 import dev.gtnhjourney.acquisition.InventoryResearchTracker;
 import dev.gtnhjourney.acquisition.ResearchObservationService;
 import dev.gtnhjourney.backup.WorldBackupCoordinator;
+import dev.gtnhjourney.backup.WorldBackupTicker;
 import dev.gtnhjourney.command.CommandJourney;
 import dev.gtnhjourney.config.JourneyConfig;
 import dev.gtnhjourney.debug.ItemDebugResearcherTool;
@@ -45,6 +46,7 @@ public final class GTNHJourney {
     public static final WorldBackupCoordinator WORLD_BACKUPS = new WorldBackupCoordinator();
     public static final ExplosionGuard EXPLOSION_GUARD = new ExplosionGuard();
     public static final PlayerCleanseService CLEANSE = new PlayerCleanseService();
+    private static final WorldBackupTicker WORLD_BACKUP_TICKER = new WorldBackupTicker(WORLD_BACKUPS);
     public static JourneyMutationService MUTATIONS;
     public static Item DEBUG_RESEARCHER_TOOL;
 
@@ -82,6 +84,25 @@ public final class GTNHJourney {
         FMLCommonHandler.instance()
             .bus()
             .register(SNAPSHOT_TICKER);
+        WorldSafetyRegistration.register(
+            new WorldSafetyRegistration.Registrar() {
+
+                @Override
+                public void register(Object listener) {
+                    FMLCommonHandler.instance()
+                        .bus()
+                        .register(listener);
+                }
+            },
+            new WorldSafetyRegistration.Registrar() {
+
+                @Override
+                public void register(Object listener) {
+                    MinecraftForge.EVENT_BUS.register(listener);
+                }
+            },
+            WORLD_BACKUP_TICKER,
+            EXPLOSION_GUARD);
     }
 
     @EventHandler
@@ -106,6 +127,8 @@ public final class GTNHJourney {
         if (inventoryTracker != null) inventoryTracker.clearCaches();
         if (furnaceTracker != null) furnaceTracker.clear();
         SNAPSHOT_TICKER.clear();
+        WORLD_BACKUPS.resetSession();
+        EXPLOSION_GUARD.reset();
         dev.gtnhjourney.diagnostics.ResearchTrace.clear();
         dev.gtnhjourney.diagnostics.ResearchFailureLog.clear();
     }
