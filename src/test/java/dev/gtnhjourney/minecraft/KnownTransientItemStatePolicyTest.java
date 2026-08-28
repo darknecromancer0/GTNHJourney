@@ -127,6 +127,23 @@ public class KnownTransientItemStatePolicyTest {
     }
 
     @Test
+    public void gregTechMachineAttachedCoversDoNotDefineResearchIdentity() throws Exception {
+        NBTTagCompound tag = new NBTTagCompound();
+        NBTTagCompound covers = new NBTTagCompound();
+        covers.setInteger("0", 31001);
+        covers.setInteger("1", 31002);
+        tag.setTag("gt.covers", covers);
+        tag.setInteger("mOptimalAirFlow", 300);
+        tag.setInteger("mConnections", 5);
+
+        normalize("gregtech:gt.blockmachines", 758, tag);
+
+        assertFalse(tag.hasKey("gt.covers"));
+        assertEquals(300, tag.getInteger("mOptimalAirFlow"));
+        assertEquals(5, tag.getInteger("mConnections"));
+    }
+
+    @Test
     public void ovenGloveWearReturnsToFullDurabilityWithoutMergingItsMetaVariants() throws Exception {
         NBTTagCompound left = new NBTTagCompound();
         left.setInteger("Durability", 974);
@@ -173,6 +190,9 @@ public class KnownTransientItemStatePolicyTest {
         NBTTagCompound container = new NBTTagCompound();
         container.setString("Payload", "keep");
         tag.setTag("Container", container);
+        NBTTagCompound covers = new NBTTagCompound();
+        covers.setInteger("0", 31001);
+        tag.setTag("gt.covers", covers);
 
         normalize("example:customItem", 0, tag);
 
@@ -180,6 +200,7 @@ public class KnownTransientItemStatePolicyTest {
         assertEquals(123L, tag.getLong("UUIDMost"));
         assertTrue(tag.hasKey("Pos"));
         assertTrue(tag.hasKey("Container"));
+        assertTrue(tag.hasKey("gt.covers"));
     }
 
     private static void normalize(String registryId, int meta, NBTTagCompound tag) throws Exception {
