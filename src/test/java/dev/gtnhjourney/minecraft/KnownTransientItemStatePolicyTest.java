@@ -98,6 +98,35 @@ public class KnownTransientItemStatePolicyTest {
     }
 
     @Test
+    public void universalFluidCellPartialAmountTargetsFullWithoutChangingFluidIdentity() throws Exception {
+        NBTTagCompound tag = new NBTTagCompound();
+        NBTTagCompound fluid = new NBTTagCompound();
+        fluid.setString("FluidName", "molten.rubber");
+        fluid.setInteger("Amount", 7760);
+        tag.setTag("GT.FluidContent", fluid);
+        tag.setString("Marker", "keep");
+
+        normalize("gregtech:gt.metaitem.01", 32405, tag);
+
+        assertEquals("molten.rubber", tag.getCompoundTag("GT.FluidContent").getString("FluidName"));
+        assertEquals(8000, tag.getCompoundTag("GT.FluidContent").getInteger("Amount"));
+        assertEquals("keep", tag.getString("Marker"));
+    }
+
+    @Test
+    public void unrelatedGregTechMetaDoesNotUseUniversalCellCapacity() throws Exception {
+        NBTTagCompound tag = new NBTTagCompound();
+        NBTTagCompound fluid = new NBTTagCompound();
+        fluid.setString("FluidName", "water");
+        fluid.setInteger("Amount", 500);
+        tag.setTag("GT.FluidContent", fluid);
+
+        normalize("gregtech:gt.metaitem.01", 32406, tag);
+
+        assertEquals(500, tag.getCompoundTag("GT.FluidContent").getInteger("Amount"));
+    }
+
+    @Test
     public void unrelatedItemsKeepSameNamedFields() throws Exception {
         NBTTagCompound tag = new NBTTagCompound();
         tag.setInteger("Damage", 34);
