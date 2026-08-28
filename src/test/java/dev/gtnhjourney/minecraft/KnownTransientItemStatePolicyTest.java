@@ -127,6 +127,22 @@ public class KnownTransientItemStatePolicyTest {
     }
 
     @Test
+    public void ovenGloveWearReturnsToFullDurabilityWithoutMergingItsMetaVariants() throws Exception {
+        NBTTagCompound left = new NBTTagCompound();
+        left.setInteger("Durability", 974);
+        left.setString("Marker", "keep");
+        NBTTagCompound right = new NBTTagCompound();
+        right.setInteger("Durability", 975);
+
+        normalize("dreamcraft:OvenGlove", 0, left);
+        normalize("dreamcraft:OvenGlove", 1, right);
+
+        assertEquals(1000, left.getInteger("Durability"));
+        assertEquals(1000, right.getInteger("Durability"));
+        assertEquals("keep", left.getString("Marker"));
+    }
+
+    @Test
     public void unrelatedItemsKeepSameNamedFields() throws Exception {
         NBTTagCompound tag = new NBTTagCompound();
         tag.setInteger("Damage", 34);
