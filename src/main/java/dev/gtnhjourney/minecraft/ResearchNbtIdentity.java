@@ -24,7 +24,10 @@ public final class ResearchNbtIdentity {
             && GtToolStatePolicy.isVerifiedTool(stack);
         final boolean normalizeTconWear = ResearchCompatibilityOptions.normalizeTconToolWear()
             && TconToolStatePolicy.isVerifiedTool(stack);
-        if (normalizeTconWear) TconToolStatePolicy.normalizeAmmoState(identityTag);
+        if (normalizeTconWear) {
+            TconToolStatePolicy.normalizeAmmoState(identityTag);
+            TconToolStatePolicy.normalizeDisplayName(identityTag);
+        }
         if (identityTag.func_150296_c()
             .isEmpty()) return "";
         return NbtCanonicalizer.canonicalize(identityTag, new NbtCanonicalizer.KeyFilter() {
