@@ -17,14 +17,16 @@ public final class ResearchNbtIdentity {
         DraconicTransientStatePolicy.normalize(stack, identityTag);
         WearableTransientStatePolicy.normalize(stack, identityTag);
         TransientToolFluidPolicy.normalize(stack, identityTag);
+        KnownTransientItemStatePolicy.normalize(stack, identityTag);
         EmbeddedInventoryPolicy.normalize(stack, identityTag);
         ForestryGeneticsNbtPolicy.normalize(stack, identityTag);
-        if (identityTag.func_150296_c()
-            .isEmpty()) return "";
         final boolean normalizeToolState = ResearchCompatibilityOptions.normalizeGtTransientIdentity()
             && GtToolStatePolicy.isVerifiedTool(stack);
         final boolean normalizeTconWear = ResearchCompatibilityOptions.normalizeTconToolWear()
             && TconToolStatePolicy.isVerifiedTool(stack);
+        if (normalizeTconWear) TconToolStatePolicy.normalizeAmmoState(identityTag);
+        if (identityTag.func_150296_c()
+            .isEmpty()) return "";
         return NbtCanonicalizer.canonicalize(identityTag, new NbtCanonicalizer.KeyFilter() {
 
             @Override
