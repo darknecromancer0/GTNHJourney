@@ -44,4 +44,27 @@ public class JourneySnapshotDataTest {
         assertEquals("minecraft:stone", snapshot.state().entries().get(0).key().getItemId());
         assertEquals("water", snapshot.state().entries().get(1).template().getString("FluidName"));
     }
+
+    @Test
+    public void legacySemanticDuplicatesAreRecanonicalizedAndDeduplicatedOnLoad() {
+        UUID player = UUID.randomUUID();
+        JourneySnapshotData original = new JourneySnapshotData();
+        ResearchStateSnapshot state = new ResearchStateSnapshot(
+            Arrays.asList(
+                new ResearchEntrySnapshot(new ResearchKey("minecraft:bow", 1, ""), null, 0),
+                new ResearchEntrySnapshot(new ResearchKey("minecraft:bow", 2, ""), null, 1)));
+        original.add(player, new JourneySnapshot(10L, "legacy-wear", 12346L, SnapshotKind.MANUAL, state));
+
+        NBTTagCompound root = new NBTTagCompound();
+        original.writeToNBT(root);
+
+        JourneySnapshotData restored = new JourneySnapshotData();
+        restored.readFromNBT(root);
+        JourneySnapshot snapshot = restored.manualSnapshots(player).get(0);
+
+        assertEquals(1, snapshot.state().size());
+        assertEquals("minecraft:bow", snapshot.state().entries().get(0).key().getItemId());
+        assertEquals(0, snapshot.state().entries().get(0).key().getMeta());
+        assertEquals(0, snapshot.state().entries().get(0).timelineIndex());
+    }
 }
