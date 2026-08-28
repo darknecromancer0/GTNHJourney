@@ -12,6 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.Date;
 import java.util.List;
+import java.util.zip.Deflater;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -34,6 +35,10 @@ public final class WorldArchiveWriter {
     WorldArchiveWriter(ArchiveOutputFactory outputFactory) {
         if (outputFactory == null) throw new IllegalArgumentException("outputFactory");
         this.outputFactory = outputFactory;
+    }
+
+    static int defaultCompressionLevel() {
+        return Deflater.BEST_SPEED;
     }
 
     public WorldBackupResult write(File worldDir, File backupDir, String worldName, int retention, Date timestamp) {
@@ -98,6 +103,7 @@ public final class WorldArchiveWriter {
         try {
             raw = outputFactory.open(temporary);
             zip = new ZipOutputStream(new BufferedOutputStream(raw));
+            zip.setLevel(defaultCompressionLevel());
             raw = null;
             ZipEntry rootEntry = new ZipEntry(archiveRoot + "/");
             zip.putNextEntry(rootEntry);
