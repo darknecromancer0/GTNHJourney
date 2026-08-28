@@ -48,7 +48,7 @@ public final class WorldArchiveWriter {
             temporary = WorldBackupPaths.temporaryArchive(target);
             Files.deleteIfExists(temporary.toPath());
 
-            writeZip(worldDir, temporary);
+            writeZip(worldDir, temporary, archiveRootName(worldDir, worldName));
             promote(temporary, target);
             temporary = null;
             rotateSuccessfulArchives(backupDir, retention);
@@ -73,6 +73,15 @@ public final class WorldArchiveWriter {
         }
     }
 
+    private static String archiveRootName(File worldDir, String worldName) {
+        String candidate = worldName == null || worldName.trim().length() == 0 ? worldDir.getName() : worldName.trim();
+        candidate = candidate.replace('/', '_').replace('\\', '_');
+        while (candidate.startsWith(".")) {
+            candidate = candidate.substring(1);
+        }
+        return candidate.length() == 0 ? worldDir.getName() : candidate;
+    }
+
     private File chooseAvailableFinalArchive(File backupDir, Date timestamp) {
         Date candidateTime = timestamp == null ? new Date() : new Date(timestamp.getTime());
         File candidate = WorldBackupPaths.finalArchive(backupDir, candidateTime);
@@ -83,14 +92,17 @@ public final class WorldArchiveWriter {
         return candidate;
     }
 
-    private void writeZip(File worldDir, File temporary) throws IOException {
+    private void writeZip(File worldDir, File temporary, String archiveRoot) throws IOException {
         OutputStream raw = null;
         ZipOutputStream zip = null;
         try {
             raw = outputFactory.open(temporary);
             zip = new ZipOutputStream(new BufferedOutputStream(raw));
             raw = null;
-            addDirectoryContents(worldDir, worldDir, zip);
+            ZipEntry rootEntry = new ZipEntry(archiveRoot + "/");
+            zip.putNextEntry(rootEntry);
+            zip.closeEntry();
+            addDirectoryContents(worldDir, worldDir, archiveRoot, zip);
         } finally {
             if (zip != null) {
                 zip.close();
@@ -100,26 +112,27 @@ public final class WorldArchiveWriter {
         }
     }
 
-    private static void addDirectoryContents(File root, File current, ZipOutputStream zip) throws IOException {
+    private static void addDirectoryContents(File root, File current, String archiveRoot, ZipOutputStream zip)
+        throws IOException {
         File[] children = current.listFiles();
         if (children == null) throw new IOException("Cannot list world directory: " + current.getPath());
         for (File child : children) {
             if (child.isDirectory()) {
-                addDirectoryContents(root, child, zip);
+                addDirectoryContents(root, child, archiveRoot, zip);
             } else if (child.isFile()) {
-                addFile(root, child, zip);
+                addFile(root, child, archiveRoot, zip);
             }
         }
     }
 
-    private static void addFile(File root, File file, ZipOutputStream zip) throws IOException {
+    private static void addFile(File root, File file, String archiveRoot, ZipOutputStream zip) throws IOException {
         String rootPath = root.getCanonicalPath();
         String filePath = file.getCanonicalPath();
         String prefix = rootPath.endsWith(File.separator) ? rootPath : rootPath + File.separator;
         if (!filePath.startsWith(prefix)) throw new IOException("World file escaped source directory: " + file.getPath());
 
         String relative = filePath.substring(prefix.length()).replace(File.separatorChar, '/');
-        ZipEntry entry = new ZipEntry(relative);
+        ZipEntry entry = new ZipEntry(archiveRoot + "/" + relative);
         entry.setTime(file.lastModified());
         zip.putNextEntry(entry);
         try (BufferedInputStream input = new BufferedInputStream(new FileInputStream(file), BUFFER_SIZE)) {
