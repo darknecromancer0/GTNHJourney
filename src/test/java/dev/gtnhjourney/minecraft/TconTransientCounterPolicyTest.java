@@ -47,4 +47,25 @@ public class TconTransientCounterPolicyTest {
         assertEquals(29, tag.getCompoundTag("InfiTool").getInteger("Ammo"));
         assertEquals(5, tag.getCompoundTag("InfiTool").getInteger("RepairCount"));
     }
+
+    @Test
+    public void repeatedWhiteDisplayPrefixIsCollapsedWithoutChangingRealNameOrColor() throws Exception {
+        NBTTagCompound repeated = new NBTTagCompound();
+        NBTTagCompound display = new NBTTagCompound();
+        display.setString("Name", "§f§f§f§fSteel Arrows");
+        repeated.setTag("display", display);
+
+        Method normalizeName = TconToolStatePolicy.class.getDeclaredMethod("normalizeDisplayName", NBTTagCompound.class);
+        normalizeName.setAccessible(true);
+        normalizeName.invoke(null, repeated);
+
+        assertEquals("§fSteel Arrows", repeated.getCompoundTag("display").getString("Name"));
+
+        NBTTagCompound custom = new NBTTagCompound();
+        NBTTagCompound customDisplay = new NBTTagCompound();
+        customDisplay.setString("Name", "§6My Pickaxe");
+        custom.setTag("display", customDisplay);
+        normalizeName.invoke(null, custom);
+        assertEquals("§6My Pickaxe", custom.getCompoundTag("display").getString("Name"));
+    }
 }
