@@ -13,6 +13,7 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.List;
+import java.util.zip.Deflater;
 import java.util.zip.ZipFile;
 
 import org.junit.jupiter.api.Test;
@@ -22,6 +23,11 @@ class WorldArchiveWriterTest {
 
     @TempDir
     File temp;
+
+    @Test
+    void usesFastDeflateLevelForWorldBackups() {
+        assertEquals(Deflater.BEST_SPEED, WorldArchiveWriter.defaultCompressionLevel());
+    }
 
     @Test
     void writesCompleteSaveUnderWorldDirectoryAndKeepsOnlyNewestThreeSuccessfulArchives() throws Exception {
