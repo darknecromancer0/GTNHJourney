@@ -46,7 +46,7 @@ public final class PersistedResearchEntryResolver {
         String persistedCanonical = persistedCanonicalNbt == null ? "" : persistedCanonicalNbt;
         if (persistedTemplate == null && !persistedCanonical.isEmpty()) return null;
 
-        NBTTagCompound fallbackTemplate = ResearchTemplateNormalizer.normalize(persistedTemplate);
+        NBTTagCompound fallbackTemplate = normalizePersistedTemplate(itemId, meta, persistedTemplate);
         final String fallbackCanonical;
         try {
             fallbackCanonical = fallbackTemplate == null ? "" : ResearchNbtIdentity.canonicalize(fallbackTemplate);
@@ -59,7 +59,7 @@ public final class PersistedResearchEntryResolver {
         }
         ResearchKey fallback = new ResearchKey(itemId, meta, fallbackCanonical);
 
-        ItemStack reconstructed = reconstruct(fallback, persistedTemplate);
+        ItemStack reconstructed = reconstruct(fallback, fallbackTemplate);
         return resolveReconstructed(fallback, fallbackTemplate, reconstructed);
     }
 
@@ -101,6 +101,33 @@ public final class PersistedResearchEntryResolver {
         } catch (LinkageError ignored) {
             return new ResolvedEntry(fallback, fallbackTemplate);
         }
+    }
+
+    /**
+     * Applies policies that are proven safe from persisted registry id + NBT alone before touching Forge registries.
+     * This lets old snapshots and recovery journals migrate even in headless tests or if an optional item cannot be
+     * reconstructed, while unknown item state remains exact/fail-closed.
+     */
+    private static NBTTagCompound normalizePersistedTemplate(String itemId, int meta, NBTTagCompound original) {
+        NBTTagCompound out = ResearchTemplateNormalizer.normalize(original);
+        if (out == null) return null;
+        try {
+            KnownTransientItemStatePolicy.normalize(itemId, meta, out);
+            EmbeddedInventoryPolicy.normalize(itemId, out);
+            if (isForestry(itemId)) ForestryGeneticsNbtPolicy.normalizeGeneticsTag(out);
+        } catch (IllegalArgumentException ignored) {
+            return out;
+        } catch (RuntimeException ignored) {
+            return out;
+        } catch (LinkageError ignored) {
+            return out;
+        }
+        return out.func_150296_c().isEmpty() ? null : out;
+    }
+
+    private static boolean isForestry(String itemId) {
+        int colon = itemId == null ? -1 : itemId.indexOf(':');
+        return colon > 0 && "Forestry".equalsIgnoreCase(itemId.substring(0, colon));
     }
 
     private static ItemStack reconstruct(ResearchKey key, NBTTagCompound template) {
