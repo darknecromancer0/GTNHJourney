@@ -22,7 +22,7 @@ public final class CommandJourney extends CommandBase {
 
     private static final String[] SUBCOMMANDS = { "help", "count", "stats", "inspect", "research", "rescan", "list",
         "newest", "get", "forget", "undo", "redo", "restore-deleted", "snapshot", "snapshots", "restore", "debug",
-        "trace", "dump", "hotspots", "debugtool", "prune-missing", "clear" };
+        "trace", "dump", "hotspots", "debugtool", "prune-missing", "clear", "backup", "explosions", "cleanse" };
 
     @Override
     public String getCommandName() {
@@ -46,6 +46,8 @@ public final class CommandJourney extends CommandBase {
         if (args.length == 2) {
             String action = args[0].toLowerCase(Locale.ROOT);
             if ("trace".equals(action)) return getListOfStringsMatchingLastWord(args, "on", "off");
+            if ("backup".equals(action)) return getListOfStringsMatchingLastWord(args, "status", "now", "on", "off");
+            if ("explosions".equals(action)) return getListOfStringsMatchingLastWord(args, "status", "on", "off");
             if ("clear".equals(action) || "prune-missing".equals(action)) {
                 return getListOfStringsMatchingLastWord(args, "confirm");
             }
@@ -62,6 +64,7 @@ public final class CommandJourney extends CommandBase {
         EntityPlayerMP player = (EntityPlayerMP) sender;
         String action = args.length == 0 ? "count" : args[0].toLowerCase(Locale.ROOT);
 
+        if (JourneySafetyCommandHandler.handle(player, args)) return;
         if ("help".equals(action)) {
             help(player);
             return;
