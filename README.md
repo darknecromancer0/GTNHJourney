@@ -1,6 +1,6 @@
 # GTNH Journey
 
-Current release: `1.1.0`.
+Current release: `1.1.1`.
 
 GT New Horizons 1.7.10 addon that automatically researches item states the player genuinely obtains and allows server-authoritative infinite retrieval through the existing NEI frontend.
 
@@ -97,20 +97,24 @@ Recovery features include:
 
 ## World safety
 
-GTNH Journey 1.1.0 adds server-side world protection features that are independent of Journey research state.
+GTNH Journey 1.1.1 keeps the 1.1 world-protection features independent of Journey research state and hardens world backups for large saves.
 
 ### World backups
 
-Automatic world backups are enabled by default. They use wall-clock time, run every `300` seconds and retain the newest `3` successful ZIP archives. Backups are stored outside the active save directory under:
+Automatic world backups are enabled by default. Their cadence starts after the server world has actually loaded, uses wall-clock time, runs every `300` seconds and retains the newest `3` successful ZIP archives. Backups are stored outside the active save directory under:
 
 `gtnhjourney-backups/<world-name>/`
 
-For a normal Prism/Minecraft instance this directory is rooted at the instance level rather than inside `saves/<world>`. Each backup first saves player data and loaded worlds, waits for threaded chunk I/O to finish, then creates the ZIP synchronously. This consistency guarantee means a large world may briefly pause while an archive is being written.
+For a normal Prism/Minecraft instance this directory is rooted at the instance level rather than inside `saves/<world>`.
 
-A new archive is written to a temporary file and promoted only after successful completion. Rotation happens afterwards, so a failed new backup does not delete previous successful backups.
+Backup preparation still happens on the authoritative server thread so the snapshot is consistent: Journey saves player data and loaded worlds, waits for threaded chunk I/O to finish, then temporarily suppresses further world-file saving. The expensive ZIP walk and Deflate compression then run on the lower-priority `GTNHJourney-WorldBackup` worker instead of blocking the server tick loop. Compression uses Deflate `BEST_SPEED`, prioritizing a shorter snapshot window over maximum archive compactness. Gameplay can keep ticking while the worker reads the frozen on-disk snapshot. On the next END server tick after completion, Journey restores every world's original save-state flag.
 
-- `/journey backup status` is available to the player and reports the current automatic setting, interval and retention.
-- `/journey backup now` creates a manual backup immediately and still works when automatic backups are disabled.
+Each ZIP contains the real save-directory name as its top-level folder, for example `<world-name>/level.dat`, rather than placing `level.dat` and region folders loose at archive root. A new archive is written to a temporary file and promoted only after successful completion. Rotation happens afterwards, so a failed new backup does not delete previous successful backups.
+
+If the server begins shutting down while a backup worker is still active, Journey stops accepting new backup work, waits for that worker to finish, restores world saving, and only then lets shutdown continue to its final save. This avoids leaving the world in the temporary snapshot state.
+
+- `/journey backup status` reports enabled/disabled, interval, retention, `running`/`idle`, the last backup duration and the last result.
+- `/journey backup now` starts a manual background backup immediately and still works when automatic backups are disabled.
 - `/journey backup on` and `/journey backup off` persist the automatic-backup toggle.
 - `backup now`, `backup on` and `backup off` require the integrated-server owner or a level-2 operator.
 
@@ -211,4 +215,4 @@ gradle build --stacktrace
 
 CI verifies checkout provenance, runs the complete regression suite, checks that `GTNHJourney.VERSION`, the production JAR filename and packaged `mcmod.info` version agree, then uploads production/dev/sources JARs.
 
-See `docs/first-live-test.md` for the core live-world regression matrix.
+See `docs/first-live-test.md` for the core live-world regression matrix and `docs/v1.1.1-backup-live-test.md` for the 1.1.1 backup regression pass.
