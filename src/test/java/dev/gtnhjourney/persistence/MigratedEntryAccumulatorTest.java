@@ -15,25 +15,25 @@ import net.minecraft.nbt.NBTTagCompound;
 public class MigratedEntryAccumulatorTest {
 
     @Test
-    public void firstValidOccurrenceWinsCollapsedIdentityAndChronology() {
+    public void newestEquivalentOccurrenceWinsCollapsedIdentityAndChronology() {
         MigratedEntryAccumulator accumulator = new MigratedEntryAccumulator();
-        ResearchKey collapsed = new ResearchKey("EMT:itemArmorQuantumChestplate", 0, "persistent");
+        ResearchKey collapsed = new ResearchKey("Botania:specialFlower", 0, "type=daybloom");
         ResearchKey distinct = new ResearchKey("IC2:itemFluidCell", 0, "fluid=molten.orundum");
         NBTTagCompound earliest = tag("source", "earliest");
-        NBTTagCompound later = tag("source", "later");
         NBTTagCompound fluid = tag("FluidName", "molten.orundum");
+        NBTTagCompound later = tag("source", "later");
 
         assertTrue(accumulator.accept(collapsed, earliest));
-        assertFalse(accumulator.accept(collapsed, later));
         assertTrue(accumulator.accept(distinct, fluid));
+        assertFalse(accumulator.accept(collapsed, later));
 
-        assertEquals(Arrays.asList(collapsed, distinct), accumulator.keys());
-        assertEquals("earliest", accumulator.template(collapsed).getString("source"));
+        assertEquals(Arrays.asList(distinct, collapsed), accumulator.keys());
+        assertEquals("later", accumulator.template(collapsed).getString("source"));
         assertEquals("molten.orundum", accumulator.template(distinct).getString("FluidName"));
     }
 
     @Test
-    public void templatesAreDefensivelyCopiedAndRejectedEntriesCannotReplaceTheSurvivor() {
+    public void templatesAreDefensivelyCopiedAndNewestEquivalentReplacesTheSurvivor() {
         MigratedEntryAccumulator accumulator = new MigratedEntryAccumulator();
         ResearchKey key = new ResearchKey("test:item", 0, "state");
         NBTTagCompound earliest = tag("value", "A");
@@ -45,7 +45,7 @@ public class MigratedEntryAccumulatorTest {
 
         assertEquals("A", accumulator.template(key).getString("value"));
         assertFalse(accumulator.accept(key, tag("value", "B")));
-        assertEquals("A", accumulator.template(key).getString("value"));
+        assertEquals("B", accumulator.template(key).getString("value"));
     }
 
     @Test
