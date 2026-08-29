@@ -18,6 +18,7 @@ final class JourneyNeiFilterPipeline {
 
     static List<ItemFilter> snapshotActiveFilters() {
         List<ItemFilter> filters = new ArrayList<ItemFilter>();
+        List<String> providerNames = new ArrayList<String>();
         synchronized (ItemList.itemFilterers) {
             for (ItemFilterProvider provider : ItemList.itemFilterers) {
                 if (provider == null || provider instanceof JourneyItemFilterProvider) continue;
@@ -32,12 +33,16 @@ final class JourneyNeiFilterPipeline {
                 }
                 try {
                     ItemFilter filter = provider.getFilter();
-                    if (filter != null) filters.add(filter);
+                    if (filter != null) {
+                        filters.add(filter);
+                        providerNames.add(providerClassName);
+                    }
                 } catch (Throwable ignored) {
                     JourneyRuntimeCounters.presentationFailure();
                 }
             }
         }
+        JourneyFilterDiagnostics.record(providerNames, JourneyFilterDiagnostics.safeSearchText(LayoutManager.searchField));
         return filters;
     }
 
