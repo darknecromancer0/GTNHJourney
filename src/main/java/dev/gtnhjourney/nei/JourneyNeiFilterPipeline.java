@@ -11,7 +11,7 @@ import codechicken.nei.api.ItemFilter;
 import codechicken.nei.api.ItemFilter.ItemFilterProvider;
 import dev.gtnhjourney.diagnostics.JourneyRuntimeCounters;
 
-/** Applies NEI's active item filters to Journey's already ordered item list. */
+/** Applies Journey-compatible NEI query filters to Journey's already ordered item list. */
 final class JourneyNeiFilterPipeline {
 
     private JourneyNeiFilterPipeline() {}
@@ -21,7 +21,15 @@ final class JourneyNeiFilterPipeline {
         synchronized (ItemList.itemFilterers) {
             for (ItemFilterProvider provider : ItemList.itemFilterers) {
                 if (provider == null || provider instanceof JourneyItemFilterProvider) continue;
-                if (provider == LayoutManager.searchField && !LayoutManager.searchField.isVisible()) continue;
+                boolean searchField = provider == LayoutManager.searchField;
+                String providerClassName = provider.getClass()
+                    .getName();
+                if (!JourneyNeiFilterProviderPolicy.shouldApply(
+                    providerClassName,
+                    searchField,
+                    !searchField || LayoutManager.searchField.isVisible())) {
+                    continue;
+                }
                 try {
                     ItemFilter filter = provider.getFilter();
                     if (filter != null) filters.add(filter);
