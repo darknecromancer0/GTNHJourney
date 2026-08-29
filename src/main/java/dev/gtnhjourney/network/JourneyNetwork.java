@@ -47,10 +47,15 @@ public final class JourneyNetwork {
             Side.CLIENT);
         CHANNEL.registerMessage(InventoryScanRequestMessage.Handler.class, InventoryScanRequestMessage.class, 11, Side.SERVER);
         CHANNEL.registerMessage(DebugToolRequestMessage.Handler.class, DebugToolRequestMessage.class, 12, Side.SERVER);
+        CHANNEL.registerMessage(FillInventoryRequestMessage.Handler.class, FillInventoryRequestMessage.class, 13, Side.SERVER);
     }
 
     public static void requestRetrieve(ResearchKey key, int amount) {
         CHANNEL.sendToServer(new RetrieveRequestMessage(ResearchFingerprint.of(key), amount));
+    }
+
+    public static void requestFillInventory(ResearchKey key) {
+        if (key != null) CHANNEL.sendToServer(new FillInventoryRequestMessage(ResearchFingerprint.of(key)));
     }
 
     public static void requestDelete(ResearchKey key) {
