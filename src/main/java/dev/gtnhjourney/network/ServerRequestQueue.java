@@ -17,6 +17,7 @@ import dev.gtnhjourney.persistence.PlayerResearchService;
 import dev.gtnhjourney.recovery.JourneyMutationService;
 import dev.gtnhjourney.research.ResearchFingerprint;
 import dev.gtnhjourney.research.ResearchKey;
+import dev.gtnhjourney.retrieval.MainInventoryFillService;
 
 /** Moves packet requests onto the authoritative server tick without relying on version-specific scheduler methods. */
 public final class ServerRequestQueue {
@@ -47,6 +48,10 @@ public final class ServerRequestQueue {
 
     static void enqueue(EntityPlayerMP player, ResearchFingerprint fingerprint, int amount) {
         enqueueRequest(Request.retrieve(player, fingerprint, amount));
+    }
+
+    static void enqueueFillInventory(EntityPlayerMP player, ResearchFingerprint fingerprint) {
+        enqueueRequest(Request.fillInventory(player, fingerprint));
     }
 
     static void enqueueDelete(EntityPlayerMP player, ResearchFingerprint fingerprint) {
@@ -95,6 +100,9 @@ public final class ServerRequestQueue {
             case DELETE:
                 handleDelete(player, request.fingerprint);
                 return;
+            case FILL_INVENTORY:
+                handleFillInventory(player, request.fingerprint);
+                return;
             case INVENTORY_SCAN:
                 handleInventoryScan(player);
                 return;
@@ -119,6 +127,18 @@ public final class ServerRequestQueue {
 
         // N is activity history, not inventory-observation history. Only this successful Journey issuance moves an
         // already researched item to the front; later pickup/reconcile passes therefore cannot reorder N again.
+        research.recordRetrieval(player, key);
+        JourneyNetwork.sendActivityTouch(player, ResearchFingerprint.of(key));
+    }
+
+    private void handleFillInventory(EntityPlayerMP player, ResearchFingerprint fingerprint) {
+        ResearchKey key = research.resolve(player, fingerprint);
+        if (key == null) return;
+        ItemStack template = research.retrieve(player, key, 1);
+        if (template == null) return;
+        int filled = MainInventoryFillService.fillEmptyMainSlots(player, template);
+        if (filled <= 0) return;
+        player.inventoryContainer.detectAndSendChanges();
         research.recordRetrieval(player, key);
         JourneyNetwork.sendActivityTouch(player, ResearchFingerprint.of(key));
     }
@@ -160,6 +180,7 @@ public final class ServerRequestQueue {
 
     private enum RequestKind {
         RETRIEVE,
+        FILL_INVENTORY,
         DELETE,
         INVENTORY_SCAN,
         DEBUG_TOOL
@@ -182,11 +203,15 @@ public final class ServerRequestQueue {
         }
 
         boolean requiresFingerprint() {
-            return kind == RequestKind.RETRIEVE || kind == RequestKind.DELETE;
+            return kind == RequestKind.RETRIEVE || kind == RequestKind.FILL_INVENTORY || kind == RequestKind.DELETE;
         }
 
         static Request retrieve(EntityPlayerMP player, ResearchFingerprint fingerprint, int amount) {
             return new Request(player, fingerprint, amount, RequestKind.RETRIEVE);
+        }
+
+        static Request fillInventory(EntityPlayerMP player, ResearchFingerprint fingerprint) {
+            return new Request(player, fingerprint, 0, RequestKind.FILL_INVENTORY);
         }
 
         static Request delete(EntityPlayerMP player, ResearchFingerprint fingerprint) {
