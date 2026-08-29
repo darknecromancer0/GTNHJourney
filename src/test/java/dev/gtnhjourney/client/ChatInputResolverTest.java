@@ -1,57 +1,58 @@
 package dev.gtnhjourney.client;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
 import java.lang.reflect.Field;
-
-import net.minecraft.client.gui.GuiChat;
-import net.minecraft.client.gui.GuiTextField;
 
 import org.junit.jupiter.api.Test;
 
 public class ChatInputResolverTest {
 
     @Test
-    public void resolvesRealInputFromSuperclassWhenRuntimeGuiHasOtherFields() throws Exception {
-        WrappedGuiChat chat = new WrappedGuiChat();
-        GuiTextField expected = new GuiTextField(null, 0, 0, 10, 10);
-        setGuiChatInput(chat, expected);
+    public void resolvesLiveAssignableFieldFromSuperclassWhenRuntimeClassHasOtherFields() {
+        WrappedFixture target = new WrappedFixture();
 
-        assertSame(expected, ChatInputResolver.resolve(chat));
+        Field resolved = ChatInputResolver.findLiveAssignableField(target, InputMarker.class);
+
+        assertNotNull(resolved);
+        assertSame(target.expected(), ChatInputResolver.readAssignable(target, resolved, InputMarker.class));
     }
 
     @Test
-    public void ignoresNullGuiTextFieldDecoyBeforeSuperclassInput() throws Exception {
-        GuiWithNullDecoy chat = new GuiWithNullDecoy();
-        GuiTextField expected = new GuiTextField(null, 0, 0, 10, 10);
-        setGuiChatInput(chat, expected);
+    public void ignoresNullAssignableDecoyBeforeSuperclassInput() {
+        NullDecoyFixture target = new NullDecoyFixture();
 
-        assertSame(expected, ChatInputResolver.resolve(chat));
+        Field resolved = ChatInputResolver.findLiveAssignableField(target, InputMarker.class);
+
+        assertNotNull(resolved);
+        assertSame(target.expected(), ChatInputResolver.readAssignable(target, resolved, InputMarker.class));
     }
 
     @Test
-    public void nullInputFailsOpenWithoutThrowing() {
-        assertNull(ChatInputResolver.resolve(new WrappedGuiChat()));
+    public void incompatibleFixtureFailsOpenWithoutThrowing() {
+        assertNull(ChatInputResolver.findLiveAssignableField(new Object(), InputMarker.class));
+        assertNull(ChatInputResolver.findLiveAssignableField(null, InputMarker.class));
     }
 
-    private static void setGuiChatInput(GuiChat chat, GuiTextField input) throws Exception {
-        for (Field field : GuiChat.class.getDeclaredFields()) {
-            if (!GuiTextField.class.isAssignableFrom(field.getType())) continue;
-            field.setAccessible(true);
-            field.set(chat, input);
-            return;
+    private static final class InputMarker {}
+
+    private static class BaseFixture {
+        private final InputMarker input = new InputMarker();
+
+        final InputMarker expected() {
+            return input;
         }
-        throw new AssertionError("GuiChat input field not found");
     }
 
-    private static class WrappedGuiChat extends GuiChat {
+    private static class WrappedFixture extends BaseFixture {
         @SuppressWarnings("unused")
         private String unrelated = "before-input";
     }
 
-    private static final class GuiWithNullDecoy extends WrappedGuiChat {
+    private static final class NullDecoyFixture extends WrappedFixture {
         @SuppressWarnings("unused")
-        private GuiTextField decoy;
+        private InputMarker decoy;
     }
 }
