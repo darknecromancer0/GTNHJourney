@@ -1,6 +1,6 @@
 # GTNH Journey
 
-Current release: `1.1.4`.
+Current release: `1.1.5`.
 
 GT New Horizons 1.7.10 addon that automatically researches item states the player genuinely obtains and allows server-authoritative infinite retrieval through the existing NEI frontend.
 
@@ -11,6 +11,7 @@ GT New Horizons 1.7.10 addon that automatically researches item states the playe
 - NotEnoughItems `2.8.111-GTNH` integration baseline
 - Development JDK 25 with Java 8-compatible output bytecode
 - Newer GTNH 2.9 builds are best-effort until separately verified
+- 1.1.5 adds a client-only WR-CBE render-boundary recovery for the `Already tesselating!` crash reported when a shared 1.7.10 Tessellator batch reaches WR-CBE still open. Clean render boundaries are left untouched.
 
 ## Core behavior
 
@@ -120,7 +121,7 @@ If the server begins shutting down while a backup worker is still active, Journe
 
 ### Session speed
 
-GTNH Journey 1.1.4 adds a session-only server-speed control that accelerates the normal `MinecraftServer` cadence rather than directly ticking TileEntities or individual machines.
+GTNH Journey 1.1.4 introduced a session-only server-speed control that accelerates the normal `MinecraftServer` cadence rather than directly ticking TileEntities or individual machines.
 
 - `/journey speed status` is read-only and reports the active multiplier, target TPS and whether the runtime pacing hook is available.
 - `/journey speed 1|2|4|8` requires the integrated-server owner or a level-2 operator.
@@ -227,4 +228,4 @@ gradle build --stacktrace
 
 CI verifies checkout provenance, runs the complete regression suite, checks that `GTNHJourney.VERSION`, the production JAR filename and packaged `mcmod.info` version agree, then uploads production/dev/sources JARs.
 
-See `docs/first-live-test.md` for the core live-world regression matrix, `docs/v1.1.1-backup-live-test.md` for the 1.1.1 backup regression pass, and `docs/v1.1.4-live-test.md` for the 1.1.4 integrity, hints, diagnostics and session-speed pass.
+See `docs/first-live-test.md` for the core live-world regression matrix, `docs/v1.1.1-backup-live-test.md` for the 1.1.1 backup regression pass, `docs/v1.1.4-live-test.md` for the 1.1.4 integrity, hints, diagnostics and session-speed pass, and `docs/v1.1.5-live-test.md` for the WR-CBE render-boundary crash regression.
