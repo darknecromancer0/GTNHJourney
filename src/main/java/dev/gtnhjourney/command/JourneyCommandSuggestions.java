@@ -33,7 +33,8 @@ public final class JourneyCommandSuggestions {
         "hotspots",
         "debugtool",
         "prune-missing",
-        "clear"));
+        "clear",
+        "speed"));
 
     private JourneyCommandSuggestions() {}
 
@@ -52,6 +53,7 @@ public final class JourneyCommandSuggestions {
         if (args.length == 2) {
             String action = args[0] == null ? "" : args[0].toLowerCase(Locale.ROOT);
             if ("trace".equals(action)) return matching(args[1], Arrays.asList("on", "off"));
+            if ("speed".equals(action)) return matching(args[1], Arrays.asList("1", "2", "4", "8", "status"));
             if ("clear".equals(action) || "prune-missing".equals(action)) {
                 return matching(args[1], Collections.singletonList("confirm"));
             }
