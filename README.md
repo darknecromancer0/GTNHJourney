@@ -1,6 +1,6 @@
 # GTNH Journey
 
-Current release: `1.1.2`.
+Current release: `1.1.4`.
 
 GT New Horizons 1.7.10 addon that automatically researches item states the player genuinely obtains and allows server-authoritative infinite retrieval through the existing NEI frontend.
 
@@ -97,7 +97,7 @@ Recovery features include:
 
 ## World safety
 
-GTNH Journey 1.1.1 keeps the 1.1 world-protection features independent of Journey research state and hardens world backups for large saves.
+GTNH Journey keeps the world-protection features independent of Journey research state and hardens world backups for large saves.
 
 ### World backups
 
@@ -117,6 +117,17 @@ If the server begins shutting down while a backup worker is still active, Journe
 - `/journey backup now` starts a manual background backup immediately and still works when automatic backups are disabled.
 - `/journey backup on` and `/journey backup off` persist the automatic-backup toggle.
 - `backup now`, `backup on` and `backup off` require the integrated-server owner or a level-2 operator.
+
+### Session speed
+
+GTNH Journey 1.1.4 adds a session-only server-speed control that accelerates the normal `MinecraftServer` cadence rather than directly ticking TileEntities or individual machines.
+
+- `/journey speed status` is read-only and reports the active multiplier, target TPS and whether the runtime pacing hook is available.
+- `/journey speed 1|2|4|8` requires the integrated-server owner or a level-2 operator.
+- targets are 20, 40, 80 and 160 TPS respectively; 4x and 8x use fractional millisecond pacing cycles so the requested average rate is not distorted by integer rounding.
+- unsupported or failed runtime hooks fail closed and restore/remain at 1x.
+- speed is intentionally not persisted and resets to 1x when the server session restarts.
+- world-backup scheduling remains based on wall-clock time rather than accelerated game ticks.
 
 ### Explosion guard
 
@@ -145,7 +156,7 @@ Modes cycle with Shift+right-click:
 
 ## Commands
 
-`/journey help` prints the same list in-game with one command per line. Minecraft 1.7.10 native Tab completion is supported for Journey subcommands and fixed arguments such as `trace on/off`, world-safety actions and destructive `confirm` arguments. Up/down arrows remain vanilla command history.
+`/journey help` prints the same list in-game with one command per line. Minecraft 1.7.10 native Tab completion is supported for Journey subcommands and fixed arguments such as `trace on/off`, world-safety actions, session-speed values and destructive `confirm` arguments. Up/down arrows remain vanilla command history.
 
 - `/journey help` - show command help
 - `/journey count` - show researched state count
@@ -166,6 +177,7 @@ Modes cycle with Shift+right-click:
 - `/journey backup status|now|on|off` - inspect, run or toggle world backups
 - `/journey explosions status|on|off` - inspect or toggle the global explosion guard
 - `/journey cleanse` - remove the caller's active negative potion effects
+- `/journey speed <1|2|4|8|status>` - inspect or change session server speed
 - `/journey debug` - show runtime compatibility diagnostics
 - `/journey trace [on|off]` - toggle live research tracing
 - `/journey dump` - write an attachable diagnostic dump into `logs/`
@@ -202,7 +214,7 @@ Network/security hard limits and AREA_16 radius remain compile-time constants.
 - semantic stack count after Journey keying;
 - visible panel stack count after active NEI visibility filters.
 
-This makes a server-research versus client-sync versus panel-visibility loss distinguishable in one dump.
+The 1.1.4 dump also records server authoritative/syncable/oversized counts, Journey mode, active NEI search/filter state, command-hint resolver state and backup completion state. This makes a server-research versus client-sync versus panel-visibility loss distinguishable in one dump without mutating research.
 
 ## Development verification
 
@@ -215,4 +227,4 @@ gradle build --stacktrace
 
 CI verifies checkout provenance, runs the complete regression suite, checks that `GTNHJourney.VERSION`, the production JAR filename and packaged `mcmod.info` version agree, then uploads production/dev/sources JARs.
 
-See `docs/first-live-test.md` for the core live-world regression matrix and `docs/v1.1.1-backup-live-test.md` for the 1.1.1 backup regression pass.
+See `docs/first-live-test.md` for the core live-world regression matrix, `docs/v1.1.1-backup-live-test.md` for the 1.1.1 backup regression pass, and `docs/v1.1.4-live-test.md` for the 1.1.4 integrity, hints, diagnostics and session-speed pass.
