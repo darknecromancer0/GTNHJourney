@@ -3,6 +3,7 @@ package dev.gtnhjourney.minecraft;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import net.minecraft.nbt.NBTTagCompound;
 
@@ -22,6 +23,21 @@ public class BotaniaTransientStatePolicyTest {
         assertFalse(old.hasKey("passiveDecayTicks"));
         assertEquals("daybloom", fresh.getString("type"));
         assertEquals(ResearchNbtIdentity.canonicalize(fresh), ResearchNbtIdentity.canonicalize(old));
+    }
+
+    @Test
+    public void persistedDaybloomMigratesEvenWhenRuntimeItemCannotBeReconstructed() {
+        NBTTagCompound persisted = flower("daybloom", 7212);
+        String oldCanonical = ResearchNbtIdentity.canonicalize(persisted);
+
+        PersistedResearchEntryResolver.ResolvedEntry resolved = PersistedResearchEntryResolver
+            .resolveEntry("Botania:specialFlower", 0, oldCanonical, persisted);
+
+        assertNotNull(resolved);
+        assertFalse(resolved.key().getCanonicalNbt().contains("passiveDecayTicks"));
+        assertNotNull(resolved.template());
+        assertFalse(resolved.template().hasKey("passiveDecayTicks"));
+        assertEquals("daybloom", resolved.template().getString("type"));
     }
 
     @Test
