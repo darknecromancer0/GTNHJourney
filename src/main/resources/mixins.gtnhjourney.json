@@ -8,6 +8,10 @@
   "mixins": [
     "MinecraftServerSpeedMixin"
   ],
+  "client": [
+    "TessellatorStateAccessor",
+    "WRCoreEventHandlerMixin"
+  ],
   "injectors": {
     "defaultRequire": 1
   }
