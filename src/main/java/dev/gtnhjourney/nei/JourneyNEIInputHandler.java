@@ -23,6 +23,10 @@ public final class JourneyNEIInputHandler implements IContainerInputHandler {
         try {
             ResearchKey key = JourneyPresentationKeyResolver.keyOf(hovered);
             if (!ClientResearchMirror.contains(key)) return false;
+            if (JourneyRetrieveClickPolicy.shouldFillInventory(button, shiftDown())) {
+                JourneyNetwork.requestFillInventory(key);
+                return true;
+            }
             int amount = JourneyRetrieveClickPolicy.requestedAmount(button, shiftDown(), hovered.getMaxStackSize());
             JourneyNetwork.requestRetrieve(key, amount);
             return true;
