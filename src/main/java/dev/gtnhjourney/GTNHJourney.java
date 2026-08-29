@@ -29,6 +29,9 @@ import dev.gtnhjourney.recovery.JourneyMutationService;
 import dev.gtnhjourney.recovery.JourneySnapshotTicker;
 import dev.gtnhjourney.safety.ExplosionGuard;
 import dev.gtnhjourney.safety.PlayerCleanseService;
+import dev.gtnhjourney.time.JourneySpeedController;
+import dev.gtnhjourney.time.JourneySpeedState;
+import dev.gtnhjourney.time.ReflectiveServerTickRateAdapter;
 
 @Mod(
     modid = GTNHJourney.MODID,
@@ -48,6 +51,9 @@ public final class GTNHJourney {
     public static final WorldBackupCoordinator WORLD_BACKUPS = new WorldBackupCoordinator();
     public static final ExplosionGuard EXPLOSION_GUARD = new ExplosionGuard();
     public static final PlayerCleanseService CLEANSE = new PlayerCleanseService();
+    public static final JourneySpeedController SPEED = new JourneySpeedController(
+        new JourneySpeedState(),
+        new ReflectiveServerTickRateAdapter());
     private static final WorldBackupTicker WORLD_BACKUP_TICKER = new WorldBackupTicker(WORLD_BACKUPS);
     public static JourneyMutationService MUTATIONS;
     public static Item DEBUG_RESEARCHER_TOOL;
@@ -109,6 +115,7 @@ public final class GTNHJourney {
 
     @EventHandler
     public void serverStarting(FMLServerStartingEvent event) {
+        SPEED.reset();
         // A remote server may have overwritten the client-side static identity policy in the same JVM earlier.
         // Every actual server start reasserts this instance's local authoritative config before touching a world.
         dev.gtnhjourney.minecraft.ResearchCompatibilityOptions.configure(
@@ -134,6 +141,7 @@ public final class GTNHJourney {
 
     @EventHandler
     public void serverStopped(FMLServerStoppedEvent event) {
+        SPEED.reset();
         ServerRequestQueue.clearPending();
         ServerResearchSyncQueue.clear();
         if (inventoryTracker != null) inventoryTracker.clearCaches();
