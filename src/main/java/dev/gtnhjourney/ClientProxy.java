@@ -6,6 +6,7 @@ import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import dev.gtnhjourney.client.ClientConnectionTracker;
 import dev.gtnhjourney.client.ClientNetworkQueue;
+import dev.gtnhjourney.client.CommandHintDiagnostics;
 import dev.gtnhjourney.client.JourneyCommandHintOverlay;
 import dev.gtnhjourney.nei.JourneyCreativeInventorySafety;
 
@@ -24,5 +25,6 @@ public final class ClientProxy extends CommonProxy {
             .bus()
             .register(new JourneyCreativeInventorySafety());
         MinecraftForge.EVENT_BUS.register(new JourneyCommandHintOverlay());
+        CommandHintDiagnostics.markRegistered();
     }
 }
