@@ -19,6 +19,11 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 
 import dev.gtnhjourney.GTNHJourney;
+import dev.gtnhjourney.backup.WorldBackupResult;
+import dev.gtnhjourney.client.ClientStackMirror;
+import dev.gtnhjourney.client.CommandHintDiagnostics;
+import dev.gtnhjourney.nei.JourneyFilterDiagnostics;
+import dev.gtnhjourney.nei.JourneyViewState;
 import dev.gtnhjourney.network.ItemStackPayloadSizer;
 import dev.gtnhjourney.recovery.JourneySnapshot;
 import dev.gtnhjourney.research.ResearchKey;
@@ -46,6 +51,7 @@ public final class JourneyDiagnosticDump {
         int unavailable = 0;
         HashSet<String> bases = new HashSet<String>();
         Map<String, Integer> semanticMatches = new LinkedHashMap<String, Integer>();
+        Map<ResearchKey, String> displayNames = new LinkedHashMap<ResearchKey, String>();
         String[] semanticPolicyOrder = {
             "GT-charge", "IC2-charge", "CoFH-charge", "OC-charge", "GT-tool", "TCon-tool", "Botania-magnet",
             "Draconic-tool", "wearable-transient" };
@@ -59,8 +65,10 @@ public final class JourneyDiagnosticDump {
             ItemStack diagnosticStack = GTNHJourney.RESEARCH.retrieve(player, key, 1);
             if (diagnosticStack == null) {
                 unavailable++;
+                displayNames.put(key, "UNAVAILABLE");
                 continue;
             }
+            displayNames.put(key, safeDisplayName(diagnosticStack));
             if (!ItemStackPayloadSizer.canSync(diagnosticStack)) serverOnly++;
             SemanticDiagnosticSnapshot semantic = new SemanticDiagnosticSnapshot(
                 dev.gtnhjourney.minecraft.GtChargeStatePolicy.describe(diagnosticStack),
@@ -85,6 +93,31 @@ public final class JourneyDiagnosticDump {
         }
 
         JourneyRuntimeCounters.Snapshot counters = JourneyRuntimeCounters.snapshot();
+        JourneyFilterDiagnostics.Snapshot filterDiagnostics = JourneyFilterDiagnostics.snapshot();
+        CommandHintDiagnostics.Snapshot hintDiagnostics = CommandHintDiagnostics.snapshot();
+        WorldBackupResult lastBackup = GTNHJourney.WORLD_BACKUPS.lastResult();
+        int serverSyncable = Math.max(0, keys.size() - unavailable - serverOnly);
+        JourneyDiagnosticSnapshot integrity = new JourneyDiagnosticSnapshot(
+            ClientStackMirror.snapshot()
+                .size(),
+            keys.size(),
+            serverSyncable,
+            serverOnly,
+            JourneyViewState.mode()
+                .name(),
+            filterDiagnostics.searchText(),
+            filterDiagnostics.providerClassNames(),
+            counters.getPanelAuthoritativeStacks(),
+            counters.getPanelSemanticStacks(),
+            counters.getPanelVisibleStacks(),
+            hintDiagnostics.registered(),
+            hintDiagnostics.resolverPath(),
+            hintDiagnostics.resolverFailures(),
+            hintDiagnostics.lastSuggestionCount(),
+            GTNHJourney.WORLD_BACKUPS.isRunning(),
+            lastBackup == null ? "UNAVAILABLE" : lastBackup.getMessage(),
+            GTNHJourney.WORLD_BACKUPS.lastDurationMillis());
+
         List<JourneySnapshot> recoverySnapshots = GTNHJourney.MUTATIONS == null
             ? java.util.Collections.<JourneySnapshot>emptyList()
             : GTNHJourney.MUTATIONS.snapshots(player);
@@ -110,6 +143,9 @@ public final class JourneyDiagnosticDump {
             out.write("Player UUID: " + player.getUniqueID() + "\n\n");
             out.write("== Runtime ==\n");
             for (String line : RuntimeCompatibilityReport.lines()) out.write(line + "\n");
+
+            out.write("\n== Journey integrity state ==\n");
+            for (String line : integrity.lines()) out.write(line + "\n");
 
             out.write("\n== Runtime counters ==\n");
             out.write("panelIncrementalUpdates=" + counters.getPanelIncrementalUpdates() + "\n");
@@ -194,11 +230,30 @@ public final class JourneyDiagnosticDump {
                 out.write(
                     key.getCanonicalNbt()
                         .isEmpty() ? "BASE" : key.getCanonicalNbt());
+                out.write('\t');
+                String displayName = displayNames.get(key);
+                out.write(displayName == null ? "UNAVAILABLE" : displayName);
                 out.write('\n');
             }
         } finally {
             out.close();
         }
         return file;
+    }
+
+    static String safeDisplayName(ItemStack stack) {
+        if (stack == null || stack.getItem() == null) return "UNAVAILABLE";
+        try {
+            String name = stack.getDisplayName();
+            if (name == null || name.trim().isEmpty()) return "UNAVAILABLE";
+            return name.replace('\n', ' ')
+                .replace('\r', ' ');
+        } catch (RuntimeException failure) {
+            return "UNAVAILABLE:" + failure.getClass()
+                .getSimpleName();
+        } catch (LinkageError failure) {
+            return "UNAVAILABLE:" + failure.getClass()
+                .getSimpleName();
+        }
     }
 }
