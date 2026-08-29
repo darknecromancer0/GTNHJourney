@@ -16,7 +16,7 @@ public class JourneyServerSpeedMixinContractTest {
     public void buildEnablesJourneyMixinPackage() throws IOException {
         String properties = read("gradle.properties");
         assertTrue(properties.contains("usesMixins = true"));
-        assertTrue(properties.contains("mixinsPackage = dev.gtnhjourney.mixin"));
+        assertTrue(properties.contains("mixinsPackage = mixin"));
     }
 
     @Test
