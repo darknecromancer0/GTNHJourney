@@ -25,10 +25,10 @@ public final class ChatInputResolver {
         synchronized (SUCCESSFUL_FIELDS) {
             cached = SUCCESSFUL_FIELDS.get(runtimeClass);
         }
-        GuiTextField cachedValue = read(chat, cached);
+        Object cachedValue = readAssignable(chat, cached, GuiTextField.class);
         if (cachedValue != null) {
             recordSuccess(cached);
-            return cachedValue;
+            return (GuiTextField) cachedValue;
         }
         if (cached != null) {
             synchronized (SUCCESSFUL_FIELDS) {
@@ -36,29 +36,40 @@ public final class ChatInputResolver {
             }
         }
 
-        for (Class<?> type = runtimeClass; type != null && GuiChat.class.isAssignableFrom(type); type = type.getSuperclass()) {
+        Field resolved = findLiveAssignableField(chat, GuiTextField.class);
+        if (resolved == null) {
+            CommandHintDiagnostics.recordResolverFailure();
+            return null;
+        }
+        Object value = readAssignable(chat, resolved, GuiTextField.class);
+        if (value == null) {
+            CommandHintDiagnostics.recordResolverFailure();
+            return null;
+        }
+        synchronized (SUCCESSFUL_FIELDS) {
+            SUCCESSFUL_FIELDS.put(runtimeClass, resolved);
+        }
+        recordSuccess(resolved);
+        return (GuiTextField) value;
+    }
+
+    static Field findLiveAssignableField(Object target, Class<?> fieldType) {
+        if (target == null || fieldType == null) return null;
+        for (Class<?> type = target.getClass(); type != null; type = type.getSuperclass()) {
             for (Field field : type.getDeclaredFields()) {
-                if (!GuiTextField.class.isAssignableFrom(field.getType())) continue;
-                GuiTextField value = read(chat, field);
-                if (value == null) continue;
-                synchronized (SUCCESSFUL_FIELDS) {
-                    SUCCESSFUL_FIELDS.put(runtimeClass, field);
-                }
-                recordSuccess(field);
-                return value;
+                if (!fieldType.isAssignableFrom(field.getType())) continue;
+                if (readAssignable(target, field, fieldType) != null) return field;
             }
         }
-
-        CommandHintDiagnostics.recordResolverFailure();
         return null;
     }
 
-    private static GuiTextField read(GuiChat chat, Field field) {
-        if (field == null) return null;
+    static Object readAssignable(Object target, Field field, Class<?> fieldType) {
+        if (target == null || field == null || fieldType == null) return null;
         try {
             if (!field.isAccessible()) field.setAccessible(true);
-            Object value = field.get(chat);
-            return value instanceof GuiTextField ? (GuiTextField) value : null;
+            Object value = field.get(target);
+            return fieldType.isInstance(value) ? value : null;
         } catch (IllegalAccessException ignored) {
             return null;
         } catch (RuntimeException ignored) {
