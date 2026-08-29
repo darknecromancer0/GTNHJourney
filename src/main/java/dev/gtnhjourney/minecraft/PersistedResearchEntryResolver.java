@@ -112,6 +112,7 @@ public final class PersistedResearchEntryResolver {
         NBTTagCompound out = ResearchTemplateNormalizer.normalize(original);
         if (out == null) return null;
         try {
+            BotaniaTransientStatePolicy.normalize(itemId, out);
             KnownTransientItemStatePolicy.normalize(itemId, meta, out);
             EmbeddedInventoryPolicy.normalize(itemId, out);
             if (isForestry(itemId)) ForestryGeneticsNbtPolicy.normalizeGeneticsTag(out);
