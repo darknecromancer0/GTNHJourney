@@ -1,6 +1,5 @@
 package dev.gtnhjourney.client;
 
-import java.lang.reflect.Field;
 import java.util.List;
 
 import net.minecraft.client.Minecraft;
@@ -17,16 +16,18 @@ import dev.gtnhjourney.command.JourneyCommandSuggestions;
 public final class JourneyCommandHintOverlay {
 
     private static final int MAX_VISIBLE = 10;
-    private static Field inputField;
-    private static boolean inputFieldResolved;
 
     @SubscribeEvent
     public void onDraw(GuiScreenEvent.DrawScreenEvent.Post event) {
         if (!(event.gui instanceof GuiChat)) return;
-        GuiTextField chatInput = chatInput((GuiChat) event.gui);
-        if (chatInput == null) return;
+        GuiTextField chatInput = ChatInputResolver.resolve((GuiChat) event.gui);
+        if (chatInput == null) {
+            CommandHintDiagnostics.recordSuggestionCount(0);
+            return;
+        }
 
         List<String> suggestions = JourneyCommandSuggestions.forChatText(chatInput.getText());
+        CommandHintDiagnostics.recordSuggestionCount(suggestions.size());
         if (suggestions.isEmpty()) return;
 
         Minecraft minecraft = Minecraft.getMinecraft();
@@ -50,30 +51,5 @@ public final class JourneyCommandHintOverlay {
             y += lineHeight;
         }
         if (extra > 0) font.drawStringWithShadow("+" + extra + " more", left, y, 0xFF909090);
-    }
-
-    private static GuiTextField chatInput(GuiChat chat) {
-        if (!inputFieldResolved) resolveInputField();
-        if (inputField == null) return null;
-        try {
-            return (GuiTextField) inputField.get(chat);
-        } catch (IllegalAccessException ignored) {
-            return null;
-        }
-    }
-
-    private static synchronized void resolveInputField() {
-        if (inputFieldResolved) return;
-        inputFieldResolved = true;
-        for (Field field : GuiChat.class.getDeclaredFields()) {
-            if (!GuiTextField.class.isAssignableFrom(field.getType())) continue;
-            try {
-                field.setAccessible(true);
-                inputField = field;
-                return;
-            } catch (RuntimeException ignored) {
-                // Keep looking; an unusual security manager must not break chat rendering.
-            }
-        }
     }
 }
