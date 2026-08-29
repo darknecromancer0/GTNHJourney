@@ -16,13 +16,15 @@ import dev.gtnhjourney.acquisition.ManualInventoryResearchService;
 import dev.gtnhjourney.network.JourneyNetwork;
 import dev.gtnhjourney.recovery.JourneySnapshot;
 import dev.gtnhjourney.research.ResearchKey;
+import dev.gtnhjourney.time.JourneySpeedController;
 
 /** Diagnostic, recovery and fallback UI for Journey research. */
 public final class CommandJourney extends CommandBase {
 
     private static final String[] SUBCOMMANDS = { "help", "count", "stats", "inspect", "research", "rescan", "list",
         "newest", "get", "forget", "undo", "redo", "restore-deleted", "snapshot", "snapshots", "restore", "debug",
-        "trace", "dump", "hotspots", "debugtool", "prune-missing", "clear", "backup", "explosions", "cleanse" };
+        "trace", "dump", "hotspots", "debugtool", "prune-missing", "clear", "backup", "explosions", "cleanse",
+        "speed" };
 
     @Override
     public String getCommandName() {
@@ -48,6 +50,7 @@ public final class CommandJourney extends CommandBase {
             if ("trace".equals(action)) return getListOfStringsMatchingLastWord(args, "on", "off");
             if ("backup".equals(action)) return getListOfStringsMatchingLastWord(args, "status", "now", "on", "off");
             if ("explosions".equals(action)) return getListOfStringsMatchingLastWord(args, "status", "on", "off");
+            if ("speed".equals(action)) return getListOfStringsMatchingLastWord(args, "1", "2", "4", "8", "status");
             if ("clear".equals(action) || "prune-missing".equals(action)) {
                 return getListOfStringsMatchingLastWord(args, "confirm");
             }
@@ -75,6 +78,10 @@ public final class CommandJourney extends CommandBase {
         }
         if ("stats".equals(action)) {
             stats(player);
+            return;
+        }
+        if ("speed".equals(action)) {
+            speed(player, args);
             return;
         }
         if ("debug".equals(action)) {
@@ -264,6 +271,42 @@ public final class CommandJourney extends CommandBase {
         }
         tell(player, "Unknown Journey command: " + action);
         help(player);
+    }
+
+    private void speed(EntityPlayerMP player, String[] args) {
+        if (args.length < 2 || "status".equalsIgnoreCase(args[1])) {
+            tell(
+                player,
+                "Journey speed: " + GTNHJourney.SPEED.multiplier() + "x (target " + GTNHJourney.SPEED.targetTps()
+                    + " TPS). Hook: " + (GTNHJourney.SPEED.supported() ? "supported" : "unsupported") + ".");
+            return;
+        }
+        if (!JourneyAdminPermissionPolicy.mayMutate(player)) {
+            tell(player, "Journey speed changes require the integrated-server owner or operator permission.");
+            return;
+        }
+        Integer multiplier = JourneySpeedCommandPolicy.parseMultiplier(args[1]);
+        if (multiplier == null) {
+            tell(player, "Usage: /journey speed <1|2|4|8|status>");
+            return;
+        }
+        JourneySpeedController.Result result = GTNHJourney.SPEED.setMultiplier(multiplier.intValue());
+        if (result.status() == JourneySpeedController.Status.APPLIED) {
+            tell(
+                player,
+                "Journey speed set to " + result.multiplier() + "x (target " + result.targetTps()
+                    + " TPS) for this server session.");
+            return;
+        }
+        if (result.status() == JourneySpeedController.Status.UNSUPPORTED) {
+            tell(player, "Journey speed hook is unavailable in this runtime. Speed remains 1x.");
+            return;
+        }
+        if (result.status() == JourneySpeedController.Status.FAILED) {
+            tell(player, "Journey speed change failed safely. Speed restored to 1x.");
+            return;
+        }
+        tell(player, "Usage: /journey speed <1|2|4|8|status>");
     }
 
     private void help(EntityPlayerMP player) {
