@@ -8,15 +8,17 @@ import java.util.Map;
 import dev.gtnhjourney.research.ResearchKey;
 import net.minecraft.nbt.NBTTagCompound;
 
-/** Keeps the first valid migrated occurrence for each canonical research key. */
+/** Keeps one migrated occurrence per canonical key while preserving the newest equivalent chronology/template. */
 final class MigratedEntryAccumulator {
 
     private final Map<ResearchKey, NBTTagCompound> entries = new LinkedHashMap<ResearchKey, NBTTagCompound>();
 
     boolean accept(ResearchKey key, NBTTagCompound template) {
-        if (key == null || entries.containsKey(key)) return false;
+        if (key == null) return false;
+        boolean first = !entries.containsKey(key);
+        if (!first) entries.remove(key);
         entries.put(key, copy(template));
-        return true;
+        return first;
     }
 
     List<ResearchKey> keys() {
