@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 class WorldBackupCoordinatorTest {
 
     @Test
-    void archiveRunsOnWorkerAndRestoresWorldStateOnlyWhenServerPollsCompletion() {
+    void archiveRunsOnWorkerAndCleansStagingOnlyWhenServerPollsCompletion() {
         MutableClock clock = new MutableClock();
         MutableSettings settings = new MutableSettings(true, 300);
         RecordingPreparedBackup prepared = new RecordingPreparedBackup(WorldBackupResult.success(null));
@@ -31,19 +31,19 @@ class WorldBackupCoordinatorTest {
         assertTrue(coordinator.isRunning());
         assertEquals(1, operation.prepareCalls);
         assertEquals(0, prepared.archiveCalls);
-        assertEquals(0, prepared.restoreCalls);
+        assertEquals(0, prepared.cleanupCalls);
         assertNull(coordinator.pollCompletion());
 
         launcher.runPending();
         assertEquals(1, prepared.archiveCalls);
         assertTrue(coordinator.isRunning());
-        assertEquals(0, prepared.restoreCalls);
+        assertEquals(0, prepared.cleanupCalls);
 
         clock.now = 405_000L;
         WorldBackupResult completed = coordinator.pollCompletion();
         assertNotNull(completed);
         assertTrue(completed.isSuccess());
-        assertEquals(1, prepared.restoreCalls);
+        assertEquals(1, prepared.cleanupCalls);
         assertFalse(coordinator.isRunning());
         assertEquals(5_000L, coordinator.lastDurationMillis());
         assertEquals(405_000L, coordinator.lastSuccessfulBackupMillis());
@@ -77,7 +77,7 @@ class WorldBackupCoordinatorTest {
     }
 
     @Test
-    void failedWorkerBackupDoesNotAdvanceSuccessfulCadence() {
+    void failedWorkerBackupDoesNotAdvanceSuccessfulCadenceAndStillCleansStaging() {
         MutableClock clock = new MutableClock();
         RecordingPreparedBackup prepared = new RecordingPreparedBackup(WorldBackupResult.failure("synthetic failure"));
         ManualWorkerLauncher launcher = new ManualWorkerLauncher();
@@ -96,7 +96,7 @@ class WorldBackupCoordinatorTest {
         assertNotNull(completed);
         assertFalse(completed.isSuccess());
         assertEquals(0L, coordinator.lastSuccessfulBackupMillis());
-        assertEquals(1, prepared.restoreCalls);
+        assertEquals(1, prepared.cleanupCalls);
         assertTrue(coordinator.isAutomaticDue());
     }
 
@@ -122,7 +122,7 @@ class WorldBackupCoordinatorTest {
     }
 
     @Test
-    void shutdownFinalizationRestoresSnapshotAndRejectsNewBackupWork() throws Exception {
+    void shutdownFinalizationCleansStagingAndRejectsNewBackupWork() throws Exception {
         MutableClock clock = new MutableClock();
         RecordingPreparedBackup prepared = new RecordingPreparedBackup(WorldBackupResult.success(null));
         ManualWorkerLauncher launcher = new ManualWorkerLauncher();
@@ -140,12 +140,36 @@ class WorldBackupCoordinatorTest {
 
         assertNotNull(completed);
         assertTrue(completed.isSuccess());
-        assertEquals(1, prepared.restoreCalls);
+        assertEquals(1, prepared.cleanupCalls);
         assertFalse(coordinator.isRunning());
         assertEquals(4_000L, coordinator.lastDurationMillis());
         WorldBackupResult rejected = coordinator.tryBackup(null, true);
         assertFalse(rejected.isSuccess());
         assertTrue(rejected.getMessage().contains("stopping"));
+    }
+
+    @Test
+    void successfulArchiveWithCleanupFailureDoesNotAdvanceSuccessfulCadence() {
+        MutableClock clock = new MutableClock();
+        RecordingPreparedBackup prepared = new RecordingPreparedBackup(WorldBackupResult.success(null));
+        prepared.cleanupFailure = new IllegalStateException("synthetic cleanup failure");
+        ManualWorkerLauncher launcher = new ManualWorkerLauncher();
+        WorldBackupCoordinator coordinator = new WorldBackupCoordinator(
+            clock,
+            new MutableSettings(true, 300),
+            new RecordingOperation(prepared),
+            launcher);
+        coordinator.markWorldLoaded();
+        clock.now = 300_000L;
+
+        assertTrue(coordinator.tryBackup(null, false).isSuccess());
+        launcher.runPending();
+        WorldBackupResult completed = coordinator.pollCompletion();
+
+        assertNotNull(completed);
+        assertFalse(completed.isSuccess());
+        assertTrue(completed.getMessage().contains("cleanup failed"));
+        assertEquals(0L, coordinator.lastSuccessfulBackupMillis());
     }
 
     private static final class MutableClock implements WorldBackupCoordinator.Clock {
@@ -204,7 +228,8 @@ class WorldBackupCoordinatorTest {
 
         private final WorldBackupResult result;
         private int archiveCalls;
-        private int restoreCalls;
+        private int cleanupCalls;
+        private RuntimeException cleanupFailure;
 
         private RecordingPreparedBackup(WorldBackupResult result) {
             this.result = result;
@@ -217,8 +242,9 @@ class WorldBackupCoordinatorTest {
         }
 
         @Override
-        public void restore() {
-            restoreCalls++;
+        public void cleanup() {
+            cleanupCalls++;
+            if (cleanupFailure != null) throw cleanupFailure;
         }
     }
 
