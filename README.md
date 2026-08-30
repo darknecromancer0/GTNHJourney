@@ -1,6 +1,6 @@
 # GTNH Journey
 
-Current release: `1.1.5`.
+Current release: `1.1.6`.
 
 GT New Horizons 1.7.10 addon that automatically researches item states the player genuinely obtains and allows server-authoritative infinite retrieval through the existing NEI frontend.
 
@@ -12,6 +12,7 @@ GT New Horizons 1.7.10 addon that automatically researches item states the playe
 - Development JDK 25 with Java 8-compatible output bytecode
 - Newer GTNH 2.9 builds are best-effort until separately verified
 - 1.1.5 adds a client-only WR-CBE render-boundary recovery for the `Already tesselating!` crash reported when a shared 1.7.10 Tessellator batch reaches WR-CBE still open. Clean render boundaries are left untouched.
+- 1.1.6 removes Journey's temporary world-save suppression from backups. Normal Minecraft saving remains enabled throughout the backup lifecycle.
 
 ## Core behavior
 
@@ -108,11 +109,13 @@ Automatic world backups are enabled by default. Their cadence starts after the s
 
 For a normal Prism/Minecraft instance this directory is rooted at the instance level rather than inside `saves/<world>`.
 
-Backup preparation still happens on the authoritative server thread so the snapshot is consistent: Journey saves player data and loaded worlds, waits for threaded chunk I/O to finish, then temporarily suppresses further world-file saving. The expensive ZIP walk and Deflate compression then run on the lower-priority `GTNHJourney-WorldBackup` worker instead of blocking the server tick loop. Compression uses Deflate `BEST_SPEED`, prioritizing a shorter snapshot window over maximum archive compactness. Gameplay can keep ticking while the worker reads the frozen on-disk snapshot. On the next END server tick after completion, Journey restores every world's original save-state flag.
+Backup preparation happens on the authoritative server thread so the snapshot is consistent: Journey saves player data and loaded worlds and waits for threaded chunk I/O to finish. It never changes `WorldServer.levelSaving` and never disables normal Minecraft world saving. The flushed save directory is copied into an isolated `.staging` snapshot while the server thread is paused, then gameplay resumes. The lower-priority `GTNHJourney-WorldBackup` worker performs the expensive ZIP walk and Deflate compression only against that immutable staging copy. Compression uses Deflate `BEST_SPEED`.
 
-Each ZIP contains the real save-directory name as its top-level folder, for example `<world-name>/level.dat`, rather than placing `level.dat` and region folders loose at archive root. A new archive is written to a temporary file and promoted only after successful completion. Rotation happens afterwards, so a failed new backup does not delete previous successful backups.
+A staging copy can cause a short pause while a large world is copied, but there is no long background interval in which later world progress cannot save. A stale staging directory left by an interrupted process is removed before the next Journey backup attempt.
 
-If the server begins shutting down while a backup worker is still active, Journey stops accepting new backup work, waits for that worker to finish, restores world saving, and only then lets shutdown continue to its final save. This avoids leaving the world in the temporary snapshot state.
+Each ZIP contains the real save-directory name as its top-level folder, for example `<world-name>/level.dat`, rather than placing `level.dat` and region folders loose at archive root. A new archive is written to a temporary file and promoted only after successful completion. Rotation happens afterwards, so a failed new backup does not delete previous successful backups. The staging copy is deleted after the archive worker completes or after a handled failure.
+
+If the server begins shutting down while a backup worker is still active, Journey stops accepting new backup work, waits for that worker to finish, cleans its staging snapshot, and then lets normal shutdown continue to its final save.
 
 - `/journey backup status` reports enabled/disabled, interval, retention, `running`/`idle`, the last backup duration and the last result.
 - `/journey backup now` starts a manual background backup immediately and still works when automatic backups are disabled.
@@ -228,4 +231,4 @@ gradle build --stacktrace
 
 CI verifies checkout provenance, runs the complete regression suite, checks that `GTNHJourney.VERSION`, the production JAR filename and packaged `mcmod.info` version agree, then uploads production/dev/sources JARs.
 
-See `docs/first-live-test.md` for the core live-world regression matrix, `docs/v1.1.1-backup-live-test.md` for the 1.1.1 backup regression pass, `docs/v1.1.4-live-test.md` for the 1.1.4 integrity, hints, diagnostics and session-speed pass, and `docs/v1.1.5-live-test.md` for the WR-CBE render-boundary crash regression.
+See `docs/first-live-test.md` for the core live-world regression matrix, `docs/v1.1.1-backup-live-test.md` for the 1.1.1 backup regression pass, `docs/v1.1.4-live-test.md` for the 1.1.4 integrity, hints, diagnostics and session-speed pass, `docs/v1.1.5-live-test.md` for the WR-CBE render-boundary crash regression, and `docs/v1.1.6-live-test.md` for save-safe staged world backups.
