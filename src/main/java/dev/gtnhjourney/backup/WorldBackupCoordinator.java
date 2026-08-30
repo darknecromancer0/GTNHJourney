@@ -10,7 +10,7 @@ import net.minecraftforge.common.DimensionManager;
 
 import dev.gtnhjourney.config.JourneyConfig;
 
-/** Owns backup cadence/session state and splits stable snapshot staging from background archive work. */
+/** Owns backup cadence/session state and keeps expensive staging/archive I/O off the server thread. */
 public final class WorldBackupCoordinator {
 
     private final Clock clock;
@@ -114,11 +114,11 @@ public final class WorldBackupCoordinator {
                 prepared.cleanup();
             } catch (Exception failure) {
                 if (result.isSuccess()) {
-                    result = WorldBackupResult.failure("Backup archive completed, but staging cleanup failed: " + safeMessage(failure));
+                    result = WorldBackupResult.failure("Backup archive completed, but cleanup failed: " + safeMessage(failure));
                 }
             } catch (LinkageError failure) {
                 if (result.isSuccess()) {
-                    result = WorldBackupResult.failure("Backup archive completed, but staging cleanup failed: " + safeMessage(failure));
+                    result = WorldBackupResult.failure("Backup archive completed, but cleanup failed: " + safeMessage(failure));
                 }
             }
         }
@@ -153,9 +153,9 @@ public final class WorldBackupCoordinator {
             try {
                 prepared.cleanup();
             } catch (Exception cleanupFailure) {
-                message = message + " Staging cleanup also failed: " + safeMessage(cleanupFailure);
+                message = message + " Cleanup also failed: " + safeMessage(cleanupFailure);
             } catch (LinkageError cleanupFailure) {
-                message = message + " Staging cleanup also failed: " + safeMessage(cleanupFailure);
+                message = message + " Cleanup also failed: " + safeMessage(cleanupFailure);
             }
         }
         WorldBackupResult result = WorldBackupResult.failure(message);
@@ -319,10 +319,9 @@ public final class WorldBackupCoordinator {
             File worldDir = DimensionManager.getCurrentSaveRootDirectory();
             if (worldDir == null || !worldDir.isDirectory()) throw new IllegalStateException("save root is unavailable");
             File backupDir = WorldBackupPaths.backupRoot(instanceRootFor(worldDir), worldDir.getName());
-            WorldSnapshotStager.StagedSnapshot staged = WorldSnapshotStager.stage(worldDir, backupDir);
             return new MinecraftPreparedBackup(
                 writer,
-                staged,
+                worldDir,
                 backupDir,
                 JourneyConfig.worldBackupRetention(),
                 new Date());
@@ -332,19 +331,19 @@ public final class WorldBackupCoordinator {
     private static final class MinecraftPreparedBackup implements PreparedBackup {
 
         private final WorldArchiveWriter writer;
-        private final WorldSnapshotStager.StagedSnapshot staged;
+        private final File liveWorld;
         private final File backupDir;
         private final int retention;
         private final Date timestamp;
 
         private MinecraftPreparedBackup(
             WorldArchiveWriter writer,
-            WorldSnapshotStager.StagedSnapshot staged,
+            File liveWorld,
             File backupDir,
             int retention,
             Date timestamp) {
             this.writer = writer;
-            this.staged = staged;
+            this.liveWorld = liveWorld;
             this.backupDir = backupDir;
             this.retention = retention;
             this.timestamp = timestamp;
@@ -352,13 +351,37 @@ public final class WorldBackupCoordinator {
 
         @Override
         public WorldBackupResult archive() {
-            File stagedWorld = staged.worldDirectory();
-            return writer.write(stagedWorld, backupDir, stagedWorld.getName(), retention, timestamp);
+            WorldSnapshotStager.StagedSnapshot staged = null;
+            WorldBackupResult result;
+            try {
+                staged = WorldSnapshotStager.stage(liveWorld, backupDir);
+                File stagedWorld = staged.worldDirectory();
+                result = writer.write(stagedWorld, backupDir, stagedWorld.getName(), retention, timestamp);
+            } catch (Exception failure) {
+                result = WorldBackupResult.failure("Backup failed safely while staging world data: " + safeMessage(failure));
+            } catch (LinkageError failure) {
+                result = WorldBackupResult.failure("Backup failed safely while staging world data: " + safeMessage(failure));
+            }
+
+            if (staged != null) {
+                try {
+                    staged.cleanup();
+                } catch (Exception cleanupFailure) {
+                    if (result.isSuccess()) {
+                        result = WorldBackupResult.failure("Backup archive completed, but staging cleanup failed: " + safeMessage(cleanupFailure));
+                    }
+                } catch (LinkageError cleanupFailure) {
+                    if (result.isSuccess()) {
+                        result = WorldBackupResult.failure("Backup archive completed, but staging cleanup failed: " + safeMessage(cleanupFailure));
+                    }
+                }
+            }
+            return result;
         }
 
         @Override
-        public void cleanup() throws Exception {
-            staged.cleanup();
+        public void cleanup() {
+            // Worker-owned staging is created and removed inside archive(); prepare() does not allocate a snapshot.
         }
     }
 }
