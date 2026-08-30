@@ -24,6 +24,7 @@ public final class JourneySpeedState {
     }
 
     public static boolean isAllowedMultiplier(int value) {
-        return value == 1 || value == 2 || value == 4 || value == 8;
+        return value == 1 || value == 2 || value == 4 || value == 8 || value == 16 || value == 32 || value == 64
+            || value == 128;
     }
 }
