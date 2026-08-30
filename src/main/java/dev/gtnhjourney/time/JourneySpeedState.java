@@ -1,25 +1,41 @@
 package dev.gtnhjourney.time;
 
-/** Session-only Journey server speed state. */
+/** Session-only Journey speed state. */
 public final class JourneySpeedState {
 
+    private JourneySpeedMode mode = JourneySpeedMode.MACHINES;
     private int multiplier = 1;
+
+    public synchronized JourneySpeedMode mode() {
+        return mode;
+    }
 
     public synchronized int multiplier() {
         return multiplier;
     }
 
+    /** Nominal accelerated tick rate. Machines mode keeps the server world itself at 20 TPS. */
     public synchronized int targetTps() {
         return multiplier * 20;
     }
 
-    public synchronized boolean trySetMultiplier(int value) {
-        if (!isAllowedMultiplier(value)) return false;
+    public synchronized int serverTargetTps() {
+        return mode == JourneySpeedMode.WORLD ? multiplier * 20 : 20;
+    }
+
+    public synchronized boolean trySet(JourneySpeedMode newMode, int value) {
+        if (newMode == null || !isAllowedMultiplier(value)) return false;
+        mode = newMode;
         multiplier = value;
         return true;
     }
 
+    public synchronized boolean trySetMultiplier(int value) {
+        return trySet(mode, value);
+    }
+
     public synchronized void reset() {
+        mode = JourneySpeedMode.MACHINES;
         multiplier = 1;
     }
 
