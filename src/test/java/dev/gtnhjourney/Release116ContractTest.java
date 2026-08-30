@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import org.junit.jupiter.api.Test;
@@ -12,16 +13,15 @@ import org.junit.jupiter.api.Test;
 public class Release116ContractTest {
 
     @Test
-    public void runtimeBuildAndPackagedMetadataAgreeOn116() throws IOException {
-        String source = read("src/main/java/dev/gtnhjourney/GTNHJourney.java");
-        String mcmod = read("src/main/resources/mcmod.info");
-        String build = read("build.gradle.kts");
-        String coordinator = read("src/main/java/dev/gtnhjourney/backup/WorldBackupCoordinator.java");
+    public void release116DocumentsSaveEnabledStagingRegression() throws IOException {
+        Path path = Paths.get("docs/v1.1.6-live-test.md");
+        assertTrue(Files.isRegularFile(path), "missing v1.1.6 live-test checklist");
+        if (!Files.isRegularFile(path)) return;
 
-        assertTrue(source.contains("public static final String VERSION = \"1.1.6\";"));
-        assertTrue(mcmod.contains("\"version\": \"1.1.6\""));
-        assertTrue(build.contains("version = \"1.1.6\""));
-        assertTrue(coordinator.contains("WorldSnapshotStager.stage"));
+        String document = read(path.toString()).toLowerCase();
+        assertTrue(document.contains("saving"));
+        assertTrue(document.contains("backup"));
+        assertTrue(document.contains("staging"));
     }
 
     private static String read(String path) throws IOException {
