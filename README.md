@@ -1,6 +1,6 @@
 # GTNH Journey
 
-Current release: `1.1.6`.
+Current release: `1.1.8`.
 
 GT New Horizons 1.7.10 addon that automatically researches item states the player genuinely obtains and allows server-authoritative infinite retrieval through the existing NEI frontend.
 
@@ -13,6 +13,8 @@ GT New Horizons 1.7.10 addon that automatically researches item states the playe
 - Newer GTNH 2.9 builds are best-effort until separately verified
 - 1.1.5 adds a client-only WR-CBE render-boundary recovery for the `Already tesselating!` crash reported when a shared 1.7.10 Tessellator batch reaches WR-CBE still open. Clean render boundaries are left untouched.
 - 1.1.6 removes Journey's temporary world-save suppression from backups. Normal Minecraft saving remains enabled throughout the backup lifecycle.
+- 1.1.7 moves world staging and ZIP work off the authoritative server thread so automatic backups no longer impose the 1.1.6-style multi-second staging freeze.
+- 1.1.8 extends global session speed through 128x and adds a read-only Botania Mana Debug Tool.
 
 ## Core behavior
 
@@ -76,9 +78,10 @@ While Journey owns the item panel, it preserves J/N chronology and then applies 
 Journey/Newest clicks:
 
 - left click requests one item;
-- right click requests one natural full stack.
+- right click requests one natural full stack;
+- Shift+right-click fills every empty main-inventory slot with an independent natural full stack of that exact researched state.
 
-Shift does not change the requested amount. In ordinary NEI, Ctrl+left/Ctrl+right uses the Journey retrieval path only when that exact state is researched. The server resolves a fixed research fingerprint against authoritative persisted research before recreating the stored template.
+Occupied slots are never overwritten by the bulk-fill gesture. In ordinary NEI, Ctrl+left/Ctrl+right uses the Journey retrieval path only when that exact state is researched. The server resolves a fixed research fingerprint against authoritative persisted research before recreating the stored template.
 
 ## Persistence, sync and recovery
 
@@ -109,9 +112,9 @@ Automatic world backups are enabled by default. Their cadence starts after the s
 
 For a normal Prism/Minecraft instance this directory is rooted at the instance level rather than inside `saves/<world>`.
 
-Backup preparation happens on the authoritative server thread so the snapshot is consistent: Journey saves player data and loaded worlds and waits for threaded chunk I/O to finish. It never changes `WorldServer.levelSaving` and never disables normal Minecraft world saving. The flushed save directory is copied into an isolated `.staging` snapshot while the server thread is paused, then gameplay resumes. The lower-priority `GTNHJourney-WorldBackup` worker performs the expensive ZIP walk and Deflate compression only against that immutable staging copy. Compression uses Deflate `BEST_SPEED`.
+Backup preparation on the authoritative server thread is limited to saving player data and loaded worlds and waiting for threaded chunk I/O to finish. Journey never changes `WorldServer.levelSaving` and never disables normal Minecraft world saving. The lower-priority `GTNHJourney-WorldBackup` worker then copies the flushed save into an isolated `.staging` snapshot and creates the ZIP from that staging copy. Files that change during background staging are retried up to three times; if a stable copy cannot be obtained, that backup fails safely rather than publishing a questionable archive. Compression uses Deflate `BEST_SPEED`.
 
-A staging copy can cause a short pause while a large world is copied, but there is no long background interval in which later world progress cannot save. A stale staging directory left by an interrupted process is removed before the next Journey backup attempt.
+Because the expensive staging copy and ZIP walk are both off the authoritative server thread, gameplay can continue while the backup worker runs. A stale staging directory left by an interrupted process is removed before the next Journey backup attempt.
 
 Each ZIP contains the real save-directory name as its top-level folder, for example `<world-name>/level.dat`, rather than placing `level.dat` and region folders loose at archive root. A new archive is written to a temporary file and promoted only after successful completion. Rotation happens afterwards, so a failed new backup does not delete previous successful backups. The staging copy is deleted after the archive worker completes or after a handled failure.
 
@@ -124,14 +127,17 @@ If the server begins shutting down while a backup worker is still active, Journe
 
 ### Session speed
 
-GTNH Journey 1.1.4 introduced a session-only server-speed control that accelerates the normal `MinecraftServer` cadence rather than directly ticking TileEntities or individual machines.
+GTNH Journey's session-only server-speed control accelerates complete `MinecraftServer` simulation ticks, so ordinary world-tick-based systems from vanilla and mods advance together rather than Journey directly ticking selected TileEntities.
 
 - `/journey speed status` is read-only and reports the active multiplier, target TPS and whether the runtime pacing hook is available.
-- `/journey speed 1|2|4|8` requires the integrated-server owner or a level-2 operator.
-- targets are 20, 40, 80 and 160 TPS respectively; 4x and 8x use fractional millisecond pacing cycles so the requested average rate is not distorted by integer rounding.
+- `/journey speed 1|2|4|8|16|32|64|128` requires the integrated-server owner or a level-2 operator.
+- targets are 20, 40, 80, 160, 320, 640, 1280 and 2560 TPS respectively.
+- 4x through 32x use exact-average millisecond pacing cycles so integer millisecond scheduling does not distort the requested average rate.
+- 64x and 128x keep the 32x outer cadence and run 2 or 4 complete `MinecraftServer.tick()` calls per outer cycle. This preserves full server/world tick semantics for ordinary tick-based GregTech, Botania, Forestry, IC2, EnderIO and similar systems.
+- 64x and 128x are best-effort. If the CPU cannot execute complete server ticks at 1280/2560 TPS, actual simulation speed will be lower than the requested target rather than selectively skipping mod systems.
+- wall-clock systems are intentionally not multiplied. Journey world-backup scheduling remains based on real time.
 - unsupported or failed runtime hooks fail closed and restore/remain at 1x.
 - speed is intentionally not persisted and resets to 1x when the server session restarts.
-- world-backup scheduling remains based on wall-clock time rather than accelerated game ticks.
 
 ### Explosion guard
 
@@ -158,9 +164,15 @@ Modes cycle with Shift+right-click:
 - one physical debug action becomes one bulk recovery transaction and one compact sync/summary.
 - the Debug Researcher Tool itself is never a research candidate.
 
+## Botania Mana Debug Tool
+
+`/journey botania debug tool` gives a dedicated read-only Mana Pool inspector to the integrated-server owner or an operator. Right-click a compatible Botania Mana Pool with the tool to print its exact current mana, runtime capacity, free mana, fill percentage and coordinates.
+
+The integration is optional and reflection-based, so Journey does not acquire a hard Botania class-loading dependency. Capacity is derived from Botania's runtime `getCurrentMana()` plus `getAvailableSpaceForMana()`, which also handles the smaller Diluted Mana Pool. The tool never changes mana and is excluded from Journey research.
+
 ## Commands
 
-`/journey help` prints the same list in-game with one command per line. Minecraft 1.7.10 native Tab completion is supported for Journey subcommands and fixed arguments such as `trace on/off`, world-safety actions, session-speed values and destructive `confirm` arguments. Up/down arrows remain vanilla command history.
+`/journey help` prints the same list in-game with one command per line. Minecraft 1.7.10 native Tab completion is supported for Journey subcommands and fixed arguments such as `trace on/off`, world-safety actions, session-speed values, `botania debug tool` and destructive `confirm` arguments. Up/down arrows remain vanilla command history.
 
 - `/journey help` - show command help
 - `/journey count` - show researched state count
@@ -181,7 +193,8 @@ Modes cycle with Shift+right-click:
 - `/journey backup status|now|on|off` - inspect, run or toggle world backups
 - `/journey explosions status|on|off` - inspect or toggle the global explosion guard
 - `/journey cleanse` - remove the caller's active negative potion effects
-- `/journey speed <1|2|4|8|status>` - inspect or change session server speed
+- `/journey speed <1|2|4|8|16|32|64|128|status>` - inspect or change session server speed
+- `/journey botania debug tool` - give the Botania Mana Debug Tool
 - `/journey debug` - show runtime compatibility diagnostics
 - `/journey trace [on|off]` - toggle live research tracing
 - `/journey dump` - write an attachable diagnostic dump into `logs/`
@@ -231,4 +244,4 @@ gradle build --stacktrace
 
 CI verifies checkout provenance, runs the complete regression suite, checks that `GTNHJourney.VERSION`, the production JAR filename and packaged `mcmod.info` version agree, then uploads production/dev/sources JARs.
 
-See `docs/first-live-test.md` for the core live-world regression matrix, `docs/v1.1.1-backup-live-test.md` for the 1.1.1 backup regression pass, `docs/v1.1.4-live-test.md` for the 1.1.4 integrity, hints, diagnostics and session-speed pass, `docs/v1.1.5-live-test.md` for the WR-CBE render-boundary crash regression, and `docs/v1.1.6-live-test.md` for save-safe staged world backups.
+See `docs/first-live-test.md` for the core live-world regression matrix, `docs/v1.1.1-backup-live-test.md` for the 1.1.1 backup regression pass, `docs/v1.1.4-live-test.md` for the 1.1.4 integrity, hints, diagnostics and session-speed pass, `docs/v1.1.5-live-test.md` for the WR-CBE render-boundary crash regression, `docs/v1.1.6-live-test.md` for save-safe staged world backups, `docs/v1.1.7-live-test.md` for non-blocking backup staging, and `docs/v1.1.8-live-test.md` for high-speed global ticking and the Botania mana inspector.

@@ -34,7 +34,12 @@ public class CommandJourneyTabCompletionTest {
         "hotspots",
         "debugtool",
         "prune-missing",
-        "clear");
+        "clear",
+        "backup",
+        "explosions",
+        "cleanse",
+        "speed",
+        "botania");
 
     private final CommandJourney command = new CommandJourney();
 
@@ -56,6 +61,15 @@ public class CommandJourneyTabCompletionTest {
         assertEquals(
             Arrays.asList("confirm"),
             command.addTabCompletionOptions(null, new String[] { "prune-missing", "c" }));
+        assertEquals(
+            Arrays.asList("1", "2", "4", "8", "16", "32", "64", "128", "status"),
+            command.addTabCompletionOptions(null, new String[] { "speed", "" }));
+        assertEquals(
+            Arrays.asList("debug"),
+            command.addTabCompletionOptions(null, new String[] { "botania", "" }));
+        assertEquals(
+            Arrays.asList("tool"),
+            command.addTabCompletionOptions(null, new String[] { "botania", "debug", "" }));
     }
 
     @Test

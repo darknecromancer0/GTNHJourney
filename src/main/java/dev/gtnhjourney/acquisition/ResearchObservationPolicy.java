@@ -1,5 +1,6 @@
 package dev.gtnhjourney.acquisition;
 
+import dev.gtnhjourney.debug.ItemBotaniaManaDebugTool;
 import dev.gtnhjourney.debug.ItemDebugResearcherTool;
 import dev.gtnhjourney.minecraft.GtToolStatePolicy;
 import net.minecraft.item.ItemStack;
@@ -19,6 +20,7 @@ public final class ResearchObservationPolicy {
      */
     public static boolean shouldPersist(ItemStack stack) {
         return stack != null && stack.getItem() != null && stack.stackSize > 0
-            && !(stack.getItem() instanceof ItemDebugResearcherTool);
+            && !(stack.getItem() instanceof ItemDebugResearcherTool)
+            && !(stack.getItem() instanceof ItemBotaniaManaDebugTool);
     }
 }
