@@ -14,12 +14,16 @@ public final class BotaniaManaPoolInspector {
         try {
             Method currentMethod = target.getClass().getMethod("getCurrentMana");
             Method freeMethod = target.getClass().getMethod("getAvailableSpaceForMana");
+            if (!currentMethod.isAccessible()) currentMethod.setAccessible(true);
+            if (!freeMethod.isAccessible()) freeMethod.setAccessible(true);
             int current = nonNegative(number(currentMethod.invoke(target)));
             int free = nonNegative(number(freeMethod.invoke(target)));
             long capacityLong = (long) current + (long) free;
             int capacity = capacityLong > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) capacityLong;
             return new Result(current, capacity, free);
         } catch (ReflectiveOperationException ignored) {
+            return null;
+        } catch (SecurityException ignored) {
             return null;
         } catch (RuntimeException ignored) {
             return null;
