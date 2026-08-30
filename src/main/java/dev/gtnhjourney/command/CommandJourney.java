@@ -24,7 +24,7 @@ public final class CommandJourney extends CommandBase {
     private static final String[] SUBCOMMANDS = { "help", "count", "stats", "inspect", "research", "rescan", "list",
         "newest", "get", "forget", "undo", "redo", "restore-deleted", "snapshot", "snapshots", "restore", "debug",
         "trace", "dump", "hotspots", "debugtool", "prune-missing", "clear", "backup", "explosions", "cleanse",
-        "speed" };
+        "speed", "botania" };
 
     @Override
     public String getCommandName() {
@@ -50,10 +50,16 @@ public final class CommandJourney extends CommandBase {
             if ("trace".equals(action)) return getListOfStringsMatchingLastWord(args, "on", "off");
             if ("backup".equals(action)) return getListOfStringsMatchingLastWord(args, "status", "now", "on", "off");
             if ("explosions".equals(action)) return getListOfStringsMatchingLastWord(args, "status", "on", "off");
-            if ("speed".equals(action)) return getListOfStringsMatchingLastWord(args, "1", "2", "4", "8", "status");
+            if ("speed".equals(action)) {
+                return getListOfStringsMatchingLastWord(args, "1", "2", "4", "8", "16", "32", "64", "128", "status");
+            }
+            if ("botania".equals(action)) return getListOfStringsMatchingLastWord(args, "debug");
             if ("clear".equals(action) || "prune-missing".equals(action)) {
                 return getListOfStringsMatchingLastWord(args, "confirm");
             }
+        }
+        if (args.length == 3 && "botania".equalsIgnoreCase(args[0]) && "debug".equalsIgnoreCase(args[1])) {
+            return getListOfStringsMatchingLastWord(args, "tool");
         }
         return Collections.emptyList();
     }
@@ -82,6 +88,10 @@ public final class CommandJourney extends CommandBase {
         }
         if ("speed".equals(action)) {
             speed(player, args);
+            return;
+        }
+        if ("botania".equals(action)) {
+            botania(player, args);
             return;
         }
         if ("debug".equals(action)) {
@@ -287,7 +297,7 @@ public final class CommandJourney extends CommandBase {
         }
         Integer multiplier = JourneySpeedCommandPolicy.parseMultiplier(args[1]);
         if (multiplier == null) {
-            tell(player, "Usage: /journey speed <1|2|4|8|status>");
+            tell(player, "Usage: /journey speed <1|2|4|8|16|32|64|128|status>");
             return;
         }
         JourneySpeedController.Result result = GTNHJourney.SPEED.setMultiplier(multiplier.intValue());
@@ -306,7 +316,27 @@ public final class CommandJourney extends CommandBase {
             tell(player, "Journey speed change failed safely. Speed restored to 1x.");
             return;
         }
-        tell(player, "Usage: /journey speed <1|2|4|8|status>");
+        tell(player, "Usage: /journey speed <1|2|4|8|16|32|64|128|status>");
+    }
+
+    private void botania(EntityPlayerMP player, String[] args) {
+        if (args.length < 3 || !"debug".equalsIgnoreCase(args[1]) || !"tool".equalsIgnoreCase(args[2])) {
+            tell(player, "Usage: /journey botania debug tool");
+            return;
+        }
+        if (!DebugToolPermissionPolicy.mayUse(player)) {
+            tell(player, "Botania Mana Debug Tool requires the integrated-server owner or operator permission.");
+            return;
+        }
+        if (GTNHJourney.BOTANIA_MANA_DEBUG_TOOL == null) {
+            tell(player, "Botania Mana Debug Tool is not registered.");
+            return;
+        }
+        ItemStack tool = new ItemStack(GTNHJourney.BOTANIA_MANA_DEBUG_TOOL, 1, 0);
+        player.inventory.addItemStackToInventory(tool);
+        if (tool.stackSize > 0) player.dropPlayerItemWithRandomChoice(tool, false);
+        player.inventoryContainer.detectAndSendChanges();
+        tell(player, "Botania Mana Debug Tool granted. Right-click a Mana Pool to inspect exact mana.");
     }
 
     private void help(EntityPlayerMP player) {
