@@ -12,27 +12,32 @@ import org.junit.jupiter.api.Test;
 public class JourneySpeedIntegrationContractTest {
 
     @Test
-    public void modOwnsOneSessionSpeedControllerAndResetsItAtLifecycleBoundaries() throws IOException {
+    public void modOwnsOneSessionSpeedControllerAndMachineTickerAndResetsAtLifecycleBoundaries() throws IOException {
         String source = read("src/main/java/dev/gtnhjourney/GTNHJourney.java");
         assertTrue(source.contains("JourneySpeedController SPEED"));
         assertTrue(source.contains("new ReflectiveServerTickRateAdapter()"));
+        assertTrue(source.contains("new MachineTickAccelerator(SPEED)"));
+        assertTrue(source.contains("register(MACHINE_TICK_ACCELERATOR)"));
         assertTrue(count(source, "SPEED.reset();") >= 2);
     }
 
     @Test
-    public void journeyCommandExposesStatusAndAdminMutationPath() throws IOException {
+    public void journeyCommandExposesTwoModesStatusAndAdminMutationPath() throws IOException {
         String source = read("src/main/java/dev/gtnhjourney/command/CommandJourney.java");
         assertTrue(source.contains("\"speed\""));
         assertTrue(source.contains("JourneyAdminPermissionPolicy.mayMutate(player)"));
-        assertTrue(source.contains("GTNHJourney.SPEED.setMultiplier"));
-        assertTrue(source.contains("GTNHJourney.SPEED.targetTps()"));
+        assertTrue(source.contains("GTNHJourney.SPEED.set(mode"));
+        assertTrue(source.contains("JourneySpeedMode.MACHINES"));
+        assertTrue(source.contains("JourneySpeedMode.WORLD"));
+        assertTrue(source.contains("GTNHJourney.SPEED.serverTargetTps()"));
     }
 
     @Test
-    public void helpDocumentsSessionSpeedSurface() throws IOException {
+    public void helpDocumentsBothSpeedSurfaces() throws IOException {
         String source = read("src/main/java/dev/gtnhjourney/command/JourneyHelpText.java");
-        assertTrue(source.contains("/journey speed"));
-        assertTrue(source.contains("1|2|4|8"));
+        assertTrue(source.contains("/journey speed machines"));
+        assertTrue(source.contains("/journey speed world"));
+        assertTrue(source.contains("1|2|4|8|16|32|64|128"));
     }
 
     private static int count(String text, String needle) {
