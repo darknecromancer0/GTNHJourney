@@ -28,7 +28,8 @@ public class JourneySpeedIntegrationContractTest {
         assertTrue(source.contains("JourneyAdminPermissionPolicy.mayMutate(player)"));
         assertTrue(source.contains("GTNHJourney.SPEED.set(mode"));
         assertTrue(source.contains("JourneySpeedMode.MACHINES"));
-        assertTrue(source.contains("JourneySpeedMode.WORLD"));
+        assertTrue(source.contains("JourneySpeedMode.parse(args[1])"));
+        assertTrue(source.contains("\"world\""));
         assertTrue(source.contains("GTNHJourney.SPEED.serverTargetTps()"));
     }
 
