@@ -53,7 +53,9 @@ public final class JourneyCommandSuggestions {
         if (args.length == 2) {
             String action = args[0] == null ? "" : args[0].toLowerCase(Locale.ROOT);
             if ("trace".equals(action)) return matching(args[1], Arrays.asList("on", "off"));
-            if ("speed".equals(action)) return matching(args[1], Arrays.asList("1", "2", "4", "8", "status"));
+            if ("speed".equals(action)) {
+                return matching(args[1], Arrays.asList("1", "2", "4", "8", "16", "32", "64", "128", "status"));
+            }
             if ("clear".equals(action) || "prune-missing".equals(action)) {
                 return matching(args[1], Collections.singletonList("confirm"));
             }
