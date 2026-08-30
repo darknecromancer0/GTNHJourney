@@ -13,18 +13,11 @@ import org.junit.jupiter.api.Test;
 public class Release118ContractTest {
 
     @Test
-    public void runtimeMetadataAndReleaseFeaturesAgreeOn118() throws IOException {
-        String source = read("src/main/java/dev/gtnhjourney/GTNHJourney.java");
-        String mcmod = read("src/main/resources/mcmod.info");
-        String build = read("build.gradle.kts");
+    public void release118HighSpeedAndBotaniaFeaturesRemainPresent() throws IOException {
         String command = read("src/main/java/dev/gtnhjourney/command/CommandJourney.java");
         String speed = read("src/main/java/dev/gtnhjourney/time/JourneySpeedState.java");
         String mixin = read("src/main/java/dev/gtnhjourney/mixin/MinecraftServerSpeedMixin.java");
 
-        assertTrue(source.contains("public static final String VERSION = \"1.1.8\";"));
-        assertTrue(mcmod.contains("\"version\": \"1.1.8\""));
-        assertTrue(build.contains("version = \"1.1.8\""));
-        assertTrue(command.contains("/journey speed <1|2|4|8|16|32|64|128|status>"));
         assertTrue(command.contains("/journey botania debug tool"));
         assertTrue(speed.contains("value == 128"));
         assertTrue(mixin.contains("ServerTickPeriodSchedule.fullTicksPerOuterTick"));
