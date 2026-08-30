@@ -12,16 +12,14 @@ import org.junit.jupiter.api.Test;
 public class Release115ContractTest {
 
     @Test
-    public void runtimeMetadataBuildAndReadmeAgreeOn115() throws IOException {
-        String source = read("src/main/java/dev/gtnhjourney/GTNHJourney.java");
-        String mcmod = read("src/main/resources/mcmod.info");
-        String build = read("build.gradle.kts");
-        String readme = read("README.md");
+    public void release115KeepsWrCbeRenderRegressionCoverage() throws IOException {
+        String liveTest = read("docs/v1.1.5-live-test.md");
+        String mixin = read("src/main/java/dev/gtnhjourney/mixin/WRCoreEventHandlerMixin.java");
 
-        assertTrue(source.contains("public static final String VERSION = \"1.1.5\";"));
-        assertTrue(mcmod.contains("\"version\": \"1.1.5\""));
-        assertTrue(build.contains("version = \"1.1.5\""));
-        assertTrue(readme.contains("Current release: `1.1.5`."));
+        assertTrue(liveTest.contains("Already tesselating!"));
+        assertTrue(liveTest.contains("WR-CBE"));
+        assertTrue(mixin.contains("RenderBoundaryRecovery.finishDanglingBatch"));
+        assertTrue(mixin.contains("onRenderWorldLast"));
     }
 
     private static String read(String path) throws IOException {

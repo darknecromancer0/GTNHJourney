@@ -1,9 +1,7 @@
 package dev.gtnhjourney.backup;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.WorldServer;
@@ -12,7 +10,7 @@ import net.minecraftforge.common.DimensionManager;
 
 import dev.gtnhjourney.config.JourneyConfig;
 
-/** Owns backup cadence/session state and splits save preparation from background archive work. */
+/** Owns backup cadence/session state and splits stable snapshot staging from background archive work. */
 public final class WorldBackupCoordinator {
 
     private final Clock clock;
@@ -113,11 +111,15 @@ public final class WorldBackupCoordinator {
         PreparedBackup prepared = activeBackup;
         if (prepared != null) {
             try {
-                prepared.restore();
-            } catch (RuntimeException failure) {
-                result = WorldBackupResult.failure("Backup finished, but save-state restore failed: " + safeMessage(failure));
+                prepared.cleanup();
+            } catch (Exception failure) {
+                if (result.isSuccess()) {
+                    result = WorldBackupResult.failure("Backup archive completed, but staging cleanup failed: " + safeMessage(failure));
+                }
             } catch (LinkageError failure) {
-                result = WorldBackupResult.failure("Backup finished, but save-state restore failed: " + safeMessage(failure));
+                if (result.isSuccess()) {
+                    result = WorldBackupResult.failure("Backup archive completed, but staging cleanup failed: " + safeMessage(failure));
+                }
             }
         }
 
@@ -129,7 +131,7 @@ public final class WorldBackupCoordinator {
         return result;
     }
 
-    /** Stops accepting new backups and safely drains an active worker before the server saves during shutdown. */
+    /** Stops accepting new backups and safely drains an active archive worker before final shutdown. */
     public synchronized WorldBackupResult finishForShutdown() {
         stopping = true;
         boolean interrupted = false;
@@ -149,11 +151,11 @@ public final class WorldBackupCoordinator {
     private WorldBackupResult failStart(PreparedBackup prepared, String message) {
         if (prepared != null) {
             try {
-                prepared.restore();
-            } catch (RuntimeException restoreFailure) {
-                message = message + " Save-state restore also failed: " + safeMessage(restoreFailure);
-            } catch (LinkageError restoreFailure) {
-                message = message + " Save-state restore also failed: " + safeMessage(restoreFailure);
+                prepared.cleanup();
+            } catch (Exception cleanupFailure) {
+                message = message + " Staging cleanup also failed: " + safeMessage(cleanupFailure);
+            } catch (LinkageError cleanupFailure) {
+                message = message + " Staging cleanup also failed: " + safeMessage(cleanupFailure);
             }
         }
         WorldBackupResult result = WorldBackupResult.failure(message);
@@ -246,7 +248,7 @@ public final class WorldBackupCoordinator {
 
         WorldBackupResult archive();
 
-        void restore();
+        void cleanup() throws Exception;
     }
 
     interface WorkerLauncher {
@@ -305,94 +307,58 @@ public final class WorldBackupCoordinator {
                 throw new IllegalStateException("server is unavailable");
             }
 
-            List<WorldSaveState> saveStates = new ArrayList<WorldSaveState>();
-            try {
-                server.getConfigurationManager().saveAllPlayerData();
-                WorldServer[] worlds = server.worldServers;
-                if (worlds == null || worlds.length == 0) throw new IllegalStateException("no loaded worlds");
+            server.getConfigurationManager().saveAllPlayerData();
+            WorldServer[] worlds = server.worldServers;
+            if (worlds == null || worlds.length == 0) throw new IllegalStateException("no loaded worlds");
 
-                for (WorldServer world : worlds) {
-                    if (world == null) continue;
-                    saveStates.add(new WorldSaveState(world, world.levelSaving));
-                    world.saveAllChunks(true, null);
-                    world.levelSaving = true;
-                }
-
-                ThreadedFileIOBase.threadedIOInstance.waitForFinish();
-
-                File worldDir = DimensionManager.getCurrentSaveRootDirectory();
-                if (worldDir == null || !worldDir.isDirectory()) throw new IllegalStateException("save root is unavailable");
-                File backupDir = WorldBackupPaths.backupRoot(instanceRootFor(worldDir), worldDir.getName());
-                return new MinecraftPreparedBackup(
-                    writer,
-                    worldDir,
-                    backupDir,
-                    JourneyConfig.worldBackupRetention(),
-                    new Date(),
-                    saveStates);
-            } catch (InterruptedException interrupted) {
-                restoreSaveStates(saveStates);
-                Thread.currentThread().interrupt();
-                throw interrupted;
-            } catch (Exception failure) {
-                restoreSaveStates(saveStates);
-                throw failure;
-            } catch (LinkageError failure) {
-                restoreSaveStates(saveStates);
-                throw failure;
+            for (WorldServer world : worlds) {
+                if (world != null) world.saveAllChunks(true, null);
             }
+            ThreadedFileIOBase.threadedIOInstance.waitForFinish();
+
+            File worldDir = DimensionManager.getCurrentSaveRootDirectory();
+            if (worldDir == null || !worldDir.isDirectory()) throw new IllegalStateException("save root is unavailable");
+            File backupDir = WorldBackupPaths.backupRoot(instanceRootFor(worldDir), worldDir.getName());
+            WorldSnapshotStager.StagedSnapshot staged = WorldSnapshotStager.stage(worldDir, backupDir);
+            return new MinecraftPreparedBackup(
+                writer,
+                staged,
+                backupDir,
+                JourneyConfig.worldBackupRetention(),
+                new Date());
         }
     }
 
     private static final class MinecraftPreparedBackup implements PreparedBackup {
 
         private final WorldArchiveWriter writer;
-        private final File worldDir;
+        private final WorldSnapshotStager.StagedSnapshot staged;
         private final File backupDir;
         private final int retention;
         private final Date timestamp;
-        private final List<WorldSaveState> saveStates;
 
         private MinecraftPreparedBackup(
             WorldArchiveWriter writer,
-            File worldDir,
+            WorldSnapshotStager.StagedSnapshot staged,
             File backupDir,
             int retention,
-            Date timestamp,
-            List<WorldSaveState> saveStates) {
+            Date timestamp) {
             this.writer = writer;
-            this.worldDir = worldDir;
+            this.staged = staged;
             this.backupDir = backupDir;
             this.retention = retention;
             this.timestamp = timestamp;
-            this.saveStates = new ArrayList<WorldSaveState>(saveStates);
         }
 
         @Override
         public WorldBackupResult archive() {
-            return writer.write(worldDir, backupDir, worldDir.getName(), retention, timestamp);
+            File stagedWorld = staged.worldDirectory();
+            return writer.write(stagedWorld, backupDir, stagedWorld.getName(), retention, timestamp);
         }
 
         @Override
-        public void restore() {
-            restoreSaveStates(saveStates);
-        }
-    }
-
-    private static final class WorldSaveState {
-
-        private final WorldServer world;
-        private final boolean levelSaving;
-
-        private WorldSaveState(WorldServer world, boolean levelSaving) {
-            this.world = world;
-            this.levelSaving = levelSaving;
-        }
-    }
-
-    private static void restoreSaveStates(List<WorldSaveState> saveStates) {
-        for (WorldSaveState state : saveStates) {
-            if (state != null && state.world != null) state.world.levelSaving = state.levelSaving;
+        public void cleanup() throws Exception {
+            staged.cleanup();
         }
     }
 }
