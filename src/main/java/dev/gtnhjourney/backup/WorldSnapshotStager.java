@@ -7,10 +7,11 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.UUID;
 
-/** Copies one flushed world into an immutable staging tree while the server thread is paused. */
+/** Copies a flushed world into an isolated staging tree on the backup worker. */
 final class WorldSnapshotStager {
 
     private static final String STAGING_DIRECTORY = ".staging";
+    private static final int STABLE_COPY_ATTEMPTS = 3;
 
     private WorldSnapshotStager() {}
 
@@ -67,9 +68,29 @@ final class WorldSnapshotStager {
             return;
         }
         if (!Files.isRegularFile(source)) return;
+        copyRegularFileStable(source, target);
+    }
+
+    private static void copyRegularFileStable(Path source, Path target) throws IOException {
         Path parent = target.getParent();
         if (parent != null) Files.createDirectories(parent);
-        Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
+
+        for (int attempt = 1; attempt <= STABLE_COPY_ATTEMPTS; attempt++) {
+            long beforeSize = Files.size(source);
+            long beforeModified = Files.getLastModifiedTime(source).toMillis();
+            Files.copy(
+                source,
+                target,
+                StandardCopyOption.COPY_ATTRIBUTES,
+                StandardCopyOption.REPLACE_EXISTING);
+            long afterSize = Files.size(source);
+            long afterModified = Files.getLastModifiedTime(source).toMillis();
+            long copiedSize = Files.size(target);
+            if (beforeSize == afterSize && beforeModified == afterModified && copiedSize == afterSize) return;
+        }
+
+        Files.deleteIfExists(target);
+        throw new IOException("World file kept changing while background staging was copying it: " + source);
     }
 
     private static void deleteTree(Path path) throws IOException {
