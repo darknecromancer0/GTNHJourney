@@ -14,28 +14,28 @@ public class JourneySpeedCommandPolicyTest {
     public void statusIsReadableAndMutationsRequireAdmin() {
         assertFalse(JourneySpeedCommandPolicy.requiresAdmin(new String[] { "speed" }));
         assertFalse(JourneySpeedCommandPolicy.requiresAdmin(new String[] { "speed", "status" }));
-        assertTrue(JourneySpeedCommandPolicy.requiresAdmin(new String[] { "speed", "1" }));
-        assertTrue(JourneySpeedCommandPolicy.requiresAdmin(new String[] { "speed", "2" }));
-        assertTrue(JourneySpeedCommandPolicy.requiresAdmin(new String[] { "speed", "4" }));
-        assertTrue(JourneySpeedCommandPolicy.requiresAdmin(new String[] { "speed", "8" }));
+        for (String value : new String[] { "1", "2", "4", "8", "16", "32", "64", "128" }) {
+            assertTrue(JourneySpeedCommandPolicy.requiresAdmin(new String[] { "speed", value }));
+        }
     }
 
     @Test
     public void parserAcceptsOnlySupportedMultipliers() {
-        assertEquals(Integer.valueOf(1), JourneySpeedCommandPolicy.parseMultiplier("1"));
-        assertEquals(Integer.valueOf(2), JourneySpeedCommandPolicy.parseMultiplier("2"));
-        assertEquals(Integer.valueOf(4), JourneySpeedCommandPolicy.parseMultiplier("4"));
-        assertEquals(Integer.valueOf(8), JourneySpeedCommandPolicy.parseMultiplier("8"));
+        for (int value : new int[] { 1, 2, 4, 8, 16, 32, 64, 128 }) {
+            assertEquals(Integer.valueOf(value), JourneySpeedCommandPolicy.parseMultiplier(Integer.toString(value)));
+        }
         assertEquals(null, JourneySpeedCommandPolicy.parseMultiplier("3"));
+        assertEquals(null, JourneySpeedCommandPolicy.parseMultiplier("256"));
         assertEquals(null, JourneySpeedCommandPolicy.parseMultiplier("banana"));
         assertEquals(null, JourneySpeedCommandPolicy.parseMultiplier(null));
     }
 
     @Test
-    public void liveSuggestionsExposeOnlyTheSpeedSurface() {
+    public void liveSuggestionsExposeTheCompleteSpeedSurface() {
         assertEquals(
-            Arrays.asList("1", "2", "4", "8", "status"),
+            Arrays.asList("1", "2", "4", "8", "16", "32", "64", "128", "status"),
             JourneyCommandSuggestions.forChatText("/journey speed "));
+        assertEquals(Arrays.asList("16"), JourneyCommandSuggestions.forChatText("/journey speed 1"));
         assertEquals(Arrays.asList("status"), JourneyCommandSuggestions.forChatText("/journey speed st"));
     }
 }
