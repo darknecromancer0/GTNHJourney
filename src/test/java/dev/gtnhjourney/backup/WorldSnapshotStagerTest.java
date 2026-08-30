@@ -19,10 +19,7 @@ class WorldSnapshotStagerTest {
 
     @Test
     void stageCopiesWorldTreeOutsideLiveWorldAndCleanupRemovesIt() throws Exception {
-        Path world = temp.resolve("Cirno world");
-        Files.createDirectories(world.resolve("region"));
-        Files.write(world.resolve("level.dat"), "level".getBytes(StandardCharsets.UTF_8));
-        Files.write(world.resolve("region/r.0.0.mca"), "region".getBytes(StandardCharsets.UTF_8));
+        Path world = createWorld();
         Path backupRoot = temp.resolve("gtnhjourney-backups/Cirno world");
 
         WorldSnapshotStager.StagedSnapshot staged = WorldSnapshotStager.stage(world.toFile(), backupRoot.toFile());
@@ -38,5 +35,28 @@ class WorldSnapshotStagerTest {
 
         staged.cleanup();
         assertFalse(snapshotWorld.getParentFile().exists());
+    }
+
+    @Test
+    void nextStageDeletesStaleSnapshotLeftByInterruptedProcess() throws Exception {
+        Path world = createWorld();
+        Path backupRoot = temp.resolve("gtnhjourney-backups/Cirno world");
+        Path stale = backupRoot.resolve(".staging/snapshot-stale/Cirno world/region");
+        Files.createDirectories(stale);
+        Files.write(stale.resolve("stale.mca"), "stale".getBytes(StandardCharsets.UTF_8));
+
+        WorldSnapshotStager.StagedSnapshot staged = WorldSnapshotStager.stage(world.toFile(), backupRoot.toFile());
+
+        assertFalse(backupRoot.resolve(".staging/snapshot-stale").toFile().exists());
+        assertTrue(staged.worldDirectory().isDirectory());
+        staged.cleanup();
+    }
+
+    private Path createWorld() throws Exception {
+        Path world = temp.resolve("Cirno world");
+        Files.createDirectories(world.resolve("region"));
+        Files.write(world.resolve("level.dat"), "level".getBytes(StandardCharsets.UTF_8));
+        Files.write(world.resolve("region/r.0.0.mca"), "region".getBytes(StandardCharsets.UTF_8));
+        return world;
     }
 }
