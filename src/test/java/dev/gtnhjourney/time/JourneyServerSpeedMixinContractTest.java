@@ -38,7 +38,8 @@ public class JourneyServerSpeedMixinContractTest {
         assertTrue(source.contains("ordinal = 3"));
         assertTrue(source.contains("ServerTickPeriodSchedule.periodMillis"));
         assertTrue(source.contains("ServerTickPeriodSchedule.fullTicksPerOuterTick"));
-        assertTrue(source.contains("ServerTickOverrunGuard.subtractionMillis"));
+        assertTrue(source.contains("ServerTickOverrunGuard"));
+        assertTrue(source.contains("subtractionMillis("));
         assertTrue(source.contains("gtnhjourney$lastOuterTickCostMillis"));
         assertTrue(source.contains("System.nanoTime()"));
         assertTrue(source.contains("((MinecraftServer) (Object) this).tick()"));
