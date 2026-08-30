@@ -31,6 +31,7 @@ final class WorldSnapshotStager {
         if (!stagingBase.isDirectory() && !stagingBase.mkdirs()) {
             throw new IOException("Cannot create staging directory: " + stagingBase.getPath());
         }
+        cleanupStaleSnapshots(stagingBase);
 
         File snapshotRoot = new File(stagingBase, "snapshot-" + UUID.randomUUID().toString());
         File snapshotWorld = new File(snapshotRoot, worldDir.getName());
@@ -43,6 +44,14 @@ final class WorldSnapshotStager {
         } catch (RuntimeException failure) {
             deleteTreeQuietly(snapshotRoot);
             throw failure;
+        }
+    }
+
+    private static void cleanupStaleSnapshots(File stagingBase) throws IOException {
+        File[] stale = stagingBase.listFiles();
+        if (stale == null) throw new IOException("Cannot list staging directory: " + stagingBase.getPath());
+        for (File child : stale) {
+            deleteTree(child.toPath());
         }
     }
 
@@ -60,7 +69,7 @@ final class WorldSnapshotStager {
         if (!Files.isRegularFile(source)) return;
         Path parent = target.getParent();
         if (parent != null) Files.createDirectories(parent);
-        Files.copy(source, target, StandardCopyOption.COPY_ATTRIBUTES, StandardCopyOption.REPLACE_EXISTING);
+        Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
     }
 
     private static void deleteTree(Path path) throws IOException {
