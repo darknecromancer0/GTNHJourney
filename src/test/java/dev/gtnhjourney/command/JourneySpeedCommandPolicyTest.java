@@ -35,7 +35,9 @@ public class JourneySpeedCommandPolicyTest {
         assertEquals(
             Arrays.asList("1", "2", "4", "8", "16", "32", "64", "128", "status"),
             JourneyCommandSuggestions.forChatText("/journey speed "));
-        assertEquals(Arrays.asList("16"), JourneyCommandSuggestions.forChatText("/journey speed 1"));
+        assertEquals(
+            Arrays.asList("1", "16", "128"),
+            JourneyCommandSuggestions.forChatText("/journey speed 1"));
         assertEquals(Arrays.asList("status"), JourneyCommandSuggestions.forChatText("/journey speed st"));
     }
 }
