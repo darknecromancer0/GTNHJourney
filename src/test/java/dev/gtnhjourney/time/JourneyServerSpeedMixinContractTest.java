@@ -20,7 +20,7 @@ public class JourneyServerSpeedMixinContractTest {
     }
 
     @Test
-    public void configRegistersOnlyTheServerSpeedMixin() throws IOException {
+    public void configRegistersTheServerSpeedMixin() throws IOException {
         String json = read("src/main/resources/mixins.gtnhjourney.json");
         assertTrue(json.contains("\"package\": \"dev.gtnhjourney.mixin\""));
         assertTrue(json.contains("\"MinecraftServerSpeedMixin\""));
@@ -28,7 +28,7 @@ public class JourneyServerSpeedMixinContractTest {
     }
 
     @Test
-    public void mixinChangesNormalRunCadenceWithoutManuallyTickingWorldObjects() throws IOException {
+    public void mixinChangesCadenceAndHighSpeedUsesWholeMinecraftServerTicks() throws IOException {
         String source = read("src/main/java/dev/gtnhjourney/mixin/MinecraftServerSpeedMixin.java");
         assertTrue(source.contains("@Mixin(MinecraftServer.class)"));
         assertTrue(source.contains("@ModifyConstant"));
@@ -37,11 +37,16 @@ public class JourneyServerSpeedMixinContractTest {
         assertTrue(source.contains("ordinal = 2"));
         assertTrue(source.contains("ordinal = 3"));
         assertTrue(source.contains("ServerTickPeriodSchedule.periodMillis"));
+        assertTrue(source.contains("ServerTickPeriodSchedule.fullTicksPerOuterTick"));
+        assertTrue(source.contains("((MinecraftServer) (Object) this).tick()"));
+        assertTrue(source.contains("gtnhjourney$insideBurst"));
         assertTrue(source.contains("gtnhjourney$isSpeedHookAvailable"));
         assertTrue(source.contains("gtnhjourney$setSpeedMultiplier"));
         assertTrue(source.contains("gtnhjourney$resetSpeedMultiplier"));
         assertFalse(source.contains("updateEntity()"));
         assertFalse(source.contains("TileEntity"));
+        assertFalse(source.contains("gregtech"));
+        assertFalse(source.contains("Botania"));
     }
 
     private static String read(String path) throws IOException {
