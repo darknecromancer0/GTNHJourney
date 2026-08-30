@@ -1,6 +1,6 @@
 package dev.gtnhjourney.time;
 
-/** Applies session speed changes only when the transformed server-loop hook is proven available. */
+/** Applies one session speed policy: machine-only extra ticks or complete server-world acceleration. */
 public final class JourneySpeedController {
 
     private final JourneySpeedState state;
@@ -13,35 +13,48 @@ public final class JourneySpeedController {
         this.adapter = adapter;
     }
 
-    public synchronized Result setMultiplier(int multiplier) {
-        if (!JourneySpeedState.isAllowedMultiplier(multiplier)) {
-            return new Result(Status.INVALID, state.multiplier(), state.targetTps());
+    public synchronized Result set(JourneySpeedMode mode, int multiplier) {
+        if (mode == null || !JourneySpeedState.isAllowedMultiplier(multiplier)) {
+            return result(Status.INVALID);
+        }
+
+        if (mode == JourneySpeedMode.MACHINES) {
+            // Machine-only acceleration must never change the MinecraftServer cadence.
+            adapter.reset();
+            if (!state.trySet(mode, multiplier)) {
+                state.reset();
+                return result(Status.INVALID);
+            }
+            return result(Status.APPLIED);
         }
 
         if (multiplier == 1) {
             adapter.reset();
-            state.reset();
-            return new Result(Status.APPLIED, 1, 20);
+            state.trySet(JourneySpeedMode.WORLD, 1);
+            return result(Status.APPLIED);
         }
 
         if (!adapter.isSupported()) {
-            adapter.reset();
-            state.reset();
-            return new Result(Status.UNSUPPORTED, 1, 20);
+            failClosed();
+            return result(Status.UNSUPPORTED);
         }
-
         if (!adapter.applyMultiplier(multiplier)) {
-            adapter.reset();
-            state.reset();
-            return new Result(Status.FAILED, 1, 20);
+            failClosed();
+            return result(Status.FAILED);
         }
+        if (!state.trySet(JourneySpeedMode.WORLD, multiplier)) {
+            failClosed();
+            return result(Status.INVALID);
+        }
+        return result(Status.APPLIED);
+    }
 
-        if (!state.trySetMultiplier(multiplier)) {
-            adapter.reset();
-            state.reset();
-            return new Result(Status.INVALID, 1, 20);
-        }
-        return new Result(Status.APPLIED, state.multiplier(), state.targetTps());
+    public synchronized Result setMultiplier(int multiplier) {
+        return set(state.mode(), multiplier);
+    }
+
+    public synchronized JourneySpeedMode mode() {
+        return state.mode();
     }
 
     public synchronized int multiplier() {
@@ -52,13 +65,25 @@ public final class JourneySpeedController {
         return state.targetTps();
     }
 
+    public synchronized int serverTargetTps() {
+        return state.serverTargetTps();
+    }
+
     public synchronized boolean supported() {
         return adapter.isSupported();
     }
 
     public synchronized void reset() {
+        failClosed();
+    }
+
+    private void failClosed() {
         adapter.reset();
         state.reset();
+    }
+
+    private Result result(Status status) {
+        return new Result(status, state.mode(), state.multiplier(), state.targetTps(), state.serverTargetTps());
     }
 
     public enum Status {
@@ -71,17 +96,25 @@ public final class JourneySpeedController {
     public static final class Result {
 
         private final Status status;
+        private final JourneySpeedMode mode;
         private final int multiplier;
         private final int targetTps;
+        private final int serverTargetTps;
 
-        Result(Status status, int multiplier, int targetTps) {
+        Result(Status status, JourneySpeedMode mode, int multiplier, int targetTps, int serverTargetTps) {
             this.status = status;
+            this.mode = mode;
             this.multiplier = multiplier;
             this.targetTps = targetTps;
+            this.serverTargetTps = serverTargetTps;
         }
 
         public Status status() {
             return status;
+        }
+
+        public JourneySpeedMode mode() {
+            return mode;
         }
 
         public int multiplier() {
@@ -90,6 +123,10 @@ public final class JourneySpeedController {
 
         public int targetTps() {
             return targetTps;
+        }
+
+        public int serverTargetTps() {
+            return serverTargetTps;
         }
     }
 }
