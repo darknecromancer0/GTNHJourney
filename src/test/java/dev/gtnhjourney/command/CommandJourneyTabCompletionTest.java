@@ -62,8 +62,14 @@ public class CommandJourneyTabCompletionTest {
             Arrays.asList("confirm"),
             command.addTabCompletionOptions(null, new String[] { "prune-missing", "c" }));
         assertEquals(
-            Arrays.asList("1", "2", "4", "8", "16", "32", "64", "128", "status"),
+            Arrays.asList("machines", "world", "1", "2", "4", "8", "16", "32", "64", "128", "status"),
             command.addTabCompletionOptions(null, new String[] { "speed", "" }));
+        assertEquals(
+            Arrays.asList("1", "2", "4", "8", "16", "32", "64", "128"),
+            command.addTabCompletionOptions(null, new String[] { "speed", "machines", "" }));
+        assertEquals(
+            Arrays.asList("1", "2", "4", "8", "16", "32", "64", "128"),
+            command.addTabCompletionOptions(null, new String[] { "speed", "world", "" }));
         assertEquals(
             Arrays.asList("debug"),
             command.addTabCompletionOptions(null, new String[] { "botania", "" }));
