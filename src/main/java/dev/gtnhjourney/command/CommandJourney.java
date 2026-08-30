@@ -17,6 +17,7 @@ import dev.gtnhjourney.network.JourneyNetwork;
 import dev.gtnhjourney.recovery.JourneySnapshot;
 import dev.gtnhjourney.research.ResearchKey;
 import dev.gtnhjourney.time.JourneySpeedController;
+import dev.gtnhjourney.time.JourneySpeedMode;
 
 /** Diagnostic, recovery and fallback UI for Journey research. */
 public final class CommandJourney extends CommandBase {
@@ -51,12 +52,28 @@ public final class CommandJourney extends CommandBase {
             if ("backup".equals(action)) return getListOfStringsMatchingLastWord(args, "status", "now", "on", "off");
             if ("explosions".equals(action)) return getListOfStringsMatchingLastWord(args, "status", "on", "off");
             if ("speed".equals(action)) {
-                return getListOfStringsMatchingLastWord(args, "1", "2", "4", "8", "16", "32", "64", "128", "status");
+                return getListOfStringsMatchingLastWord(
+                    args,
+                    "machines",
+                    "world",
+                    "1",
+                    "2",
+                    "4",
+                    "8",
+                    "16",
+                    "32",
+                    "64",
+                    "128",
+                    "status");
             }
             if ("botania".equals(action)) return getListOfStringsMatchingLastWord(args, "debug");
             if ("clear".equals(action) || "prune-missing".equals(action)) {
                 return getListOfStringsMatchingLastWord(args, "confirm");
             }
+        }
+        if (args.length == 3 && "speed".equalsIgnoreCase(args[0])
+            && JourneySpeedMode.parse(args[1]) != null) {
+            return getListOfStringsMatchingLastWord(args, "1", "2", "4", "8", "16", "32", "64", "128");
         }
         if (args.length == 3 && "botania".equalsIgnoreCase(args[0]) && "debug".equalsIgnoreCase(args[1])) {
             return getListOfStringsMatchingLastWord(args, "tool");
@@ -234,7 +251,6 @@ public final class CommandJourney extends CommandBase {
                 return;
             }
             int added = GTNHJourney.MUTATIONS.applyBulkAdd(player, candidates, "Research held item");
-            // This command is also an explicit refresh path. Sync even when the semantic state already existed.
             sync(player);
             tell(player, "Held item research refreshed. New: " + added);
             return;
@@ -285,38 +301,73 @@ public final class CommandJourney extends CommandBase {
 
     private void speed(EntityPlayerMP player, String[] args) {
         if (args.length < 2 || "status".equalsIgnoreCase(args[1])) {
-            tell(
-                player,
-                "Journey speed: " + GTNHJourney.SPEED.multiplier() + "x (target " + GTNHJourney.SPEED.targetTps()
-                    + " TPS). Hook: " + (GTNHJourney.SPEED.supported() ? "supported" : "unsupported") + ".");
+            JourneySpeedMode mode = GTNHJourney.SPEED.mode();
+            if (mode == JourneySpeedMode.MACHINES) {
+                tell(
+                    player,
+                    "Journey speed: MACHINES " + GTNHJourney.SPEED.multiplier()
+                        + "x. World remains 20 TPS; loaded tickable TileEntities are accelerated best-effort.");
+            } else {
+                tell(
+                    player,
+                    "Journey speed: WORLD " + GTNHJourney.SPEED.multiplier() + "x (target "
+                        + GTNHJourney.SPEED.serverTargetTps() + " TPS). Hook: "
+                        + (GTNHJourney.SPEED.supported() ? "supported" : "unsupported") + ".");
+            }
             return;
         }
         if (!JourneyAdminPermissionPolicy.mayMutate(player)) {
             tell(player, "Journey speed changes require the integrated-server owner or operator permission.");
             return;
         }
-        Integer multiplier = JourneySpeedCommandPolicy.parseMultiplier(args[1]);
+
+        JourneySpeedMode mode = JourneySpeedMode.parse(args[1]);
+        String multiplierArgument;
+        if (mode != null) {
+            if (args.length < 3) {
+                speedUsage(player);
+                return;
+            }
+            multiplierArgument = args[2];
+        } else {
+            // Backwards-compatible short form is deliberately the safer machine-only mode.
+            mode = JourneySpeedMode.MACHINES;
+            multiplierArgument = args[1];
+        }
+
+        Integer multiplier = JourneySpeedCommandPolicy.parseMultiplier(multiplierArgument);
         if (multiplier == null) {
-            tell(player, "Usage: /journey speed <1|2|4|8|16|32|64|128|status>");
+            speedUsage(player);
             return;
         }
-        JourneySpeedController.Result result = GTNHJourney.SPEED.setMultiplier(multiplier.intValue());
+        JourneySpeedController.Result result = GTNHJourney.SPEED.set(mode, multiplier.intValue());
         if (result.status() == JourneySpeedController.Status.APPLIED) {
-            tell(
-                player,
-                "Journey speed set to " + result.multiplier() + "x (target " + result.targetTps()
-                    + " TPS) for this server session.");
+            if (result.mode() == JourneySpeedMode.MACHINES) {
+                tell(
+                    player,
+                    "Journey speed set to MACHINES " + result.multiplier()
+                        + "x. World stays at normal 20 TPS; loaded tickable TileEntities accelerate best-effort.");
+            } else {
+                tell(
+                    player,
+                    "Journey speed set to WORLD " + result.multiplier() + "x (target " + result.serverTargetTps()
+                        + " TPS) for this server session.");
+            }
             return;
         }
         if (result.status() == JourneySpeedController.Status.UNSUPPORTED) {
-            tell(player, "Journey speed hook is unavailable in this runtime. Speed remains 1x.");
+            tell(player, "WORLD speed hook is unavailable. Speed restored to MACHINES 1x.");
             return;
         }
         if (result.status() == JourneySpeedController.Status.FAILED) {
-            tell(player, "Journey speed change failed safely. Speed restored to 1x.");
+            tell(player, "WORLD speed change failed safely. Speed restored to MACHINES 1x.");
             return;
         }
-        tell(player, "Usage: /journey speed <1|2|4|8|16|32|64|128|status>");
+        speedUsage(player);
+    }
+
+    private void speedUsage(EntityPlayerMP player) {
+        tell(player, "Usage: /journey speed machines|world <1|2|4|8|16|32|64|128> or /journey speed status");
     }
 
     private void botania(EntityPlayerMP player, String[] args) {
