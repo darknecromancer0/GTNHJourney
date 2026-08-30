@@ -15,20 +15,33 @@ import org.junit.jupiter.api.Test;
 public class SpeedPackageSafetyContractTest {
 
     @Test
-    public void speedImplementationNeverDirectlyTicksTileEntities() throws IOException {
+    public void onlyMachineTickAcceleratorMayDirectlyTickTileEntities() throws IOException {
         Path root = Paths.get("src/main/java/dev/gtnhjourney/time");
         assertTrue(Files.isDirectory(root));
         try (Stream<Path> files = Files.walk(root)) {
             files.filter(path -> path.toString().endsWith(".java")).forEach(path -> {
                 try {
                     String source = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
-                    assertFalse(source.contains("TileEntity.updateEntity"), path.toString());
-                    assertFalse(source.contains("updateEntity()"), path.toString());
+                    if (path.getFileName().toString().equals("MachineTickAccelerator.java")) {
+                        assertTrue(source.contains("updateEntity()"), path.toString());
+                        assertTrue(source.contains("JourneySpeedMode.MACHINES"), path.toString());
+                    } else {
+                        assertFalse(source.contains("TileEntity.updateEntity"), path.toString());
+                        assertFalse(source.contains("updateEntity()"), path.toString());
+                    }
                 } catch (IOException failure) {
                     throw new AssertionError(failure);
                 }
             });
         }
+    }
+
+    @Test
+    public void wholeWorldMixinStillNeverDirectlyTicksTileEntities() throws IOException {
+        String mixin = read("src/main/java/dev/gtnhjourney/mixin/MinecraftServerSpeedMixin.java");
+        assertFalse(mixin.contains("TileEntity"));
+        assertFalse(mixin.contains("updateEntity()"));
+        assertTrue(mixin.contains("((MinecraftServer) (Object) this).tick()"));
     }
 
     @Test
