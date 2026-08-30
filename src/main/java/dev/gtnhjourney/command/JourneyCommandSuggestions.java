@@ -34,7 +34,8 @@ public final class JourneyCommandSuggestions {
         "debugtool",
         "prune-missing",
         "clear",
-        "speed"));
+        "speed",
+        "botania"));
 
     private JourneyCommandSuggestions() {}
 
@@ -56,9 +57,13 @@ public final class JourneyCommandSuggestions {
             if ("speed".equals(action)) {
                 return matching(args[1], Arrays.asList("1", "2", "4", "8", "16", "32", "64", "128", "status"));
             }
+            if ("botania".equals(action)) return matching(args[1], Collections.singletonList("debug"));
             if ("clear".equals(action) || "prune-missing".equals(action)) {
                 return matching(args[1], Collections.singletonList("confirm"));
             }
+        }
+        if (args.length == 3 && "botania".equalsIgnoreCase(args[0]) && "debug".equalsIgnoreCase(args[1])) {
+            return matching(args[2], Collections.singletonList("tool"));
         }
         return Collections.emptyList();
     }
