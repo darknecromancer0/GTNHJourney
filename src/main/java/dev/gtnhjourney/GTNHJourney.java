@@ -32,6 +32,7 @@ import dev.gtnhjourney.safety.ExplosionGuard;
 import dev.gtnhjourney.safety.PlayerCleanseService;
 import dev.gtnhjourney.time.JourneySpeedController;
 import dev.gtnhjourney.time.JourneySpeedState;
+import dev.gtnhjourney.time.MachineTickAccelerator;
 import dev.gtnhjourney.time.ReflectiveServerTickRateAdapter;
 
 @Mod(
@@ -55,6 +56,7 @@ public final class GTNHJourney {
     public static final JourneySpeedController SPEED = new JourneySpeedController(
         new JourneySpeedState(),
         new ReflectiveServerTickRateAdapter());
+    private static final MachineTickAccelerator MACHINE_TICK_ACCELERATOR = new MachineTickAccelerator(SPEED);
     private static final WorldBackupTicker WORLD_BACKUP_TICKER = new WorldBackupTicker(WORLD_BACKUPS);
     public static JourneyMutationService MUTATIONS;
     public static Item DEBUG_RESEARCHER_TOOL;
@@ -85,6 +87,9 @@ public final class GTNHJourney {
         FMLCommonHandler.instance()
             .bus()
             .register(furnaceTracker);
+        FMLCommonHandler.instance()
+            .bus()
+            .register(MACHINE_TICK_ACCELERATOR);
         MinecraftForge.EVENT_BUS.register(inventoryTracker);
         MinecraftForge.EVENT_BUS.register(furnaceTracker);
         FMLCommonHandler.instance()
