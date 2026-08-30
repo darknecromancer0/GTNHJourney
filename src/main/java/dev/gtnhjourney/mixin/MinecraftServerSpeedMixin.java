@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import dev.gtnhjourney.time.JourneySpeedState;
 import dev.gtnhjourney.time.ServerTickPeriodSchedule;
 
-/** Changes only MinecraftServer's normal run-loop cadence; worlds still advance through one stock tick call per loop. */
+/** Changes the stock server cadence and, above 32x, adds guarded bursts of complete MinecraftServer ticks. */
 @Mixin(MinecraftServer.class)
 public abstract class MinecraftServerSpeedMixin {
 
@@ -23,6 +23,8 @@ public abstract class MinecraftServerSpeedMixin {
     private volatile int gtnhjourney$pacingHooksSeen;
     @Unique
     private int gtnhjourney$pacingPhase;
+    @Unique
+    private boolean gtnhjourney$insideBurst;
 
     @ModifyConstant(method = "run", constant = @Constant(longValue = 50L, ordinal = 1), require = 0)
     private long gtnhjourney$modifyAccumulatorThreshold(long original) {
@@ -33,7 +35,11 @@ public abstract class MinecraftServerSpeedMixin {
     @ModifyConstant(method = "run", constant = @Constant(longValue = 50L, ordinal = 2), require = 0)
     private long gtnhjourney$modifyAccumulatorSubtraction(long original) {
         gtnhjourney$pacingHooksSeen |= 2;
-        return gtnhjourney$currentPeriod();
+        long period = gtnhjourney$currentPeriod();
+        gtnhjourney$pacingPhase = ServerTickPeriodSchedule.nextPhase(
+            gtnhjourney$speedMultiplier,
+            gtnhjourney$pacingPhase);
+        return period;
     }
 
     @ModifyConstant(method = "run", constant = @Constant(longValue = 50L, ordinal = 3), require = 0)
@@ -42,11 +48,19 @@ public abstract class MinecraftServerSpeedMixin {
         return gtnhjourney$currentPeriod();
     }
 
-    @Inject(method = "tick", at = @At("HEAD"), require = 0)
-    private void gtnhjourney$advancePacingPhase(CallbackInfo ci) {
-        gtnhjourney$pacingPhase = ServerTickPeriodSchedule.nextPhase(
-            gtnhjourney$speedMultiplier,
-            gtnhjourney$pacingPhase);
+    @Inject(method = "tick", at = @At("RETURN"), require = 0)
+    private void gtnhjourney$runHighSpeedBurst(CallbackInfo ci) {
+        if (gtnhjourney$insideBurst) return;
+        int fullTicks = ServerTickPeriodSchedule.fullTicksPerOuterTick(gtnhjourney$speedMultiplier);
+        if (fullTicks <= 1) return;
+        gtnhjourney$insideBurst = true;
+        try {
+            for (int i = 1; i < fullTicks; i++) {
+                ((MinecraftServer) (Object) this).tick();
+            }
+        } finally {
+            gtnhjourney$insideBurst = false;
+        }
     }
 
     @Unique
@@ -62,11 +76,13 @@ public abstract class MinecraftServerSpeedMixin {
         if (!gtnhjourney$isSpeedHookAvailable() || !JourneySpeedState.isAllowedMultiplier(multiplier)) return false;
         gtnhjourney$speedMultiplier = multiplier;
         gtnhjourney$pacingPhase = 0;
+        gtnhjourney$insideBurst = false;
         return true;
     }
 
     public void gtnhjourney$resetSpeedMultiplier() {
         gtnhjourney$speedMultiplier = 1;
         gtnhjourney$pacingPhase = 0;
+        gtnhjourney$insideBurst = false;
     }
 }
