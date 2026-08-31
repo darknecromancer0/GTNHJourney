@@ -9,12 +9,12 @@ import org.junit.jupiter.api.Test;
 public class VanillaMetadataPolicyTest {
 
     @Test
-    public void dirtKeepsRealVariantsButCollapsesGarbageMetadata() throws Exception {
+    public void dirtKeepsPodzolButCollapsesDefaultAndGarbageMetadata() throws Exception {
         Class<?> policy = Class.forName("dev.gtnhjourney.minecraft.VanillaMetadataPolicy");
         Method canonicalMeta = policy.getDeclaredMethod("canonicalMeta", String.class, int.class);
 
         assertEquals(0, ((Integer) canonicalMeta.invoke(null, "minecraft:dirt", 0)).intValue());
-        assertEquals(1, ((Integer) canonicalMeta.invoke(null, "minecraft:dirt", 1)).intValue());
+        assertEquals(0, ((Integer) canonicalMeta.invoke(null, "minecraft:dirt", 1)).intValue());
         assertEquals(2, ((Integer) canonicalMeta.invoke(null, "minecraft:dirt", 2)).intValue());
         assertEquals(0, ((Integer) canonicalMeta.invoke(null, "minecraft:dirt", 7)).intValue());
         assertEquals(0, ((Integer) canonicalMeta.invoke(null, "minecraft:dirt", 49)).intValue());
