@@ -26,7 +26,7 @@ public final class ResearchNbtIdentity {
             && TconToolStatePolicy.isVerifiedTool(stack);
         if (normalizeTconWear) {
             TconToolStatePolicy.normalizeAmmoState(identityTag);
-            TconToolStatePolicy.normalizeDisplayName(identityTag);
+            TconToolStatePolicy.normalizeDisplayName(stack, identityTag);
         }
         if (identityTag.func_150296_c()
             .isEmpty()) return "";
