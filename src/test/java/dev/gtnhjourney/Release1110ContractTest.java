@@ -28,6 +28,7 @@ public class Release1110ContractTest {
         assertTrue(aliases.contains("IC2:itemBatRE"));
         assertTrue(resolver.contains("Ic2LegacyBatteryAliasPolicy.canonicalItemId(itemId)"));
         assertTrue(keyFactory.contains("Ic2LegacyBatteryAliasPolicy.identityStack(stack)"));
+        assertTrue(source.contains("JourneyResearchData.get(rootWorld).markDirty()"));
     }
 
     @Test
