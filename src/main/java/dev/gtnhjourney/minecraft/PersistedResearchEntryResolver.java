@@ -43,10 +43,11 @@ public final class PersistedResearchEntryResolver {
 
         if (itemId == null || itemId.trim().isEmpty()) return null;
 
+        String canonicalItemId = Ic2LegacyBatteryAliasPolicy.canonicalItemId(itemId);
         String persistedCanonical = persistedCanonicalNbt == null ? "" : persistedCanonicalNbt;
         if (persistedTemplate == null && !persistedCanonical.isEmpty()) return null;
 
-        NBTTagCompound fallbackTemplate = normalizePersistedTemplate(itemId, meta, persistedTemplate);
+        NBTTagCompound fallbackTemplate = normalizePersistedTemplate(canonicalItemId, meta, persistedTemplate);
         final String fallbackCanonical;
         try {
             fallbackCanonical = fallbackTemplate == null ? "" : ResearchNbtIdentity.canonicalize(fallbackTemplate);
@@ -57,7 +58,7 @@ public final class PersistedResearchEntryResolver {
         } catch (LinkageError unsafeNbt) {
             return null;
         }
-        ResearchKey fallback = new ResearchKey(itemId, meta, fallbackCanonical);
+        ResearchKey fallback = new ResearchKey(canonicalItemId, meta, fallbackCanonical);
 
         ItemStack reconstructed = reconstruct(fallback, fallbackTemplate);
         return resolveReconstructed(fallback, fallbackTemplate, reconstructed);
