@@ -47,10 +47,11 @@ public final class PersistedResearchEntryResolver {
 
         String canonicalItemId = ResearchCompatibilityOptions.normalizeIc2ChargeEndpoints()
             ? Ic2LegacyBatteryAliasPolicy.canonicalItemId(itemId) : itemId;
+        int canonicalMeta = VanillaMetadataPolicy.canonicalMeta(canonicalItemId, meta);
         String persistedCanonical = persistedCanonicalNbt == null ? "" : persistedCanonicalNbt;
         if (persistedTemplate == null && !persistedCanonical.isEmpty()) return null;
 
-        NBTTagCompound fallbackTemplate = normalizePersistedTemplate(canonicalItemId, meta, persistedTemplate);
+        NBTTagCompound fallbackTemplate = normalizePersistedTemplate(canonicalItemId, canonicalMeta, persistedTemplate);
         final String fallbackCanonical;
         try {
             fallbackCanonical = fallbackTemplate == null ? "" : ResearchNbtIdentity.canonicalize(fallbackTemplate);
@@ -61,9 +62,9 @@ public final class PersistedResearchEntryResolver {
         } catch (LinkageError unsafeNbt) {
             return null;
         }
-        if (isLegacyUntypedVanillaSpawner(canonicalItemId, meta, fallbackCanonical)) return null;
+        if (isLegacyUntypedVanillaSpawner(canonicalItemId, canonicalMeta, fallbackCanonical)) return null;
 
-        ResearchKey fallback = new ResearchKey(canonicalItemId, meta, fallbackCanonical);
+        ResearchKey fallback = new ResearchKey(canonicalItemId, canonicalMeta, fallbackCanonical);
         ItemStack reconstructed = reconstruct(fallback, fallbackTemplate);
         return resolveReconstructed(fallback, fallbackTemplate, reconstructed);
     }
