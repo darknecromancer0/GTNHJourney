@@ -18,6 +18,9 @@ public final class KnownTransientItemStatePolicy {
     private static final String GT_BLOCK_MACHINES = "gregtech:gt.blockmachines";
     private static final int GT_UNIVERSAL_FLUID_CELL_META = 32405;
     private static final int GT_UNIVERSAL_FLUID_CELL_CAPACITY = 8000;
+    private static final String RAILCRAFT_MACHINE_BETA = "Railcraft:machine.beta";
+    private static final String RAILCRAFT_MACHINE_ZETA = "Railcraft:machine.zeta";
+    private static final int RAILCRAFT_DEFAULT_WHITE = 15;
 
     private KnownTransientItemStatePolicy() {}
 
@@ -53,6 +56,7 @@ public final class KnownTransientItemStatePolicy {
         if (GT_META_ITEM_01.equals(registryId) && meta == GT_UNIVERSAL_FLUID_CELL_META) {
             normalizeUniversalFluidCell(tag);
         }
+        if (isRailcraftTankStructure(registryId, meta)) normalizeRailcraftTankStructure(tag);
     }
 
     private static void normalizeAirFilter(NBTTagCompound tag) {
@@ -78,6 +82,21 @@ public final class KnownTransientItemStatePolicy {
         if (!fluid.hasKey("FluidName", 8) || fluid.getString("FluidName").isEmpty()) return;
         if (!fluid.hasKey("Amount", 99) || fluid.getInteger("Amount") <= 0) return;
         fluid.setInteger("Amount", GT_UNIVERSAL_FLUID_CELL_CAPACITY);
+    }
+
+    private static boolean isRailcraftTankStructure(String registryId, int meta) {
+        if (RAILCRAFT_MACHINE_BETA.equals(registryId)) {
+            return meta == 0 || meta == 1 || meta == 2 || meta == 13 || meta == 14 || meta == 15;
+        }
+        if (RAILCRAFT_MACHINE_ZETA.equals(registryId)) return meta == 3 || meta == 4 || meta == 5;
+        return false;
+    }
+
+    private static void normalizeRailcraftTankStructure(NBTTagCompound tag) {
+        // Railcraft writes the default white paint marker onto picked/dropped tank wall, gauge and valve stacks.
+        // The ordinary craftable item has no tag, so color=15 would otherwise create a duplicate Journey state.
+        // Preserve non-default paint colours because those are intentional cosmetic item variants.
+        if (tag.hasKey("color", 99) && tag.getInteger("color") == RAILCRAFT_DEFAULT_WHITE) tag.removeTag("color");
     }
 
     private static void normalizeCapturedEntityRuntime(NBTTagCompound tag) {
