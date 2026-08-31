@@ -319,12 +319,26 @@ public final class WorldBackupCoordinator {
             File worldDir = DimensionManager.getCurrentSaveRootDirectory();
             if (worldDir == null || !worldDir.isDirectory()) throw new IllegalStateException("save root is unavailable");
             File backupDir = WorldBackupPaths.backupRoot(instanceRootFor(worldDir), worldDir.getName());
+            int retention = JourneyConfig.worldBackupRetention();
+            Date timestamp = new Date();
+
+            boolean[] previousLevelSaving = new boolean[worlds.length];
+            for (int i = 0; i < worlds.length; i++) {
+                WorldServer world = worlds[i];
+                if (world != null) previousLevelSaving[i] = world.levelSaving;
+            }
+            for (WorldServer world : worlds) {
+                if (world != null) world.levelSaving = true;
+            }
+
             return new MinecraftPreparedBackup(
                 writer,
                 worldDir,
                 backupDir,
-                JourneyConfig.worldBackupRetention(),
-                new Date());
+                retention,
+                timestamp,
+                worlds,
+                previousLevelSaving);
         }
     }
 
@@ -335,18 +349,25 @@ public final class WorldBackupCoordinator {
         private final File backupDir;
         private final int retention;
         private final Date timestamp;
+        private final WorldServer[] worlds;
+        private final boolean[] previousLevelSaving;
+        private boolean saveStateRestored;
 
         private MinecraftPreparedBackup(
             WorldArchiveWriter writer,
             File liveWorld,
             File backupDir,
             int retention,
-            Date timestamp) {
+            Date timestamp,
+            WorldServer[] worlds,
+            boolean[] previousLevelSaving) {
             this.writer = writer;
             this.liveWorld = liveWorld;
             this.backupDir = backupDir;
             this.retention = retention;
             this.timestamp = timestamp;
+            this.worlds = worlds;
+            this.previousLevelSaving = previousLevelSaving;
         }
 
         @Override
@@ -381,7 +402,12 @@ public final class WorldBackupCoordinator {
 
         @Override
         public void cleanup() {
-            // Worker-owned staging is created and removed inside archive(); prepare() does not allocate a snapshot.
+            if (saveStateRestored) return;
+            for (int i = 0; i < worlds.length; i++) {
+                WorldServer world = worlds[i];
+                if (world != null) world.levelSaving = previousLevelSaving[i];
+            }
+            saveStateRestored = true;
         }
     }
 }
