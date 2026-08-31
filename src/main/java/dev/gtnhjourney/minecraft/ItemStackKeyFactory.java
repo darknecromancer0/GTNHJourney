@@ -27,23 +27,30 @@ public final class ItemStackKeyFactory {
             throw new IllegalArgumentException("stack and item must not be null");
         }
 
+        // IC2 exposes the crafted empty RE-Battery as a separate non-electric placeholder item. Journey must identify
+        // that placeholder as the real rechargeable item before charge semantics and registry identity are evaluated.
+        ItemStack canonicalInput = Ic2LegacyBatteryAliasPolicy.identityStack(stack);
+        if (canonicalInput == null || canonicalInput.getItem() == null) {
+            throw new IllegalArgumentException("IC2 alias identity produced no item");
+        }
+
         // Semantic normalization may legitimately transform an electric stack into its base/empty representation.
         // Registry id and metadata therefore belong to the normalized stack too, not to the pre-normalization input.
         GtChargeStatePolicy.State gtChargeState = ResearchCompatibilityOptions.normalizeGtChargeEndpoints()
-            ? GtChargeStatePolicy.classify(stack) : GtChargeStatePolicy.State.EXACT;
+            ? GtChargeStatePolicy.classify(canonicalInput) : GtChargeStatePolicy.State.EXACT;
         ItemStack identityStack;
         if (gtChargeState != GtChargeStatePolicy.State.EXACT) {
-            identityStack = GtChargeStatePolicy.identityStack(stack);
+            identityStack = GtChargeStatePolicy.identityStack(canonicalInput);
         } else {
-            OpenComputersChargeStatePolicy.State ocChargeState = OpenComputersChargeStatePolicy.classify(stack);
+            OpenComputersChargeStatePolicy.State ocChargeState = OpenComputersChargeStatePolicy.classify(canonicalInput);
             if (ocChargeState != OpenComputersChargeStatePolicy.State.EXACT) {
-                identityStack = OpenComputersChargeStatePolicy.identityStack(stack);
+                identityStack = OpenComputersChargeStatePolicy.identityStack(canonicalInput);
             } else {
                 Ic2ChargeStatePolicy.State ic2ChargeState = ResearchCompatibilityOptions.normalizeIc2ChargeEndpoints()
-                    ? Ic2ChargeStatePolicy.classify(stack) : Ic2ChargeStatePolicy.State.EXACT;
+                    ? Ic2ChargeStatePolicy.classify(canonicalInput) : Ic2ChargeStatePolicy.State.EXACT;
                 identityStack = ic2ChargeState != Ic2ChargeStatePolicy.State.EXACT
-                    ? Ic2ChargeStatePolicy.identityStack(stack)
-                    : CofhChargeStatePolicy.identityStack(stack);
+                    ? Ic2ChargeStatePolicy.identityStack(canonicalInput)
+                    : CofhChargeStatePolicy.identityStack(canonicalInput);
             }
         }
         if (identityStack == null || identityStack.getItem() == null) {
