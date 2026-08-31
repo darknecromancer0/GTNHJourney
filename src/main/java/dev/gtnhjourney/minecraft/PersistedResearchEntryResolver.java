@@ -10,6 +10,8 @@ import net.minecraft.nbt.NBTTagCompound;
 /** Rebuilds and migrates persisted research identity from the exact stored retrieval template. */
 public final class PersistedResearchEntryResolver {
 
+    private static final String VANILLA_SPAWNER_ID = "minecraft:mob_spawner";
+
     private PersistedResearchEntryResolver() {}
 
     public static final class ResolvedEntry {
@@ -59,8 +61,9 @@ public final class PersistedResearchEntryResolver {
         } catch (LinkageError unsafeNbt) {
             return null;
         }
-        ResearchKey fallback = new ResearchKey(canonicalItemId, meta, fallbackCanonical);
+        if (isLegacyUntypedVanillaSpawner(canonicalItemId, meta, fallbackCanonical)) return null;
 
+        ResearchKey fallback = new ResearchKey(canonicalItemId, meta, fallbackCanonical);
         ItemStack reconstructed = reconstruct(fallback, fallbackTemplate);
         return resolveReconstructed(fallback, fallbackTemplate, reconstructed);
     }
@@ -126,6 +129,12 @@ public final class PersistedResearchEntryResolver {
             return out;
         }
         return out.func_150296_c().isEmpty() ? null : out;
+    }
+
+    private static boolean isLegacyUntypedVanillaSpawner(String itemId, int meta, String canonicalNbt) {
+        return VANILLA_SPAWNER_ID.equals(itemId)
+            && meta == 0
+            && (canonicalNbt == null || canonicalNbt.isEmpty());
     }
 
     private static boolean isForestry(String itemId) {
