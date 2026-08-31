@@ -4,7 +4,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.IOException;
 import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 import org.junit.jupiter.api.Test;
 
@@ -101,12 +105,62 @@ public class ThaumcraftWandStatePolicyTest {
         tag.setInteger("IIUY", 92);
         tag.setInteger("IIUZ", -132);
 
-        normalizePersisted(tag);
+        normalizePersisted(tag, 0);
 
         assertAllVis(tag, 2500);
         assertFalse(tag.hasKey("IIUX"));
         assertFalse(tag.hasKey("IIUY"));
         assertFalse(tag.hasKey("IIUZ"));
+    }
+
+    @Test
+    public void persistedGreatwoodWandFromLiveDumpCollapsesToFullEndpoint() throws Exception {
+        NBTTagCompound tag = new NBTTagCompound();
+        tag.setString("cap", "iron");
+        tag.setString("rod", "greatwood");
+        tag.setInteger("perditio", 300);
+        tag.setInteger("IIUX", -246);
+        tag.setInteger("IIUY", 68);
+        tag.setInteger("IIUZ", -6826);
+
+        normalizePersisted(tag, 20);
+
+        assertAllVis(tag, 5000);
+        assertFalse(tag.hasKey("IIUX"));
+        assertFalse(tag.hasKey("IIUY"));
+        assertFalse(tag.hasKey("IIUZ"));
+        assertEquals("greatwood", tag.getString("rod"));
+        assertEquals("iron", tag.getString("cap"));
+    }
+
+    @Test
+    public void persistedGreatwoodStaffFromLiveDumpCollapsesToFullEndpoint() throws Exception {
+        NBTTagCompound tag = emptyVis();
+        tag.setString("cap", "gold");
+        tag.setString("rod", "greatwood_staff");
+        tag.setInteger("aer", 900);
+        tag.setInteger("ignis", 300);
+        tag.setInteger("IIUX", 526);
+        tag.setInteger("IIUY", 78);
+        tag.setInteger("IIUZ", -42);
+
+        normalizePersisted(tag, 24);
+
+        assertAllVis(tag, 12500);
+        assertFalse(tag.hasKey("IIUX"));
+        assertFalse(tag.hasKey("IIUY"));
+        assertFalse(tag.hasKey("IIUZ"));
+        assertEquals("greatwood_staff", tag.getString("rod"));
+        assertEquals("gold", tag.getString("cap"));
+    }
+
+    @Test
+    public void stackAwareResearchIdentityRunsWandPolicyBeforeCanonicalization() throws IOException {
+        String source = new String(
+            Files.readAllBytes(Paths.get("src/main/java/dev/gtnhjourney/minecraft/ResearchNbtIdentity.java")),
+            StandardCharsets.UTF_8);
+
+        assertTrue(source.contains("ThaumcraftWandStatePolicy.normalize(stack, identityTag);"));
     }
 
     @Test
@@ -133,9 +187,9 @@ public class ThaumcraftWandStatePolicyTest {
             new Object[] { WAND_ID, tag, Integer.valueOf(maxVis) });
     }
 
-    private static void normalizePersisted(NBTTagCompound tag) throws Exception {
+    private static void normalizePersisted(NBTTagCompound tag, int meta) throws Exception {
         invoke("normalizePersisted", new Class<?>[] { String.class, int.class, NBTTagCompound.class },
-            new Object[] { WAND_ID, Integer.valueOf(0), tag });
+            new Object[] { WAND_ID, Integer.valueOf(meta), tag });
     }
 
     private static void invoke(String methodName, Class<?>[] parameterTypes, Object[] args) throws Exception {
