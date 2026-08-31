@@ -27,9 +27,11 @@ public final class ItemStackKeyFactory {
             throw new IllegalArgumentException("stack and item must not be null");
         }
 
-        // IC2 exposes the crafted empty RE-Battery as a separate non-electric placeholder item. Journey must identify
-        // that placeholder as the real rechargeable item before charge semantics and registry identity are evaluated.
-        ItemStack canonicalInput = Ic2LegacyBatteryAliasPolicy.identityStack(stack);
+        // IC2 exposes the crafted empty RE-Battery as a separate non-electric placeholder item. When IC2 endpoint
+        // normalization is enabled, identify that placeholder as the real rechargeable item before charge semantics and
+        // registry identity are evaluated. Disabling the compatibility option still preserves exact legacy identity.
+        ItemStack canonicalInput = ResearchCompatibilityOptions.normalizeIc2ChargeEndpoints()
+            ? Ic2LegacyBatteryAliasPolicy.identityStack(stack) : stack.copy();
         if (canonicalInput == null || canonicalInput.getItem() == null) {
             throw new IllegalArgumentException("IC2 alias identity produced no item");
         }
