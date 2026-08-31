@@ -1,6 +1,5 @@
 package dev.gtnhjourney.backup;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -13,12 +12,18 @@ import org.junit.jupiter.api.Test;
 class WorldBackupSaveSafetyContractTest {
 
     @Test
-    void backupPreparationNeverDisablesVanillaWorldSaving() throws IOException {
+    void backgroundStagingTemporarilySuspendsWorldSavingAfterFlushAndRestoresItOnCleanup() throws IOException {
         String source = read("src/main/java/dev/gtnhjourney/backup/WorldBackupCoordinator.java");
 
-        assertFalse(source.contains("world.levelSaving = true"), "Journey backup must never disable normal world saving");
-        assertFalse(source.contains("WorldSaveState"), "backup must not hold or restore a temporary save-disable state");
-        assertTrue(source.contains("WorldSnapshotStager"), "backup should archive a stable staged snapshot instead of live files");
+        int flush = source.indexOf("ThreadedFileIOBase.threadedIOInstance.waitForFinish()");
+        int suspend = source.indexOf("world.levelSaving = true");
+        assertTrue(flush >= 0, "backup must wait for queued chunk IO before taking the snapshot");
+        assertTrue(suspend > flush, "world saving must be suspended only after the flushed disk state is complete");
+        assertTrue(source.contains("previousLevelSaving"), "backup must preserve every world's prior save setting");
+        assertTrue(
+            source.contains("world.levelSaving = previousLevelSaving[i]"),
+            "backup cleanup must restore every world's prior save setting");
+        assertTrue(source.contains("WorldSnapshotStager"), "backup should still archive an isolated staged snapshot");
     }
 
     private static String read(String path) throws IOException {
