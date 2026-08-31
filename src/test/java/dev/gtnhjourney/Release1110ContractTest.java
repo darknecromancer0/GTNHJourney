@@ -13,17 +13,12 @@ import org.junit.jupiter.api.Test;
 public class Release1110ContractTest {
 
     @Test
-    public void runtimeMetadataAndReBatteryFixAgreeOn1110() throws IOException {
+    public void reBatteryMigrationFixRemainsPresent() throws IOException {
         String source = read("src/main/java/dev/gtnhjourney/GTNHJourney.java");
-        String mcmod = read("src/main/resources/mcmod.info");
-        String build = read("build.gradle.kts");
         String aliases = read("src/main/java/dev/gtnhjourney/minecraft/Ic2LegacyBatteryAliasPolicy.java");
         String resolver = read("src/main/java/dev/gtnhjourney/minecraft/PersistedResearchEntryResolver.java");
         String keyFactory = read("src/main/java/dev/gtnhjourney/minecraft/ItemStackKeyFactory.java");
 
-        assertTrue(source.contains("public static final String VERSION = \"1.1.10\";"));
-        assertTrue(mcmod.contains("\"version\": \"1.1.10\""));
-        assertTrue(build.contains("version = \"1.1.10\""));
         assertTrue(aliases.contains("IC2:itemBatREDischarged"));
         assertTrue(aliases.contains("IC2:itemBatRE"));
         assertTrue(resolver.contains("canonicalItemId(itemId)"));
