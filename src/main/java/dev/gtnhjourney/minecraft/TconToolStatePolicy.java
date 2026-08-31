@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
+import cpw.mods.fml.common.registry.GameRegistry;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
@@ -60,20 +61,49 @@ public final class TconToolStatePolicy {
         if (fullAmmo > 0) infiTool.setInteger("Ammo", fullAmmo);
     }
 
-    /** Iguana/TCon can repeatedly prepend the same white format code while updating a tool's generated name. */
+    /** Normalizes generated TCon display noise while preserving intentional custom names. */
+    static void normalizeDisplayName(ItemStack stack, NBTTagCompound root) {
+        normalizeDisplayName(registryId(stack), root);
+    }
+
+    /** Backward-compatible tag-only normalization used where the owning stack is unavailable. */
     static void normalizeDisplayName(NBTTagCompound root) {
+        normalizeDisplayName(null, root);
+    }
+
+    private static void normalizeDisplayName(String registryId, NBTTagCompound root) {
         if (root == null) return;
         NBTBase raw = root.getTag("display");
         if (!(raw instanceof NBTTagCompound)) return;
         NBTTagCompound display = (NBTTagCompound) raw;
         if (!display.hasKey("Name", 8)) return;
-        String name = display.getString("Name");
-        while (name.startsWith("§f§f")) name = name.substring(2);
-        display.setString("Name", name);
+        display.setString("Name", normalizeGeneratedDisplayName(registryId, display.getString("Name")));
+    }
+
+    static String normalizeGeneratedDisplayName(String registryId, String name) {
+        if (name == null) return "";
+        String normalized = name;
+        while (normalized.startsWith("§f§f")) normalized = normalized.substring(2);
+        if ("TConstruct:shovel".equals(registryId) && normalized.startsWith("§f") && normalized.endsWith(" Hatchet")) {
+            return normalized.substring(0, normalized.length() - " Hatchet".length()) + " Shovel";
+        }
+        return normalized;
     }
 
     public static boolean isRuntimeAvailable() {
         return TOOL_CORE != null;
+    }
+
+    private static String registryId(ItemStack stack) {
+        if (stack == null || stack.getItem() == null) return null;
+        try {
+            GameRegistry.UniqueIdentifier id = GameRegistry.findUniqueIdentifierFor(stack.getItem());
+            return id == null ? null : id.toString();
+        } catch (RuntimeException ignored) {
+            return null;
+        } catch (LinkageError ignored) {
+            return null;
+        }
     }
 
     private static Class<?> load(String name) {
