@@ -14,7 +14,11 @@ public final class ThaumcraftWandStatePolicy {
 
     private static final String WAND_ID = "Thaumcraft:WandCasting";
     private static final String DEFAULT_WOOD_ROD = "wood";
+    private static final String GREATWOOD_ROD = "greatwood";
+    private static final String GREATWOOD_STAFF_ROD = "greatwood_staff";
     private static final int DEFAULT_WOOD_MAX_VIS = 2500;
+    private static final int GREATWOOD_MAX_VIS = 5000;
+    private static final int GREATWOOD_STAFF_MAX_VIS = 12500;
     private static final String[] VIS_KEYS = { "aer", "aqua", "ignis", "ordo", "perditio", "terra" };
     private static final String[] OBJECT_IN_USE_KEYS = { "IIUX", "IIUY", "IIUZ" };
 
@@ -82,16 +86,23 @@ public final class ThaumcraftWandStatePolicy {
     }
 
     /**
-     * GTNH 2.9's default wooden rod stores 25 vis, represented by Thaumcraft as 2500 centivis. The rod key is absent
-     * on the default Iron Capped Wooden Wand seen in live dumps. Sceptres multiply the same rod capacity by 1.5.
+     * Core Thaumcraft capacities are safe persisted-data fallbacks before registry reconstruction. Runtime stacks always
+     * prefer ItemWandCasting#getMaxVis so addon rods keep their exact registered capacity. Values are centivis.
      */
     private static int fallbackMaxVis(NBTTagCompound tag) {
         if (tag == null) return -1;
-        if (tag.hasKey("rod", 8)) {
-            String rod = tag.getString("rod");
-            if (!rod.isEmpty() && !DEFAULT_WOOD_ROD.equalsIgnoreCase(rod)) return -1;
+        String rod = tag.hasKey("rod", 8) ? tag.getString("rod") : "";
+        int baseCapacity;
+        if (rod.isEmpty() || DEFAULT_WOOD_ROD.equalsIgnoreCase(rod)) {
+            baseCapacity = DEFAULT_WOOD_MAX_VIS;
+        } else if (GREATWOOD_ROD.equalsIgnoreCase(rod)) {
+            baseCapacity = GREATWOOD_MAX_VIS;
+        } else if (GREATWOOD_STAFF_ROD.equalsIgnoreCase(rod)) {
+            baseCapacity = GREATWOOD_STAFF_MAX_VIS;
+        } else {
+            return -1;
         }
-        return tag.getBoolean("sceptre") ? DEFAULT_WOOD_MAX_VIS * 3 / 2 : DEFAULT_WOOD_MAX_VIS;
+        return tag.getBoolean("sceptre") ? baseCapacity * 3 / 2 : baseCapacity;
     }
 
     private static String registryId(ItemStack stack) {
