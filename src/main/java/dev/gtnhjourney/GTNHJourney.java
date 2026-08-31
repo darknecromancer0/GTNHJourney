@@ -1,6 +1,8 @@
 package dev.gtnhjourney;
 
 import net.minecraft.item.Item;
+import net.minecraft.world.World;
+import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.common.MinecraftForge;
 
 import cpw.mods.fml.common.FMLCommonHandler;
@@ -25,6 +27,7 @@ import dev.gtnhjourney.debug.ItemDebugResearcherTool;
 import dev.gtnhjourney.network.JourneyNetwork;
 import dev.gtnhjourney.network.ServerRequestQueue;
 import dev.gtnhjourney.network.ServerResearchSyncQueue;
+import dev.gtnhjourney.persistence.JourneyResearchData;
 import dev.gtnhjourney.persistence.PlayerResearchService;
 import dev.gtnhjourney.recovery.JourneyMutationService;
 import dev.gtnhjourney.recovery.JourneySnapshotTicker;
@@ -140,6 +143,10 @@ public final class GTNHJourney {
 
     @EventHandler
     public void serverStarted(FMLServerStartedEvent event) {
+        // Persist semantic migrations that were applied while WorldSavedData was being reconstructed. This also covers
+        // migrations whose only visible change is a registry-id alias, such as IC2:itemBatREDischarged -> itemBatRE.
+        World rootWorld = DimensionManager.getWorld(0);
+        if (rootWorld != null) JourneyResearchData.get(rootWorld).markDirty();
         WORLD_BACKUPS.markWorldLoaded();
     }
 
