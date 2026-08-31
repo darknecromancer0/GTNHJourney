@@ -68,7 +68,7 @@ public final class TconToolStatePolicy {
 
     /** Backward-compatible tag-only normalization used where the owning stack is unavailable. */
     static void normalizeDisplayName(NBTTagCompound root) {
-        normalizeDisplayName(null, root);
+        normalizeDisplayName((String) null, root);
     }
 
     private static void normalizeDisplayName(String registryId, NBTTagCompound root) {
