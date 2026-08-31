@@ -2,6 +2,7 @@ package dev.gtnhjourney.minecraft;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -33,6 +34,11 @@ public class PersistedResearchEntryResolverFailureTest {
 
         assertNotNull(resolved);
         assertEquals("IC2:itemBatRE", resolved.key().getItemId());
+    }
+
+    @Test
+    public void legacyUntypedVanillaSpawnerIsDroppedInsteadOfBecomingPig() {
+        assertNull(PersistedResearchEntryResolver.resolveEntry("minecraft:mob_spawner", 0, "", null));
     }
 
     private static final class LinkageFailingCopyTag extends NBTTagCompound {
