@@ -69,9 +69,10 @@ public final class ItemStackKeyFactory {
             throw new IllegalArgumentException("item has no Forge registry identifier: " + identityStack.getItem());
         }
 
+        String itemId = id.modId + ":" + id.name;
         String nbt = ResearchNbtIdentity.canonicalize(identityStack);
-        int meta = researchMeta(identityStack);
-        return new ResearchKey(id.modId + ":" + id.name, meta, nbt);
+        int meta = VanillaMetadataPolicy.canonicalMeta(itemId, researchMeta(identityStack));
+        return new ResearchKey(itemId, meta, nbt);
     }
 
     private static int researchMeta(ItemStack stack) {
