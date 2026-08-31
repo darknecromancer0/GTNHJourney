@@ -13,16 +13,16 @@ import org.junit.jupiter.api.Test;
 public class Release1111ContractTest {
 
     @Test
-    public void runtimeMetadataAndJourneyPanelIsolationAgreeOn1111() throws IOException {
+    public void runtimeMetadataAndJourneyPanelIsolationAgreeOnCurrentRelease() throws IOException {
         String source = read("src/main/java/dev/gtnhjourney/GTNHJourney.java");
         String mcmod = read("src/main/resources/mcmod.info");
         String build = read("build.gradle.kts");
         String mixin = read("src/main/java/dev/gtnhjourney/mixin/ItemsPanelGridJourneyMixin.java");
         String mixins = read("src/main/resources/mixins.gtnhjourney.json");
 
-        assertTrue(source.contains("public static final String VERSION = \"1.1.11\";"));
-        assertTrue(mcmod.contains("\"version\": \"1.1.11\""));
-        assertTrue(build.contains("version = \"1.1.11\""));
+        assertTrue(source.contains("public static final String VERSION = \"1.1.12\";"));
+        assertTrue(mcmod.contains("\"version\": \"1.1.12\""));
+        assertTrue(build.contains("version = \"1.1.12\""));
         assertTrue(mixin.contains("CollapsibleItems;isEmpty()Z"));
         assertTrue(mixin.contains("JourneyViewState.isEnabled()"));
         assertTrue(mixins.contains("\"ItemsPanelGridJourneyMixin\""));
