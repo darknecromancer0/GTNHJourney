@@ -9,6 +9,7 @@
     "MinecraftServerSpeedMixin"
   ],
   "client": [
+    "ItemsPanelGridJourneyMixin",
     "TessellatorStateAccessor",
     "WRCoreEventHandlerMixin"
   ],
