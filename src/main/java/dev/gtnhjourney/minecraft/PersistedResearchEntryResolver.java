@@ -43,7 +43,8 @@ public final class PersistedResearchEntryResolver {
 
         if (itemId == null || itemId.trim().isEmpty()) return null;
 
-        String canonicalItemId = Ic2LegacyBatteryAliasPolicy.canonicalItemId(itemId);
+        String canonicalItemId = ResearchCompatibilityOptions.normalizeIc2ChargeEndpoints()
+            ? Ic2LegacyBatteryAliasPolicy.canonicalItemId(itemId) : itemId;
         String persistedCanonical = persistedCanonicalNbt == null ? "" : persistedCanonicalNbt;
         if (persistedTemplate == null && !persistedCanonical.isEmpty()) return null;
 
