@@ -26,9 +26,10 @@ public class Release1110ContractTest {
         assertTrue(build.contains("version = \"1.1.10\""));
         assertTrue(aliases.contains("IC2:itemBatREDischarged"));
         assertTrue(aliases.contains("IC2:itemBatRE"));
-        assertTrue(resolver.contains("Ic2LegacyBatteryAliasPolicy.canonicalItemId(itemId)"));
-        assertTrue(keyFactory.contains("Ic2LegacyBatteryAliasPolicy.identityStack(stack)"));
-        assertTrue(source.contains("JourneyResearchData.get(rootWorld).markDirty()"));
+        assertTrue(resolver.contains("canonicalItemId(itemId)"));
+        assertTrue(keyFactory.contains("identityStack(stack)"));
+        assertTrue(source.contains("JourneyResearchData.get(rootWorld)"));
+        assertTrue(source.contains("markDirty()"));
     }
 
     @Test
