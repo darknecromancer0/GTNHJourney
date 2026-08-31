@@ -10,6 +10,7 @@ public final class WearableTransientStatePolicy {
 
     private static final String EMT_QUANTUM_CHEST = "EMT:itemArmorQuantumChestplate";
     private static final String WYVERN_CHEST = "DraconicEvolution:wyvernChest";
+    private static final String ADVENTURE_BACKPACK_COAL_JETPACK = "adventurebackpack:coalJetpack";
 
     private WearableTransientStatePolicy() {}
 
@@ -29,12 +30,21 @@ public final class WearableTransientStatePolicy {
         if (WYVERN_CHEST.equals(registryId)) {
             tag.removeTag("ProtectionPoints");
             tag.removeTag("ShieldEntropy");
+            return;
+        }
+        if (ADVENTURE_BACKPACK_COAL_JETPACK.equals(registryId)) {
+            // Live GTNH dumps show this compound continuously changing with heat, burn/cool counters, water/steam tank
+            // contents and leak/boil state. Those values describe the currently running wearable, not a distinct item
+            // identity. Journey retrieves the clean/base jetpack and lets Adventure Backpack rebuild operational state.
+            tag.removeTag("wearableData");
         }
     }
 
     public static boolean matches(ItemStack stack) {
         String registryId = registryId(stack);
-        return EMT_QUANTUM_CHEST.equals(registryId) || WYVERN_CHEST.equals(registryId);
+        return EMT_QUANTUM_CHEST.equals(registryId)
+            || WYVERN_CHEST.equals(registryId)
+            || ADVENTURE_BACKPACK_COAL_JETPACK.equals(registryId);
     }
 
     static String registryId(ItemStack stack) {

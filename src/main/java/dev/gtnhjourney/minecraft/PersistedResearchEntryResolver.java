@@ -119,6 +119,7 @@ public final class PersistedResearchEntryResolver {
         if (out == null) return null;
         try {
             BotaniaTransientStatePolicy.normalize(itemId, out);
+            WearableTransientStatePolicy.normalize(itemId, out);
             KnownTransientItemStatePolicy.normalize(itemId, meta, out);
             EmbeddedInventoryPolicy.normalize(itemId, out);
             if (isForestry(itemId)) ForestryGeneticsNbtPolicy.normalizeGeneticsTag(out);
