@@ -17,6 +17,8 @@ import dev.gtnhjourney.network.JourneyNetwork;
 /** Admin migration tool that researches existing world blocks and inventory contents without mutating them. */
 public final class ItemDebugResearcherTool extends Item {
 
+    private static final DebugResearchCooldown EXECUTION_COOLDOWN = new DebugResearchCooldown();
+
     public ItemDebugResearcherTool() {
         setMaxStackSize(1);
         setUnlocalizedName("debugResearcherTool");
@@ -116,6 +118,7 @@ public final class ItemDebugResearcherTool extends Item {
         int z,
         int side) {
         if (player == null || tool == null || GTNHJourney.MUTATIONS == null) return;
+        if (!EXECUTION_COOLDOWN.tryAcquire(player.getUniqueID(), System.nanoTime())) return;
         DebugResearchScanService scanner = DebugResearchScanService.forPlayer(player, side);
         scanner.apply(
             mode,
