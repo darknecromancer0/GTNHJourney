@@ -26,6 +26,15 @@ public class PersistedResearchEntryResolverFailureTest {
         assertEquals(fallback, resolved.key());
     }
 
+    @Test
+    public void legacyIc2ReBatteryPlaceholderMigratesToRechargeableRegistryIdWithoutOptionalRuntime() {
+        PersistedResearchEntryResolver.ResolvedEntry resolved = PersistedResearchEntryResolver
+            .resolveEntry("IC2:itemBatREDischarged", 0, "", null);
+
+        assertNotNull(resolved);
+        assertEquals("IC2:itemBatRE", resolved.key().getItemId());
+    }
+
     private static final class LinkageFailingCopyTag extends NBTTagCompound {
 
         @Override
