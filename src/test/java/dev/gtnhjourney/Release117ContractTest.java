@@ -1,6 +1,5 @@
 package dev.gtnhjourney;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -21,14 +20,18 @@ public class Release117ContractTest {
         assertTrue(document.contains("10-20 second"));
         assertTrue(document.contains("staging"));
         assertTrue(document.contains("background"));
+        assertTrue(document.contains("vanilla world saving remains enabled throughout"));
 
         String coordinator = read("src/main/java/dev/gtnhjourney/backup/WorldBackupCoordinator.java");
         String stager = read("src/main/java/dev/gtnhjourney/backup/WorldSnapshotStager.java");
-        assertFalse(coordinator.contains("world.levelSaving = true"));
         int prepare = coordinator.indexOf("public PreparedBackup prepare(MinecraftServer server)");
         int preparedClass = coordinator.indexOf("private static final class MinecraftPreparedBackup");
         int stage = coordinator.indexOf("WorldSnapshotStager.stage");
+        int restore = coordinator.indexOf("restoreSaveState();", stage);
+        int archive = coordinator.indexOf("writer.write", stage);
         assertTrue(prepare >= 0 && preparedClass > prepare && stage > preparedClass);
+        assertTrue(restore > stage && archive > restore,
+            "any consistency save freeze must end after background staging and before the longer ZIP archive");
         assertTrue(stager.contains("STABLE_COPY_ATTEMPTS = 3"));
     }
 
