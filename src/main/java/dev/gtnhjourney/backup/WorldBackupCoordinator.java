@@ -373,28 +373,35 @@ public final class WorldBackupCoordinator {
         @Override
         public WorldBackupResult archive() {
             WorldSnapshotStager.StagedSnapshot staged = null;
-            WorldBackupResult result;
             try {
                 staged = WorldSnapshotStager.stage(liveWorld, backupDir);
+            } catch (Exception failure) {
+                return WorldBackupResult.failure("Backup failed safely while staging world data: " + safeMessage(failure));
+            } catch (LinkageError failure) {
+                return WorldBackupResult.failure("Backup failed safely while staging world data: " + safeMessage(failure));
+            } finally {
+                restoreSaveState();
+            }
+
+            WorldBackupResult result;
+            try {
                 File stagedWorld = staged.worldDirectory();
                 result = writer.write(stagedWorld, backupDir, stagedWorld.getName(), retention, timestamp);
             } catch (Exception failure) {
-                result = WorldBackupResult.failure("Backup failed safely while staging world data: " + safeMessage(failure));
+                result = WorldBackupResult.failure("Backup failed safely while archiving staged world data: " + safeMessage(failure));
             } catch (LinkageError failure) {
-                result = WorldBackupResult.failure("Backup failed safely while staging world data: " + safeMessage(failure));
+                result = WorldBackupResult.failure("Backup failed safely while archiving staged world data: " + safeMessage(failure));
             }
 
-            if (staged != null) {
-                try {
-                    staged.cleanup();
-                } catch (Exception cleanupFailure) {
-                    if (result.isSuccess()) {
-                        result = WorldBackupResult.failure("Backup archive completed, but staging cleanup failed: " + safeMessage(cleanupFailure));
-                    }
-                } catch (LinkageError cleanupFailure) {
-                    if (result.isSuccess()) {
-                        result = WorldBackupResult.failure("Backup archive completed, but staging cleanup failed: " + safeMessage(cleanupFailure));
-                    }
+            try {
+                staged.cleanup();
+            } catch (Exception cleanupFailure) {
+                if (result.isSuccess()) {
+                    result = WorldBackupResult.failure("Backup archive completed, but staging cleanup failed: " + safeMessage(cleanupFailure));
+                }
+            } catch (LinkageError cleanupFailure) {
+                if (result.isSuccess()) {
+                    result = WorldBackupResult.failure("Backup archive completed, but staging cleanup failed: " + safeMessage(cleanupFailure));
                 }
             }
             return result;
@@ -402,6 +409,10 @@ public final class WorldBackupCoordinator {
 
         @Override
         public void cleanup() {
+            restoreSaveState();
+        }
+
+        private void restoreSaveState() {
             if (saveStateRestored) return;
             for (int i = 0; i < worlds.length; i++) {
                 WorldServer world = worlds[i];
