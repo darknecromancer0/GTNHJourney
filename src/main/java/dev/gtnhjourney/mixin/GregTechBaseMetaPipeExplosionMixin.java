@@ -6,10 +6,9 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import dev.gtnhjourney.config.JourneyConfig;
-import gregtech.api.metatileentity.BaseMetaPipeEntity;
 
 /** Prevents GregTech pipes/cables from entering their direct explosion path when Journey explosions are off. */
-@Mixin(value = BaseMetaPipeEntity.class, remap = false)
+@Mixin(targets = "gregtech.api.metatileentity.BaseMetaPipeEntity", remap = false)
 public abstract class GregTechBaseMetaPipeExplosionMixin {
 
     @Inject(method = "doExplosion", at = @At("HEAD"), cancellable = true, require = 1, remap = false)
