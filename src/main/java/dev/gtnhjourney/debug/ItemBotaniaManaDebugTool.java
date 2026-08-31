@@ -10,7 +10,7 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.world.World;
 
-/** Read-only diagnostic wand that reports exact mana stored in a targeted Botania mana pool. */
+/** Read-only diagnostic wand that reports exact mana stored in supported Botania mana holders. */
 public final class ItemBotaniaManaDebugTool extends Item {
 
     public ItemBotaniaManaDebugTool() {
@@ -49,7 +49,7 @@ public final class ItemBotaniaManaDebugTool extends Item {
         TileEntity tile = world.getTileEntity(x, y, z);
         BotaniaManaPoolInspector.Result result = BotaniaManaPoolInspector.inspect(tile);
         if (result == null) {
-            tell(serverPlayer, "Botania mana debug: target is not a compatible Mana Pool.");
+            tell(serverPlayer, "Botania mana debug: target is not a supported Mana Pool, Spreader, or mana-storing flower.");
             return true;
         }
 
@@ -58,8 +58,8 @@ public final class ItemBotaniaManaDebugTool extends Item {
     }
 
     static String format(int x, int y, int z, BotaniaManaPoolInspector.Result result) {
-        if (result == null) return "Botania Mana Pool: unavailable.";
-        return "Botania Mana Pool @ " + x + "," + y + "," + z + ": " + result.currentMana() + " / "
+        if (result == null) return "Botania Mana: unavailable.";
+        return "Botania Mana @ " + x + "," + y + "," + z + ": " + result.currentMana() + " / "
             + result.capacity() + " mana (" + String.format(Locale.ROOT, "%.2f", result.percent()) + "%), free "
             + result.freeMana() + ".";
     }
