@@ -17,12 +17,12 @@ public class GregTechExplosionGuardMixinContractTest {
         String pipeMixin = read("src/main/java/dev/gtnhjourney/mixin/GregTechBaseMetaPipeExplosionMixin.java");
         String mixins = read("src/main/resources/mixins.gtnhjourney.json");
 
-        assertTrue(machineMixin.contains("BaseMetaTileEntity.class"));
+        assertTrue(machineMixin.contains("gregtech.api.metatileentity.BaseMetaTileEntity"));
         assertTrue(machineMixin.contains("method = \"doExplosion\""));
         assertTrue(machineMixin.contains("JourneyConfig.explosionsEnabled()"));
         assertTrue(machineMixin.contains("ci.cancel()"));
 
-        assertTrue(pipeMixin.contains("BaseMetaPipeEntity.class"));
+        assertTrue(pipeMixin.contains("gregtech.api.metatileentity.BaseMetaPipeEntity"));
         assertTrue(pipeMixin.contains("method = \"doExplosion\""));
         assertTrue(pipeMixin.contains("JourneyConfig.explosionsEnabled()"));
         assertTrue(pipeMixin.contains("ci.cancel()"));
