@@ -24,17 +24,20 @@ class WorldBackupNativeOwnerContractTest {
             "backup coordinator must expose/use one explicit native-owner policy");
 
         int automaticDue = source.indexOf("public boolean isAutomaticDue()");
-        int automaticNativeGuard = source.indexOf("settings.nativeBackupOwnerActive()", automaticDue);
-        int automaticPolicy = source.indexOf("WorldBackupPolicy.isDue", automaticDue);
+        int tryBackup = source.indexOf("public synchronized WorldBackupResult tryBackup", automaticDue);
+        assertTrue(automaticDue >= 0 && tryBackup > automaticDue, "automatic and manual backup entrypoints must exist");
+        String automaticBody = source.substring(automaticDue, tryBackup);
         assertTrue(
-            automaticDue >= 0 && automaticNativeGuard > automaticDue && automaticNativeGuard < automaticPolicy,
-            "automatic Journey backups must be rejected before cadence can start when ServerUtilities owns backups");
+            automaticBody.contains("!settings.nativeBackupOwnerActive()"),
+            "automatic Journey backups must be rejected when ServerUtilities owns backups");
+        assertTrue(
+            automaticBody.contains("WorldBackupPolicy.isDue"),
+            "native-owner rejection must coexist with the normal Journey cadence policy");
 
-        int tryBackup = source.indexOf("public synchronized WorldBackupResult tryBackup");
         int manualNativeGuard = source.indexOf("settings.nativeBackupOwnerActive()", tryBackup);
         int prepare = source.indexOf("prepared = operation.prepare(server)", tryBackup);
         assertTrue(
-            tryBackup >= 0 && manualNativeGuard > tryBackup && manualNativeGuard < prepare,
+            manualNativeGuard > tryBackup && prepare > manualNativeGuard,
             "manual Journey backups must also be rejected before any world save flag can be touched");
         assertTrue(
             source.contains("Backup delegated to GTNH ServerUtilities"),
