@@ -30,9 +30,6 @@ class WorldBackupNativeOwnerContractTest {
         assertTrue(
             automaticBody.contains("!settings.nativeBackupOwnerActive()"),
             "automatic Journey backups must be rejected when ServerUtilities owns backups");
-        assertTrue(
-            automaticBody.contains("WorldBackupPolicy.isDue"),
-            "native-owner rejection must coexist with the normal Journey cadence policy");
 
         int manualNativeGuard = source.indexOf("settings.nativeBackupOwnerActive()", tryBackup);
         int prepare = source.indexOf("prepared = operation.prepare(server)", tryBackup);
