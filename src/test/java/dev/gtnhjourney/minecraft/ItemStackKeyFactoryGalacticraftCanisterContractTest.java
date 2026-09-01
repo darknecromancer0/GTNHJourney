@@ -19,7 +19,7 @@ public class ItemStackKeyFactoryGalacticraftCanisterContractTest {
 
         int researchMeta = source.indexOf("private static int researchMeta");
         int canister = source.indexOf("GalacticraftCanisterStatePolicy.matches(itemId)", researchMeta);
-        int durability = source.indexOf("stack.getItem().isDamageable()", researchMeta);
+        int durability = source.indexOf("isDamageable()", researchMeta);
 
         assertTrue(researchMeta >= 0, "research metadata method must exist");
         assertTrue(canister > researchMeta, "live ItemStack identity must use Galacticraft canister semantics");
