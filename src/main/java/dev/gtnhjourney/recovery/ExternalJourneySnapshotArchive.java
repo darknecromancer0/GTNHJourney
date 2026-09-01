@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.SyncFailedException;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
@@ -71,7 +72,12 @@ public final class ExternalJourneySnapshotArchive {
         try {
             try (FileOutputStream output = new FileOutputStream(temporary)) {
                 CompressedStreamTools.writeCompressed(root, output);
-                output.getFD().sync();
+                try {
+                    output.getFD().sync();
+                } catch (SyncFailedException unsupportedSync) {
+                    // Some valid filesystems/runners do not expose fsync. The fully written compressed temp file still
+                    // proceeds through atomic replacement; an unsupported durability hint must not discard recovery.
+                }
             }
             try {
                 Files.move(
