@@ -8,6 +8,7 @@ import net.minecraft.world.WorldServer;
 import net.minecraft.world.storage.ThreadedFileIOBase;
 import net.minecraftforge.common.DimensionManager;
 
+import cpw.mods.fml.common.Loader;
 import dev.gtnhjourney.config.JourneyConfig;
 
 /** Owns backup cadence/session state and keeps expensive staging/archive I/O off the server thread. */
@@ -43,7 +44,7 @@ public final class WorldBackupCoordinator {
     }
 
     public boolean isAutomaticDue() {
-        return !running && !stopping && WorldBackupPolicy.isDue(
+        return !running && !stopping && !settings.nativeBackupOwnerActive() && WorldBackupPolicy.isDue(
             clock.nowMillis(),
             lastSuccessfulBackupMillis,
             settings.intervalSeconds(),
@@ -51,6 +52,10 @@ public final class WorldBackupCoordinator {
     }
 
     public synchronized WorldBackupResult tryBackup(MinecraftServer server, boolean manual) {
+        if (settings.nativeBackupOwnerActive()) {
+            return WorldBackupResult.failure(
+                "Backup delegated to GTNH ServerUtilities: Journey backup engine is disabled to avoid save-state races. Use /backup.");
+        }
         if (stopping) return WorldBackupResult.failure("Backup skipped: server is stopping.");
         if (running) return WorldBackupResult.failure("Backup skipped: another backup is already running.");
         if (!manual && !settings.enabled()) return WorldBackupResult.failure("Backup skipped: automatic backups are disabled.");
@@ -177,6 +182,10 @@ public final class WorldBackupCoordinator {
         return running;
     }
 
+    public boolean nativeBackupOwnerActive() {
+        return settings.nativeBackupOwnerActive();
+    }
+
     public long lastSuccessfulBackupMillis() {
         return lastSuccessfulBackupMillis;
     }
@@ -238,6 +247,10 @@ public final class WorldBackupCoordinator {
         int intervalSeconds();
 
         int retention();
+
+        default boolean nativeBackupOwnerActive() {
+            return false;
+        }
     }
 
     interface BackupOperation {
@@ -282,6 +295,11 @@ public final class WorldBackupCoordinator {
         @Override
         public int retention() {
             return JourneyConfig.worldBackupRetention();
+        }
+
+        @Override
+        public boolean nativeBackupOwnerActive() {
+            return Loader.isModLoaded("serverutilities");
         }
     }
 
