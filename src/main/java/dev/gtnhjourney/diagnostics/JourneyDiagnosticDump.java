@@ -167,6 +167,19 @@ public final class JourneyDiagnosticDump {
 
             out.write("\n== Recovery ==\n");
             for (String line : recoveryLines) out.write(line + "\n");
+            out.write("nativeBackupOwnerActive=" + GTNHJourney.WORLD_BACKUPS.nativeBackupOwnerActive() + "\n");
+            out.write("externalSnapshotSuccesses=" + GTNHJourney.SNAPSHOT_TICKER.externalSnapshotSuccesses() + "\n");
+            out.write("externalSnapshotFailures=" + GTNHJourney.SNAPSHOT_TICKER.externalSnapshotFailures() + "\n");
+            out.write("externalSnapshotLastPath=" + GTNHJourney.SNAPSHOT_TICKER.lastExternalSnapshotPath() + "\n");
+            out.write("externalSnapshotLastBytes=" + GTNHJourney.SNAPSHOT_TICKER.lastExternalSnapshotBytes() + "\n");
+            out.write(
+                "externalSnapshotLastResearchEntries="
+                    + GTNHJourney.SNAPSHOT_TICKER.lastExternalSnapshotResearchEntries()
+                    + "\n");
+            out.write(
+                "externalSnapshotLastInventoryEntries="
+                    + GTNHJourney.SNAPSHOT_TICKER.lastExternalSnapshotInventoryEntries()
+                    + "\n");
 
             out.write("\n== Research summary ==\n");
             out.write("states=" + keys.size() + "\n");
