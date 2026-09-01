@@ -17,10 +17,12 @@ public class ItemStackKeyFactoryGalacticraftCanisterContractTest {
             Files.readAllBytes(Paths.get("src/main/java/dev/gtnhjourney/minecraft/ItemStackKeyFactory.java")),
             StandardCharsets.UTF_8);
 
-        int canister = source.indexOf("GalacticraftCanisterStatePolicy.canonicalMeta");
-        int durability = source.indexOf("stack.getItem().isDamageable() && !stack.getItem().getHasSubtypes()");
+        int researchMeta = source.indexOf("private static int researchMeta");
+        int canister = source.indexOf("GalacticraftCanisterStatePolicy.matches(itemId)", researchMeta);
+        int durability = source.indexOf("stack.getItem().isDamageable()", researchMeta);
 
-        assertTrue(canister >= 0, "live ItemStack identity must use Galacticraft canister semantics");
+        assertTrue(researchMeta >= 0, "research metadata method must exist");
+        assertTrue(canister > researchMeta, "live ItemStack identity must use Galacticraft canister semantics");
         assertTrue(durability > canister, "canister fill metadata must be handled before generic wear collapse");
     }
 }
