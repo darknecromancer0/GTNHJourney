@@ -230,6 +230,16 @@ public final class WorldBackupCoordinator {
         return parent == null ? new File(".").getAbsoluteFile() : parent;
     }
 
+    private static boolean serverUtilitiesLoaded() {
+        try {
+            return Loader.isModLoaded("serverutilities");
+        } catch (RuntimeException unavailableDuringBootstrapOrTests) {
+            return false;
+        } catch (LinkageError unavailableDuringBootstrapOrTests) {
+            return false;
+        }
+    }
+
     private static String safeMessage(Throwable failure) {
         String message = failure.getMessage();
         return message == null || message.length() == 0 ? failure.getClass().getSimpleName() : message;
@@ -299,7 +309,7 @@ public final class WorldBackupCoordinator {
 
         @Override
         public boolean nativeBackupOwnerActive() {
-            return Loader.isModLoaded("serverutilities");
+            return serverUtilitiesLoaded();
         }
     }
 
