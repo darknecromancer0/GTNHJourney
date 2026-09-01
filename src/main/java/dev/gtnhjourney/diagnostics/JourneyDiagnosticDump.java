@@ -167,7 +167,6 @@ public final class JourneyDiagnosticDump {
 
             out.write("\n== Recovery ==\n");
             for (String line : recoveryLines) out.write(line + "\n");
-            out.write("externalSnapshotFailures=" + GTNHJourney.SNAPSHOT_TICKER.externalSnapshotFailures() + "\n");
 
             out.write("\n== Research summary ==\n");
             out.write("states=" + keys.size() + "\n");
@@ -219,10 +218,10 @@ public final class JourneyDiagnosticDump {
                 out.write(hotspot.getStates() + "\t" + hotspot.getBaseId() + "\n");
             }
 
-            out.write("\n== Research records (index, item, meta, canonicalNBT, display) ==\n");
-            int index = 1;
-            for (ResearchKey key : keys) {
-                out.write(Integer.toString(index++));
+            out.write("\n== Research keys ==\n");
+            for (int i = 0; i < keys.size(); i++) {
+                ResearchKey key = keys.get(i);
+                out.write(Integer.toString(i + 1));
                 out.write('\t');
                 out.write(key.getItemId());
                 out.write('\t');
@@ -232,7 +231,8 @@ public final class JourneyDiagnosticDump {
                     key.getCanonicalNbt()
                         .isEmpty() ? "BASE" : key.getCanonicalNbt());
                 out.write('\t');
-                out.write(displayNames.get(key));
+                String displayName = displayNames.get(key);
+                out.write(displayName == null ? "UNAVAILABLE" : displayName);
                 out.write('\n');
             }
         } finally {
@@ -241,15 +241,19 @@ public final class JourneyDiagnosticDump {
         return file;
     }
 
-    private static String safeDisplayName(ItemStack stack) {
+    static String safeDisplayName(ItemStack stack) {
+        if (stack == null || stack.getItem() == null) return "UNAVAILABLE";
         try {
             String name = stack.getDisplayName();
-            return name == null || name.trim().isEmpty() ? "UNNAMED" : name.replace('\n', ' ')
+            if (name == null || name.trim().isEmpty()) return "UNAVAILABLE";
+            return name.replace('\n', ' ')
                 .replace('\r', ' ');
-        } catch (RuntimeException ignored) {
-            return "UNNAMED";
-        } catch (LinkageError ignored) {
-            return "UNNAMED";
+        } catch (RuntimeException failure) {
+            return "UNAVAILABLE:" + failure.getClass()
+                .getSimpleName();
+        } catch (LinkageError failure) {
+            return "UNAVAILABLE:" + failure.getClass()
+                .getSimpleName();
         }
     }
 }
