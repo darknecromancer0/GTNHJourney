@@ -21,7 +21,8 @@ class WorldBackupSaveSafetyContractTest {
         int preparedClass = source.indexOf("private static final class MinecraftPreparedBackup");
         int archiveMethod = source.indexOf("public WorldBackupResult archive()", preparedClass);
         int stage = source.indexOf("WorldSnapshotStager.stage", archiveMethod);
-        int cleanupMethod = source.indexOf("public void cleanup()", archiveMethod);
+        int resumeMethod = source.indexOf("public void resumeLiveSavingIfReady()", archiveMethod);
+        int cleanupMethod = source.indexOf("public void cleanup()", resumeMethod);
         int poll = source.indexOf("public synchronized WorldBackupResult pollCompletion()");
         int workerFinishedGate = source.indexOf("if (!running || !workerFinished) return null;", poll);
         int resumeFromPoll = source.indexOf("resumeLiveSavingIfReady()", poll);
@@ -30,9 +31,10 @@ class WorldBackupSaveSafetyContractTest {
         assertTrue(suspend > flush, "world saving must be suspended only after the flushed disk state is complete");
         assertTrue(preparedClass >= 0 && archiveMethod > preparedClass && stage > archiveMethod,
             "world staging must run from the prepared backup worker archive");
-        assertTrue(cleanupMethod > stage, "prepared backup cleanup must remain available as a server-thread safety net");
+        assertTrue(resumeMethod > stage && cleanupMethod > resumeMethod,
+            "server-thread resume and cleanup hooks must follow the worker archive method");
 
-        String workerArchive = source.substring(archiveMethod, cleanupMethod);
+        String workerArchive = source.substring(archiveMethod, resumeMethod);
         assertFalse(
             workerArchive.contains("restoreSaveState();"),
             "GTNHJourney-WorldBackup must never mutate WorldServer.levelSaving from the backup worker");
