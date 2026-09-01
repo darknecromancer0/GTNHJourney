@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.List;
 
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.World;
 import net.minecraftforge.common.DimensionManager;
@@ -20,6 +21,11 @@ public final class JourneySnapshotTicker {
 
     private long skippedSuspiciousSnapshots;
     private long externalSnapshotFailures;
+    private long externalSnapshotSuccesses;
+    private String lastExternalSnapshotPath = "";
+    private long lastExternalSnapshotBytes;
+    private int lastExternalSnapshotResearchEntries;
+    private int lastExternalSnapshotInventoryEntries;
 
     public static boolean isCadenceTick(long worldTick) {
         return worldTick > 0L && worldTick % JourneySnapshotService.AUTO_INTERVAL_TICKS == 0L;
@@ -68,27 +74,39 @@ public final class JourneySnapshotTicker {
                 if (player.isDead || player.playerNetServerHandler == null) return;
                 ResearchStateSnapshot current = research.captureState(player.getUniqueID());
                 if (!snapshots.maybeAutoSnapshot(player.getUniqueID(), worldTick, true, current)) return;
+
+                NBTTagCompound playerState = new NBTTagCompound();
+                player.writeToNBT(playerState);
+                int inventoryEntries = playerState.getTagList("Inventory", 10).tagCount();
                 try {
-                    ExternalJourneySnapshotArchive.write(
+                    File written = ExternalJourneySnapshotArchive.write(
                         instanceRoot,
                         worldName,
                         player.getUniqueID(),
                         worldTick,
                         System.currentTimeMillis(),
-                        current);
+                        current,
+                        playerState);
+                    externalSnapshotSuccesses++;
+                    lastExternalSnapshotPath = written == null ? "" : written.getAbsolutePath();
+                    lastExternalSnapshotBytes = written == null ? 0L : Math.max(0L, written.length());
+                    lastExternalSnapshotResearchEntries = current.size();
+                    lastExternalSnapshotInventoryEntries = inventoryEntries;
                 } catch (IOException failure) {
-                    externalSnapshotFailures++;
-                    FMLLog.warning("[GTNH Journey] External research snapshot failed safely: %s", safeMessage(failure));
+                    recordExternalFailure(failure);
                 } catch (RuntimeException failure) {
-                    externalSnapshotFailures++;
-                    FMLLog.warning("[GTNH Journey] External research snapshot failed safely: %s", safeMessage(failure));
+                    recordExternalFailure(failure);
                 } catch (LinkageError failure) {
-                    externalSnapshotFailures++;
-                    FMLLog.warning("[GTNH Journey] External research snapshot failed safely: %s", safeMessage(failure));
+                    recordExternalFailure(failure);
                 }
             }
         });
         skippedSuspiciousSnapshots += snapshots.skippedSuspiciousSnapshots();
+    }
+
+    private void recordExternalFailure(Throwable failure) {
+        externalSnapshotFailures++;
+        FMLLog.warning("[GTNH Journey] External research/player snapshot failed safely: %s", safeMessage(failure));
     }
 
     public long skippedSuspiciousSnapshots() {
@@ -99,9 +117,34 @@ public final class JourneySnapshotTicker {
         return externalSnapshotFailures;
     }
 
+    public long externalSnapshotSuccesses() {
+        return externalSnapshotSuccesses;
+    }
+
+    public String lastExternalSnapshotPath() {
+        return lastExternalSnapshotPath;
+    }
+
+    public long lastExternalSnapshotBytes() {
+        return lastExternalSnapshotBytes;
+    }
+
+    public int lastExternalSnapshotResearchEntries() {
+        return lastExternalSnapshotResearchEntries;
+    }
+
+    public int lastExternalSnapshotInventoryEntries() {
+        return lastExternalSnapshotInventoryEntries;
+    }
+
     public void clear() {
         skippedSuspiciousSnapshots = 0L;
         externalSnapshotFailures = 0L;
+        externalSnapshotSuccesses = 0L;
+        lastExternalSnapshotPath = "";
+        lastExternalSnapshotBytes = 0L;
+        lastExternalSnapshotResearchEntries = 0;
+        lastExternalSnapshotInventoryEntries = 0;
     }
 
     private static String safeMessage(Throwable failure) {
