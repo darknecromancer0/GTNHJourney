@@ -69,13 +69,20 @@ public final class ItemStackKeyFactory {
             throw new IllegalArgumentException("item has no Forge registry identifier: " + identityStack.getItem());
         }
 
-        String itemId = id.modId + ":" + id.name;
+        String rawItemId = id.modId + ":" + id.name;
+        String itemId = GalacticraftCanisterStatePolicy.canonicalItemId(rawItemId, identityStack.getItemDamage());
         String nbt = ResearchNbtIdentity.canonicalize(identityStack);
-        int meta = VanillaMetadataPolicy.canonicalMeta(itemId, researchMeta(identityStack));
+        int meta = VanillaMetadataPolicy.canonicalMeta(itemId, researchMeta(itemId, identityStack));
         return new ResearchKey(itemId, meta, nbt);
     }
 
-    private static int researchMeta(ItemStack stack) {
+    private static int researchMeta(String itemId, ItemStack stack) {
+        // Galacticraft uses ItemStack.damage as the canister fill amount. Handle that before the generic durability
+        // fallback or a crafted empty canister (1001) becomes the filled/partial meta 0 state.
+        if (GalacticraftCanisterStatePolicy.matches(itemId)) {
+            return GalacticraftCanisterStatePolicy.canonicalMeta(itemId, stack.getItemDamage());
+        }
+
         // Legacy IC2 may encode electric state in ItemStack.damage itself. Once the stack is proven to participate in
         // IC2 charge endpoint semantics, preserve the manager-produced damage value instead of mistaking it for wear.
         if (ResearchCompatibilityOptions.normalizeIc2ChargeEndpoints()
