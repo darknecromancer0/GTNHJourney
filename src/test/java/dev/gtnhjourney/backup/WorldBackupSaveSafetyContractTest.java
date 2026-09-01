@@ -18,8 +18,9 @@ class WorldBackupSaveSafetyContractTest {
 
         int flush = source.indexOf("ThreadedFileIOBase.threadedIOInstance.waitForFinish()");
         int suspend = source.indexOf("world.levelSaving = true");
-        int stage = source.indexOf("WorldSnapshotStager.stage");
-        int archiveMethod = source.indexOf("public WorldBackupResult archive()", stage);
+        int preparedClass = source.indexOf("private static final class MinecraftPreparedBackup");
+        int archiveMethod = source.indexOf("public WorldBackupResult archive()", preparedClass);
+        int stage = source.indexOf("WorldSnapshotStager.stage", archiveMethod);
         int cleanupMethod = source.indexOf("public void cleanup()", archiveMethod);
         int poll = source.indexOf("public synchronized WorldBackupResult pollCompletion()");
         int workerFinishedGate = source.indexOf("if (!running || !workerFinished) return null;", poll);
@@ -27,13 +28,17 @@ class WorldBackupSaveSafetyContractTest {
 
         assertTrue(flush >= 0, "backup must wait for queued chunk IO before taking the snapshot");
         assertTrue(suspend > flush, "world saving must be suspended only after the flushed disk state is complete");
-        assertTrue(stage > suspend, "save suspension must cover the isolated background staging copy");
-        assertTrue(archiveMethod >= 0 && cleanupMethod > archiveMethod, "prepared backup archive/cleanup methods must exist");
+        assertTrue(preparedClass >= 0 && archiveMethod > preparedClass && stage > archiveMethod,
+            "world staging must run from the prepared backup worker archive");
+        assertTrue(cleanupMethod > stage, "prepared backup cleanup must remain available as a server-thread safety net");
 
         String workerArchive = source.substring(archiveMethod, cleanupMethod);
         assertFalse(
             workerArchive.contains("restoreSaveState();"),
             "GTNHJourney-WorldBackup must never mutate WorldServer.levelSaving from the backup worker");
+        assertTrue(
+            workerArchive.contains("snapshotStageFinished = true"),
+            "the worker may only publish that staging finished; it must not re-enable saving itself");
 
         assertTrue(
             resumeFromPoll > poll && resumeFromPoll < workerFinishedGate,
