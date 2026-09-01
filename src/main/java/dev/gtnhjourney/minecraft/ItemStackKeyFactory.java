@@ -77,6 +77,12 @@ public final class ItemStackKeyFactory {
     }
 
     private static int researchMeta(String itemId, ItemStack stack) {
+        // Galacticraft oxygen tanks also encode fill state in ItemStack.damage. EMPTY is max damage for that tank tier;
+        // once even a single unit of oxygen enters, Journey owns the FULL endpoint instead of thousands of partials.
+        if (GalacticraftOxygenTankStatePolicy.matches(itemId)) {
+            return GalacticraftOxygenTankStatePolicy.canonicalMeta(itemId, stack.getItemDamage());
+        }
+
         // Galacticraft uses ItemStack.damage as the canister fill amount. Handle that before the generic durability
         // fallback or a crafted empty canister (1001) becomes the filled/partial meta 0 state.
         if (GalacticraftCanisterStatePolicy.matches(itemId)) {
