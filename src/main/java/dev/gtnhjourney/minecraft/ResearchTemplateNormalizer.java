@@ -10,9 +10,12 @@ public final class ResearchTemplateNormalizer {
     private ResearchTemplateNormalizer() {}
 
     public static NBTTagCompound normalize(ItemStack stack) {
-        if (stack == null || !stack.hasTagCompound()) return null;
-        NBTTagCompound out = (NBTTagCompound) stack.getTagCompound()
-            .copy();
+        if (stack == null || stack.getItem() == null) return null;
+        boolean thaumcraftWand = ThaumcraftWandStatePolicy.matches(stack);
+        if (!stack.hasTagCompound() && !thaumcraftWand) return null;
+        NBTTagCompound out = stack.hasTagCompound() ? (NBTTagCompound) stack.getTagCompound()
+            .copy() : new NBTTagCompound();
+        if (thaumcraftWand) ThaumcraftWandStatePolicy.normalize(stack, out);
         BotaniaTransientStatePolicy.normalize(stack, out);
         DraconicTransientStatePolicy.normalize(stack, out);
         WearableTransientStatePolicy.normalize(stack, out);

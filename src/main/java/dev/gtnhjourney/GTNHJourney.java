@@ -48,7 +48,7 @@ public final class GTNHJourney {
 
     public static final String MODID = "gtnhjourney";
     public static final String NAME = "GTNH Journey";
-    public static final String VERSION = "1.1.12";
+    public static final String VERSION = "1.1.19";
     public static final String TARGET_GTNH = "2.9.0-beta-2";
     public static final String TARGET_NEI = "2.8.111-GTNH";
     public static final PlayerResearchService RESEARCH = new PlayerResearchService();

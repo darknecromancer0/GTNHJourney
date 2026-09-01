@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import cpw.mods.fml.common.registry.GameRegistry;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 
@@ -13,6 +14,7 @@ import net.minecraft.nbt.NBTTagCompound;
 public final class Ic2ChargeStatePolicy {
 
     private static final String CHARGE_KEY = "charge";
+    private static final String ELECTRIC_JETPACK = "IC2:itemArmorJetpackElectric";
     private static final Api API = Api.load();
 
     enum State {
@@ -46,6 +48,10 @@ public final class Ic2ChargeStatePolicy {
         if (observed == null) return null;
         if (!ResearchCompatibilityOptions.normalizeIc2ChargeEndpoints()) return observed.copy();
         State state = classify(observed);
+        if (state == State.FULL && collapseFullEndpoint(registryId(observed))) {
+            ItemStack base = toBase(observed);
+            return base == null ? observed.copy() : base;
+        }
         if (state != State.BASE) return observed.copy();
         ItemStack base = toBase(observed);
         return base == null ? observed.copy() : base;
@@ -71,6 +77,7 @@ public final class Ic2ChargeStatePolicy {
             ItemStack base = toBase(observed);
             if (base == null) return Collections.singletonList(exact);
             base.stackSize = 1;
+            if (collapseFullEndpoint(registryId(observed))) return Collections.singletonList(base);
             List<ItemStack> out = new ArrayList<ItemStack>(2);
             out.add(base);
             out.add(exact);
@@ -97,6 +104,22 @@ public final class Ic2ChargeStatePolicy {
             return State.EXACT;
         } catch (RuntimeException ignored) {
             return State.EXACT;
+        }
+    }
+
+    static boolean collapseFullEndpoint(String itemId) {
+        return ELECTRIC_JETPACK.equals(itemId);
+    }
+
+    private static String registryId(ItemStack stack) {
+        if (stack == null || stack.getItem() == null) return null;
+        try {
+            GameRegistry.UniqueIdentifier id = GameRegistry.findUniqueIdentifierFor(stack.getItem());
+            return id == null ? null : id.toString();
+        } catch (RuntimeException ignored) {
+            return null;
+        } catch (LinkageError ignored) {
+            return null;
         }
     }
 

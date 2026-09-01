@@ -1,5 +1,6 @@
 package dev.gtnhjourney.debug;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -28,15 +29,22 @@ public class BotaniaDebugToolContractTest {
     }
 
     @Test
-    public void toolReadsTargetTileWithoutHardBotaniaDependency() throws IOException {
+    public void toolReadsPoolsSpreadersAndManaStoringFlowersWithoutHardBotaniaDependency() throws IOException {
         String tool = read("src/main/java/dev/gtnhjourney/debug/ItemBotaniaManaDebugTool.java");
         String inspector = read("src/main/java/dev/gtnhjourney/debug/BotaniaManaPoolInspector.java");
 
         assertTrue(tool.contains("world.getTileEntity(x, y, z)"));
         assertTrue(tool.contains("BotaniaManaPoolInspector.inspect"));
         assertTrue(inspector.contains("vazkii.botania.api.mana.IManaPool"));
+        assertTrue(inspector.contains("vazkii.botania.api.mana.IManaCollector"));
+        assertTrue(inspector.contains("vazkii.botania.common.block.tile.TileSpecialFlower"));
+        assertTrue(inspector.contains("vazkii.botania.api.subtile.SubTileGenerating"));
+        assertTrue(inspector.contains("vazkii.botania.api.subtile.SubTileFunctional"));
         assertTrue(inspector.contains("getCurrentMana"));
         assertTrue(inspector.contains("getAvailableSpaceForMana"));
+        assertTrue(inspector.contains("getMaxMana"));
+        assertTrue(inspector.contains("writeToPacketNBTInternal"));
+        assertFalse(tool.contains("target is not a compatible Mana Pool"));
     }
 
     private static String read(String path) throws IOException {

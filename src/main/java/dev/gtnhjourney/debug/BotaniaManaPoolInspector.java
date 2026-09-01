@@ -2,25 +2,26 @@ package dev.gtnhjourney.debug;
 
 import java.lang.reflect.Method;
 
-/** Optional Botania 1.7.10 mana-pool bridge. Production code never links Botania classes directly. */
+import net.minecraft.nbt.NBTTagCompound;
+
+/** Optional Botania 1.7.10 mana-holder bridge. Production code never links Botania classes directly. */
 public final class BotaniaManaPoolInspector {
 
     private static final String MANA_POOL_INTERFACE = "vazkii.botania.api.mana.IManaPool";
+    private static final String MANA_COLLECTOR_INTERFACE = "vazkii.botania.api.mana.IManaCollector";
+    private static final String SPECIAL_FLOWER_CLASS = "vazkii.botania.common.block.tile.TileSpecialFlower";
+    private static final String GENERATING_SUBTILE_CLASS = "vazkii.botania.api.subtile.SubTileGenerating";
+    private static final String FUNCTIONAL_SUBTILE_CLASS = "vazkii.botania.api.subtile.SubTileFunctional";
 
     private BotaniaManaPoolInspector() {}
 
     public static Result inspect(Object target) {
-        if (target == null || !implementsNamedInterface(target.getClass(), MANA_POOL_INTERFACE)) return null;
+        if (target == null) return null;
         try {
-            Method currentMethod = target.getClass().getMethod("getCurrentMana");
-            Method freeMethod = target.getClass().getMethod("getAvailableSpaceForMana");
-            if (!currentMethod.isAccessible()) currentMethod.setAccessible(true);
-            if (!freeMethod.isAccessible()) freeMethod.setAccessible(true);
-            int current = nonNegative(number(currentMethod.invoke(target)));
-            int free = nonNegative(number(freeMethod.invoke(target)));
-            long capacityLong = (long) current + (long) free;
-            int capacity = capacityLong > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) capacityLong;
-            return new Result(current, capacity, free);
+            if (implementsNamedInterface(target.getClass(), MANA_POOL_INTERFACE)) return inspectPool(target);
+            if (implementsNamedInterface(target.getClass(), MANA_COLLECTOR_INTERFACE)) return inspectCollector(target);
+            if (extendsNamedClass(target.getClass(), SPECIAL_FLOWER_CLASS)) return inspectFlower(target);
+            return null;
         } catch (ReflectiveOperationException ignored) {
             return null;
         } catch (SecurityException ignored) {
@@ -30,6 +31,52 @@ public final class BotaniaManaPoolInspector {
         } catch (LinkageError ignored) {
             return null;
         }
+    }
+
+    private static Result inspectPool(Object target) throws ReflectiveOperationException {
+        Method currentMethod = publicMethod(target, "getCurrentMana");
+        Method freeMethod = publicMethod(target, "getAvailableSpaceForMana");
+        int current = nonNegative(number(currentMethod.invoke(target)));
+        int free = nonNegative(number(freeMethod.invoke(target)));
+        long capacityLong = (long) current + (long) free;
+        int capacity = capacityLong > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) capacityLong;
+        return new Result(current, capacity, free);
+    }
+
+    private static Result inspectCollector(Object target) throws ReflectiveOperationException {
+        Method currentMethod = publicMethod(target, "getCurrentMana");
+        Method maxMethod = publicMethod(target, "getMaxMana");
+        return fromCurrentAndCapacity(number(currentMethod.invoke(target)), number(maxMethod.invoke(target)));
+    }
+
+    private static Result inspectFlower(Object target) throws ReflectiveOperationException {
+        Method getSubTile = publicMethod(target, "getSubTile");
+        Object subTile = getSubTile.invoke(target);
+        if (subTile == null) return null;
+        Class<?> subTileType = subTile.getClass();
+        if (!extendsNamedClass(subTileType, GENERATING_SUBTILE_CLASS)
+            && !extendsNamedClass(subTileType, FUNCTIONAL_SUBTILE_CLASS)) return null;
+
+        Method maxMethod = publicMethod(subTile, "getMaxMana");
+        Method packetWriter = subTileType.getMethod("writeToPacketNBTInternal", NBTTagCompound.class);
+        if (!packetWriter.isAccessible()) packetWriter.setAccessible(true);
+        NBTTagCompound packetTag = new NBTTagCompound();
+        packetWriter.invoke(subTile, packetTag);
+        if (!packetTag.hasKey("mana", 99)) return null;
+        return fromCurrentAndCapacity(packetTag.getInteger("mana"), number(maxMethod.invoke(subTile)));
+    }
+
+    private static Result fromCurrentAndCapacity(int currentValue, int capacityValue) {
+        int current = nonNegative(currentValue);
+        int capacity = nonNegative(capacityValue);
+        int free = Math.max(0, capacity - current);
+        return new Result(current, capacity, free);
+    }
+
+    private static Method publicMethod(Object owner, String name) throws NoSuchMethodException {
+        Method method = owner.getClass().getMethod(name);
+        if (!method.isAccessible()) method.setAccessible(true);
+        return method;
     }
 
     private static int number(Object value) {
@@ -46,6 +93,12 @@ public final class BotaniaManaPoolInspector {
             if (interfaceName.equals(iface.getName()) || implementsNamedInterface(iface, interfaceName)) return true;
         }
         return implementsNamedInterface(type.getSuperclass(), interfaceName);
+    }
+
+    private static boolean extendsNamedClass(Class<?> type, String className) {
+        if (type == null || className == null) return false;
+        if (className.equals(type.getName())) return true;
+        return extendsNamedClass(type.getSuperclass(), className);
     }
 
     public static final class Result {

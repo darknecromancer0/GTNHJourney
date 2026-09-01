@@ -8,6 +8,7 @@ import net.minecraft.world.WorldServer;
 import net.minecraft.world.storage.ThreadedFileIOBase;
 import net.minecraftforge.common.DimensionManager;
 
+import cpw.mods.fml.common.Loader;
 import dev.gtnhjourney.config.JourneyConfig;
 
 /** Owns backup cadence/session state and keeps expensive staging/archive I/O off the server thread. */
@@ -43,7 +44,7 @@ public final class WorldBackupCoordinator {
     }
 
     public boolean isAutomaticDue() {
-        return !running && !stopping && WorldBackupPolicy.isDue(
+        return !running && !stopping && !settings.nativeBackupOwnerActive() && WorldBackupPolicy.isDue(
             clock.nowMillis(),
             lastSuccessfulBackupMillis,
             settings.intervalSeconds(),
@@ -51,6 +52,10 @@ public final class WorldBackupCoordinator {
     }
 
     public synchronized WorldBackupResult tryBackup(MinecraftServer server, boolean manual) {
+        if (settings.nativeBackupOwnerActive()) {
+            return WorldBackupResult.failure(
+                "Backup delegated to GTNH ServerUtilities: Journey backup engine is disabled to avoid save-state races. Use /backup.");
+        }
         if (stopping) return WorldBackupResult.failure("Backup skipped: server is stopping.");
         if (running) return WorldBackupResult.failure("Backup skipped: another backup is already running.");
         if (!manual && !settings.enabled()) return WorldBackupResult.failure("Backup skipped: automatic backups are disabled.");
@@ -104,11 +109,12 @@ public final class WorldBackupCoordinator {
     }
 
     public synchronized WorldBackupResult pollCompletion() {
+        PreparedBackup prepared = activeBackup;
+        if (prepared != null) prepared.resumeLiveSavingIfReady();
         if (!running || !workerFinished) return null;
 
         WorldBackupResult result = workerResult;
         if (result == null) result = WorldBackupResult.failure("Backup failed safely: no worker result.");
-        PreparedBackup prepared = activeBackup;
         if (prepared != null) {
             try {
                 prepared.cleanup();
@@ -176,6 +182,10 @@ public final class WorldBackupCoordinator {
         return running;
     }
 
+    public boolean nativeBackupOwnerActive() {
+        return settings.nativeBackupOwnerActive();
+    }
+
     public long lastSuccessfulBackupMillis() {
         return lastSuccessfulBackupMillis;
     }
@@ -220,6 +230,16 @@ public final class WorldBackupCoordinator {
         return parent == null ? new File(".").getAbsoluteFile() : parent;
     }
 
+    private static boolean serverUtilitiesLoaded() {
+        try {
+            return Loader.isModLoaded("serverutilities");
+        } catch (RuntimeException unavailableDuringBootstrapOrTests) {
+            return false;
+        } catch (LinkageError unavailableDuringBootstrapOrTests) {
+            return false;
+        }
+    }
+
     private static String safeMessage(Throwable failure) {
         String message = failure.getMessage();
         return message == null || message.length() == 0 ? failure.getClass().getSimpleName() : message;
@@ -237,6 +257,10 @@ public final class WorldBackupCoordinator {
         int intervalSeconds();
 
         int retention();
+
+        default boolean nativeBackupOwnerActive() {
+            return false;
+        }
     }
 
     interface BackupOperation {
@@ -247,6 +271,8 @@ public final class WorldBackupCoordinator {
     interface PreparedBackup {
 
         WorldBackupResult archive();
+
+        default void resumeLiveSavingIfReady() {}
 
         void cleanup() throws Exception;
     }
@@ -279,6 +305,11 @@ public final class WorldBackupCoordinator {
         @Override
         public int retention() {
             return JourneyConfig.worldBackupRetention();
+        }
+
+        @Override
+        public boolean nativeBackupOwnerActive() {
+            return serverUtilitiesLoaded();
         }
     }
 
@@ -351,6 +382,7 @@ public final class WorldBackupCoordinator {
         private final Date timestamp;
         private final WorldServer[] worlds;
         private final boolean[] previousLevelSaving;
+        private volatile boolean snapshotStageFinished;
         private boolean saveStateRestored;
 
         private MinecraftPreparedBackup(
@@ -380,7 +412,7 @@ public final class WorldBackupCoordinator {
             } catch (LinkageError failure) {
                 return WorldBackupResult.failure("Backup failed safely while staging world data: " + safeMessage(failure));
             } finally {
-                restoreSaveState();
+                snapshotStageFinished = true;
             }
 
             WorldBackupResult result;
@@ -405,6 +437,11 @@ public final class WorldBackupCoordinator {
                 }
             }
             return result;
+        }
+
+        @Override
+        public void resumeLiveSavingIfReady() {
+            if (snapshotStageFinished) restoreSaveState();
         }
 
         @Override

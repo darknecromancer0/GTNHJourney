@@ -20,18 +20,23 @@ public class Release117ContractTest {
         assertTrue(document.contains("10-20 second"));
         assertTrue(document.contains("staging"));
         assertTrue(document.contains("background"));
-        assertTrue(document.contains("vanilla world saving remains enabled throughout"));
+        assertTrue(document.contains("live world saving resumes immediately after staging on the server thread"));
 
         String coordinator = read("src/main/java/dev/gtnhjourney/backup/WorldBackupCoordinator.java");
         String stager = read("src/main/java/dev/gtnhjourney/backup/WorldSnapshotStager.java");
         int prepare = coordinator.indexOf("public PreparedBackup prepare(MinecraftServer server)");
         int preparedClass = coordinator.indexOf("private static final class MinecraftPreparedBackup");
-        int stage = coordinator.indexOf("WorldSnapshotStager.stage");
-        int restore = coordinator.indexOf("restoreSaveState();", stage);
+        int archiveMethod = coordinator.indexOf("public WorldBackupResult archive()", preparedClass);
+        int stage = coordinator.indexOf("WorldSnapshotStager.stage", archiveMethod);
         int archive = coordinator.indexOf("writer.write", stage);
-        assertTrue(prepare >= 0 && preparedClass > prepare && stage > preparedClass);
-        assertTrue(restore > stage && archive > restore,
-            "any consistency save freeze must end after background staging and before the longer ZIP archive");
+        int poll = coordinator.indexOf("public synchronized WorldBackupResult pollCompletion()");
+        int workerFinishedGate = coordinator.indexOf("if (!running || !workerFinished) return null;", poll);
+        int resume = coordinator.indexOf("resumeLiveSavingIfReady()", poll);
+        assertTrue(prepare >= 0 && preparedClass > prepare && archiveMethod > preparedClass && stage > archiveMethod);
+        assertTrue(archive > stage, "ZIP archive must use the completed isolated staging copy");
+        assertTrue(resume > poll && resume < workerFinishedGate,
+            "save suspension must end from a server tick as soon as staging completes, before waiting for ZIP completion");
+        assertTrue(coordinator.contains("private volatile boolean snapshotStageFinished"));
         assertTrue(stager.contains("STABLE_COPY_ATTEMPTS = 3"));
     }
 

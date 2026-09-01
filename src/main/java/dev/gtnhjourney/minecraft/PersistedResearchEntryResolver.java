@@ -45,12 +45,18 @@ public final class PersistedResearchEntryResolver {
 
         if (itemId == null || itemId.trim().isEmpty()) return null;
 
-        String canonicalItemId = ResearchCompatibilityOptions.normalizeIc2ChargeEndpoints()
+        String aliasedItemId = ResearchCompatibilityOptions.normalizeIc2ChargeEndpoints()
             ? Ic2LegacyBatteryAliasPolicy.canonicalItemId(itemId) : itemId;
+        int migratedMeta = GalacticraftOxygenTankStatePolicy.migratePersistedMeta(aliasedItemId, meta);
+        if (GalacticraftCanisterStatePolicy.isLegacyAmbiguousMeta(aliasedItemId, migratedMeta)) return null;
+        String canonicalItemId = GalacticraftCanisterStatePolicy.canonicalItemId(aliasedItemId, migratedMeta);
+        int canonicalMeta = GalacticraftCanisterStatePolicy.canonicalMeta(
+            canonicalItemId,
+            VanillaMetadataPolicy.canonicalMeta(canonicalItemId, migratedMeta));
         String persistedCanonical = persistedCanonicalNbt == null ? "" : persistedCanonicalNbt;
         if (persistedTemplate == null && !persistedCanonical.isEmpty()) return null;
 
-        NBTTagCompound fallbackTemplate = normalizePersistedTemplate(canonicalItemId, meta, persistedTemplate);
+        NBTTagCompound fallbackTemplate = normalizePersistedTemplate(canonicalItemId, canonicalMeta, persistedTemplate);
         final String fallbackCanonical;
         try {
             fallbackCanonical = fallbackTemplate == null ? "" : ResearchNbtIdentity.canonicalize(fallbackTemplate);
@@ -61,9 +67,9 @@ public final class PersistedResearchEntryResolver {
         } catch (LinkageError unsafeNbt) {
             return null;
         }
-        if (isLegacyUntypedVanillaSpawner(canonicalItemId, meta, fallbackCanonical)) return null;
+        if (isLegacyUntypedVanillaSpawner(canonicalItemId, canonicalMeta, fallbackCanonical)) return null;
 
-        ResearchKey fallback = new ResearchKey(canonicalItemId, meta, fallbackCanonical);
+        ResearchKey fallback = new ResearchKey(canonicalItemId, canonicalMeta, fallbackCanonical);
         ItemStack reconstructed = reconstruct(fallback, fallbackTemplate);
         return resolveReconstructed(fallback, fallbackTemplate, reconstructed);
     }
@@ -118,6 +124,8 @@ public final class PersistedResearchEntryResolver {
         if (out == null) return null;
         try {
             BotaniaTransientStatePolicy.normalize(itemId, out);
+            WearableTransientStatePolicy.normalize(itemId, out);
+            ThaumcraftWandStatePolicy.normalizePersisted(itemId, meta, out);
             KnownTransientItemStatePolicy.normalize(itemId, meta, out);
             EmbeddedInventoryPolicy.normalize(itemId, out);
             if (isForestry(itemId)) ForestryGeneticsNbtPolicy.normalizeGeneticsTag(out);
