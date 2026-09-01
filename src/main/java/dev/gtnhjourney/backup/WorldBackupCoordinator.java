@@ -104,11 +104,12 @@ public final class WorldBackupCoordinator {
     }
 
     public synchronized WorldBackupResult pollCompletion() {
+        PreparedBackup prepared = activeBackup;
+        if (prepared != null) prepared.resumeLiveSavingIfReady();
         if (!running || !workerFinished) return null;
 
         WorldBackupResult result = workerResult;
         if (result == null) result = WorldBackupResult.failure("Backup failed safely: no worker result.");
-        PreparedBackup prepared = activeBackup;
         if (prepared != null) {
             try {
                 prepared.cleanup();
@@ -248,6 +249,8 @@ public final class WorldBackupCoordinator {
 
         WorldBackupResult archive();
 
+        default void resumeLiveSavingIfReady() {}
+
         void cleanup() throws Exception;
     }
 
@@ -351,6 +354,7 @@ public final class WorldBackupCoordinator {
         private final Date timestamp;
         private final WorldServer[] worlds;
         private final boolean[] previousLevelSaving;
+        private volatile boolean snapshotStageFinished;
         private boolean saveStateRestored;
 
         private MinecraftPreparedBackup(
@@ -380,7 +384,7 @@ public final class WorldBackupCoordinator {
             } catch (LinkageError failure) {
                 return WorldBackupResult.failure("Backup failed safely while staging world data: " + safeMessage(failure));
             } finally {
-                restoreSaveState();
+                snapshotStageFinished = true;
             }
 
             WorldBackupResult result;
@@ -405,6 +409,11 @@ public final class WorldBackupCoordinator {
                 }
             }
             return result;
+        }
+
+        @Override
+        public void resumeLiveSavingIfReady() {
+            if (snapshotStageFinished) restoreSaveState();
         }
 
         @Override
