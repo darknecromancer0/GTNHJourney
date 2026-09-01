@@ -19,15 +19,16 @@ import dev.gtnhjourney.GTNHJourney;
 import dev.gtnhjourney.research.ResearchKey;
 
 /**
- * Standalone Journey research recovery snapshots outside the Minecraft world save tree.
+ * Standalone Journey research/player recovery snapshots outside the Minecraft world save tree.
  *
  * <p>This deliberately does not use WorldSavedData. If vanilla/Forge autosave is disabled or wedged, the recovery
- * archive still reaches disk independently.</p>
+ * archive still reaches disk independently. Player NBT is captured on the server thread before the file write, so the
+ * local singleplayer owner inventory is recoverable without depending on level.dat's embedded Player compound.</p>
  */
 public final class ExternalJourneySnapshotArchive {
 
     public static final long MAX_ARCHIVE_BYTES = 50L * 1024L * 1024L;
-    private static final int DATA_VERSION = 1;
+    private static final int DATA_VERSION = 2;
 
     private ExternalJourneySnapshotArchive() {}
 
@@ -38,6 +39,17 @@ public final class ExternalJourneySnapshotArchive {
         long worldTick,
         long createdAtMillis,
         ResearchStateSnapshot state) throws IOException {
+        return write(instanceRoot, worldName, playerId, worldTick, createdAtMillis, state, null);
+    }
+
+    public static File write(
+        File instanceRoot,
+        String worldName,
+        UUID playerId,
+        long worldTick,
+        long createdAtMillis,
+        ResearchStateSnapshot state,
+        NBTTagCompound playerState) throws IOException {
         if (instanceRoot == null) throw new IllegalArgumentException("instanceRoot");
         if (playerId == null) throw new IllegalArgumentException("playerId");
         if (state == null) throw new IllegalArgumentException("state");
@@ -54,11 +66,12 @@ public final class ExternalJourneySnapshotArchive {
             throw new IOException("Could not clear stale Journey recovery temp file: " + temporary);
         }
 
-        NBTTagCompound root = serialize(playerId, worldTick, createdAtMillis, state);
+        NBTTagCompound root = serialize(playerId, worldTick, createdAtMillis, state, playerState);
         boolean moved = false;
         try {
             try (FileOutputStream output = new FileOutputStream(temporary)) {
                 CompressedStreamTools.writeCompressed(root, output);
+                output.getFD().sync();
             }
             try {
                 Files.move(
@@ -127,7 +140,8 @@ public final class ExternalJourneySnapshotArchive {
         UUID playerId,
         long worldTick,
         long createdAtMillis,
-        ResearchStateSnapshot state) {
+        ResearchStateSnapshot state,
+        NBTTagCompound playerState) {
         NBTTagCompound root = new NBTTagCompound();
         root.setInteger("Version", DATA_VERSION);
         root.setString("JourneyVersion", GTNHJourney.VERSION);
@@ -150,6 +164,14 @@ public final class ExternalJourneySnapshotArchive {
             entries.appendTag(entry);
         }
         root.setTag("Entries", entries);
+
+        if (playerState != null) {
+            NBTTagCompound playerCopy = (NBTTagCompound) playerState.copy();
+            root.setTag("Player", playerCopy);
+            root.setInteger("InventoryEntryCount", playerCopy.getTagList("Inventory", 10).tagCount());
+        } else {
+            root.setInteger("InventoryEntryCount", 0);
+        }
         return root;
     }
 
