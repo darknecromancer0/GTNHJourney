@@ -20,9 +20,9 @@ public class Release1111ContractTest {
         String mixin = read("src/main/java/dev/gtnhjourney/mixin/ItemsPanelGridJourneyMixin.java");
         String mixins = read("src/main/resources/mixins.gtnhjourney.json");
 
-        assertTrue(source.contains("public static final String VERSION = \"1.1.17\";"));
-        assertTrue(mcmod.contains("\"version\": \"1.1.17\""));
-        assertTrue(build.contains("version = \"1.1.17\""));
+        assertTrue(source.contains("public static final String VERSION = \"1.1.18\";"));
+        assertTrue(mcmod.contains("\"version\": \"1.1.18\""));
+        assertTrue(build.contains("version = \"1.1.18\""));
         assertTrue(mixin.contains("CollapsibleItems;isEmpty()Z"));
         assertTrue(mixin.contains("JourneyViewState.isEnabled()"));
         assertTrue(mixins.contains("\"ItemsPanelGridJourneyMixin\""));
