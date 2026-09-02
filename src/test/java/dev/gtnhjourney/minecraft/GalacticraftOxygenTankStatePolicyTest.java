@@ -17,32 +17,37 @@ public class GalacticraftOxygenTankStatePolicyTest {
     private static final String HEAVY = "GalacticraftCore:item.oxygenTankHeavyFull";
 
     @Test
-    public void craftedEmptyTankKeepsItsTierSpecificEmptyDamage() throws Exception {
-        assertEquals(900, canonicalMeta(LIGHT, 900));
-        assertEquals(1800, canonicalMeta(MEDIUM, 1800));
-        assertEquals(2700, canonicalMeta(HEAVY, 2700));
+    public void craftedEmptyTankKeepsGtnhTierSpecificZeroPercentDamage() throws Exception {
+        assertEquals(1000, canonicalMeta(LIGHT, 1000));
+        assertEquals(2000, canonicalMeta(MEDIUM, 2000));
+        assertEquals(4000, canonicalMeta(HEAVY, 4000));
     }
 
     @Test
     public void anyPositiveOxygenCollapsesToFullEndpoint() throws Exception {
-        assertEquals(0, canonicalMeta(LIGHT, 899));
+        assertEquals(0, canonicalMeta(LIGHT, 999));
         assertEquals(0, canonicalMeta(LIGHT, 1));
-        assertEquals(0, canonicalMeta(MEDIUM, 1799));
+        assertEquals(0, canonicalMeta(MEDIUM, 1999));
         assertEquals(0, canonicalMeta(MEDIUM, 1));
-        assertEquals(0, canonicalMeta(HEAVY, 2699));
+        assertEquals(0, canonicalMeta(HEAVY, 3999));
         assertEquals(0, canonicalMeta(HEAVY, 1));
         assertEquals(0, canonicalMeta(HEAVY, 0));
     }
 
     @Test
-    public void legacyJourneyFullMetaMigratesBackToEmptyForAllTiers() throws Exception {
-        assertEquals(900, migratePersistedMeta(LIGHT, 0));
-        assertEquals(1800, migratePersistedMeta(MEDIUM, 0));
-        assertEquals(2700, migratePersistedMeta(HEAVY, 0));
+    public void journey119TenPercentEndpointsMigrateToGtnhEmptyWithoutDestroyingFull() throws Exception {
+        assertEquals(1000, migratePersistedMeta(LIGHT, 900));
+        assertEquals(2000, migratePersistedMeta(MEDIUM, 1800));
+        assertEquals(4000, migratePersistedMeta(HEAVY, 2700));
 
-        assertEquals(900, PersistedResearchEntryResolver.resolve(LIGHT, 0, "", null).getMeta());
-        assertEquals(1800, PersistedResearchEntryResolver.resolve(MEDIUM, 0, "", null).getMeta());
-        assertEquals(2700, PersistedResearchEntryResolver.resolve(HEAVY, 0, "", null).getMeta());
+        assertEquals(0, migratePersistedMeta(LIGHT, 0));
+        assertEquals(0, migratePersistedMeta(MEDIUM, 0));
+        assertEquals(0, migratePersistedMeta(HEAVY, 0));
+
+        assertEquals(1000, PersistedResearchEntryResolver.resolve(LIGHT, 900, "", null).getMeta());
+        assertEquals(2000, PersistedResearchEntryResolver.resolve(MEDIUM, 1800, "", null).getMeta());
+        assertEquals(4000, PersistedResearchEntryResolver.resolve(HEAVY, 2700, "", null).getMeta());
+        assertEquals(0, PersistedResearchEntryResolver.resolve(LIGHT, 0, "", null).getMeta());
     }
 
     @Test
