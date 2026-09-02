@@ -52,9 +52,15 @@ public final class Ic2ChargeStatePolicy {
             ItemStack base = toBase(observed);
             return base == null ? observed.copy() : base;
         }
-        if (state != State.BASE) return observed.copy();
-        ItemStack base = toBase(observed);
-        return base == null ? observed.copy() : base;
+        if (state == State.FULL) {
+            ItemStack full = toFull(observed);
+            return full == null ? observed.copy() : full;
+        }
+        if (state == State.BASE) {
+            ItemStack base = toBase(observed);
+            return base == null ? observed.copy() : base;
+        }
+        return observed.copy();
     }
 
     public static List<ItemStack> expand(ItemStack observed) {
@@ -78,9 +84,12 @@ public final class Ic2ChargeStatePolicy {
             if (base == null) return Collections.singletonList(exact);
             base.stackSize = 1;
             if (collapseFullEndpoint(registryId(observed))) return Collections.singletonList(base);
+            ItemStack full = toFull(observed);
+            if (full == null) return Collections.singletonList(exact);
+            full.stackSize = 1;
             List<ItemStack> out = new ArrayList<ItemStack>(2);
             out.add(base);
-            out.add(exact);
+            out.add(full);
             return Collections.unmodifiableList(out);
         }
         return Collections.singletonList(exact);
@@ -98,8 +107,7 @@ public final class Ic2ChargeStatePolicy {
             if (!finitePositive(max) || Double.isNaN(current) || Double.isInfinite(current) || current < -0.000001D) {
                 return State.EXACT;
             }
-            if (current >= max - Math.max(0.000001D, max * 1.0E-9D)) return State.FULL;
-            return State.BASE;
+            return current > 0.000001D ? State.FULL : State.BASE;
         } catch (ReflectiveOperationException ignored) {
             return State.EXACT;
         } catch (RuntimeException ignored) {
@@ -154,6 +162,31 @@ public final class Ic2ChargeStatePolicy {
         }
     }
 
+    private static ItemStack toFull(ItemStack observed) {
+        if (observed == null || API == null) return null;
+        try {
+            if (!API.electricItemClass.isInstance(observed.getItem())) return null;
+            Object manager = API.managerField.get(null);
+            if (manager == null) return null;
+            ItemStack copy = observed.copy();
+            copy.stackSize = 1;
+            double max = number(API.getMaxCharge.invoke(copy.getItem(), copy));
+            double current = number(API.getCharge.invoke(manager, copy));
+            if (!finitePositive(max) || Double.isNaN(current) || Double.isInfinite(current) || current < -0.000001D) {
+                return null;
+            }
+            if (current < max - Math.max(0.000001D, max * 1.0E-9D)) {
+                API.charge.invoke(manager, copy, Double.MAX_VALUE, Integer.MAX_VALUE, true, false);
+                current = number(API.getCharge.invoke(manager, copy));
+            }
+            return current >= max - Math.max(0.000001D, max * 1.0E-9D) ? copy : null;
+        } catch (ReflectiveOperationException ignored) {
+            return null;
+        } catch (RuntimeException ignored) {
+            return null;
+        }
+    }
+
     private static boolean finitePositive(double value) {
         return value > 0.0D && !Double.isNaN(value) && !Double.isInfinite(value);
     }
@@ -168,14 +201,16 @@ public final class Ic2ChargeStatePolicy {
         final Field managerField;
         final Method getMaxCharge;
         final Method getCharge;
+        final Method charge;
         final Method discharge;
 
-        private Api(Class<?> electricItemClass, Field managerField, Method getMaxCharge, Method getCharge,
+        private Api(Class<?> electricItemClass, Field managerField, Method getMaxCharge, Method getCharge, Method charge,
             Method discharge) {
             this.electricItemClass = electricItemClass;
             this.managerField = managerField;
             this.getMaxCharge = getMaxCharge;
             this.getCharge = getCharge;
+            this.charge = charge;
             this.discharge = discharge;
         }
 
@@ -189,6 +224,7 @@ public final class Ic2ChargeStatePolicy {
                     electricItemHolder.getField("manager"),
                     electricItemClass.getMethod("getMaxCharge", ItemStack.class),
                     managerClass.getMethod("getCharge", ItemStack.class),
+                    managerClass.getMethod("charge", ItemStack.class, double.class, int.class, boolean.class, boolean.class),
                     managerClass.getMethod(
                         "discharge",
                         ItemStack.class,

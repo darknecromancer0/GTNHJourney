@@ -14,6 +14,6 @@ public final class ChargeEndpointClassifier {
     public static State classify(int current, int max, boolean positiveChargeExtractable) {
         if (max <= 0 || current < 0) return State.EXACT;
         if (current > 0 && !positiveChargeExtractable) return State.EXACT;
-        return current >= max ? State.FULL : State.BASE;
+        return current > 0 ? State.FULL : State.BASE;
     }
 }

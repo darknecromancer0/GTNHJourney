@@ -29,11 +29,14 @@ public final class ResearchStateExpander {
             return Collections.singletonList(base);
         }
         if (chargeState == GtChargeStatePolicy.State.FULL) {
-            List<ItemStack> endpoints = new ArrayList<ItemStack>(2);
             ItemStack base = GtChargeStatePolicy.withoutCharge(exact);
+            ItemStack full = GtChargeStatePolicy.toFull(exact);
+            if (full == null) return Collections.singletonList(exact);
             base.stackSize = 1;
+            full.stackSize = 1;
+            List<ItemStack> endpoints = new ArrayList<ItemStack>(2);
             endpoints.add(base);
-            endpoints.add(exact);
+            endpoints.add(full);
             return Collections.unmodifiableList(endpoints);
         }
         OpenComputersChargeStatePolicy.State ocState = OpenComputersChargeStatePolicy.classify(exact);

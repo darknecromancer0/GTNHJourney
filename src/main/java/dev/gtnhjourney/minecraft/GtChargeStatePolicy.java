@@ -5,10 +5,7 @@ import java.lang.reflect.Method;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 
-/**
- * GT5U electric charge semantics matching the established Journey policy: ordinary/partial charge collapses to the
- * base endpoint, while a verified FULL charge remains a distinct semantic state.
- */
+/** GT5U electric items expose only two Journey charge endpoints: empty and full. */
 public final class GtChargeStatePolicy {
 
     public static final String CHARGE_KEY = "GT.ItemCharge";
@@ -22,17 +19,31 @@ public final class GtChargeStatePolicy {
 
     private GtChargeStatePolicy() {}
 
-    /** Returns a copy suitable for identity calculation without mutating the observed stack. */
+    /** Returns a canonical empty/full copy suitable for identity calculation without mutating the observed stack. */
     public static ItemStack identityStack(ItemStack observed) {
         if (observed == null) return null;
         ItemStack copy = observed.copy();
         if (!ResearchCompatibilityOptions.normalizeGtChargeEndpoints()) return copy;
         State state = classify(observed);
-        return state == State.BASE ? withoutCharge(copy) : copy;
+        if (state == State.BASE) return withoutCharge(copy);
+        if (state == State.FULL) {
+            ItemStack full = toFull(copy);
+            return full == null ? copy : full;
+        }
+        return copy;
     }
 
+    /** True only when the physically observed GT stack itself is already at its maximum charge. */
     public static boolean isVerifiedFull(ItemStack observed) {
-        return ResearchCompatibilityOptions.normalizeGtChargeEndpoints() && classify(observed) == State.FULL;
+        if (!ResearchCompatibilityOptions.normalizeGtChargeEndpoints() || observed == null || !observed.hasTagCompound()) {
+            return false;
+        }
+        double max = maxCharge(observed);
+        if (!(max > 0.0D) || Double.isNaN(max) || Double.isInfinite(max)) return false;
+        NBTTagCompound tag = observed.getTagCompound();
+        if (tag == null || !tag.hasKey(CHARGE_KEY)) return false;
+        long fullThreshold = (long) Math.ceil(max - 0.000001D);
+        return tag.getLong(CHARGE_KEY) >= fullThreshold;
     }
 
     public static String describe(ItemStack observed) {
@@ -48,8 +59,8 @@ public final class GtChargeStatePolicy {
         double max = maxCharge(observed);
         if (!(max > 0.0D) || Double.isNaN(max) || Double.isInfinite(max)) return State.EXACT;
         long charge = tag.getLong(CHARGE_KEY);
-        long fullThreshold = (long) Math.ceil(max - 0.000001D);
-        return charge >= fullThreshold ? State.FULL : State.BASE;
+        if (charge < 0L) return State.EXACT;
+        return charge > 0L ? State.FULL : State.BASE;
     }
 
     static ItemStack withoutCharge(ItemStack stack) {
@@ -61,6 +72,20 @@ public final class GtChargeStatePolicy {
         if (tag.func_150296_c()
             .isEmpty()) copy.setTagCompound(null);
         else copy.setTagCompound(tag);
+        return copy;
+    }
+
+    static ItemStack toFull(ItemStack stack) {
+        if (stack == null || stack.getItem() == null) return null;
+        double max = maxCharge(stack);
+        if (!(max > 0.0D) || Double.isNaN(max) || Double.isInfinite(max)) return null;
+        long fullCharge = (long) Math.ceil(max - 0.000001D);
+        if (fullCharge <= 0L) return null;
+
+        ItemStack copy = stack.copy();
+        NBTTagCompound tag = copy.hasTagCompound() ? (NBTTagCompound) copy.getTagCompound().copy() : new NBTTagCompound();
+        tag.setLong(CHARGE_KEY, fullCharge);
+        copy.setTagCompound(tag);
         return copy;
     }
 

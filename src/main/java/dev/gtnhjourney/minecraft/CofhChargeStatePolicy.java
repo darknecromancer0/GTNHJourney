@@ -7,20 +7,12 @@ import java.util.List;
 
 import net.minecraft.item.ItemStack;
 
-/**
- * Optional CoFH RF item endpoint semantics without a hard dependency on CoFHCore.
- *
- * <p>
- * The owning item must implement {@code cofh.api.energy.IEnergyContainerItem}. Current and maximum energy are read
- * through that API and the base endpoint is produced by extracting energy from a copy. Arbitrary NBT keys named
- * {@code Energy} are never interpreted by Journey.
- * </p>
- */
+/** Optional CoFH RF item endpoint semantics without a hard dependency on CoFHCore. */
 public final class CofhChargeStatePolicy {
 
     private static final Api API = Api.load();
     /** Safety ceiling for pathological implementations. Normal RF items should need far fewer passes. */
-    private static final int MAX_DRAIN_PASSES = 4096;
+    private static final int MAX_TRANSFER_PASSES = 4096;
 
     enum State {
         EXACT,
@@ -41,9 +33,15 @@ public final class CofhChargeStatePolicy {
     public static ItemStack identityStack(ItemStack observed) {
         if (observed == null) return null;
         State state = classify(observed);
-        if (state != State.BASE) return observed.copy();
-        ItemStack base = toBase(observed);
-        return base == null ? observed.copy() : base;
+        if (state == State.BASE) {
+            ItemStack base = toBase(observed);
+            return base == null ? observed.copy() : base;
+        }
+        if (state == State.FULL) {
+            ItemStack full = toFull(observed);
+            return full == null ? observed.copy() : full;
+        }
+        return observed.copy();
     }
 
     public static List<ItemStack> expand(ItemStack observed) {
@@ -59,11 +57,13 @@ public final class CofhChargeStatePolicy {
         }
         if (state == State.FULL) {
             ItemStack base = toBase(observed);
-            if (base == null) return Collections.singletonList(exact);
+            ItemStack full = toFull(observed);
+            if (base == null || full == null) return Collections.singletonList(exact);
             base.stackSize = 1;
+            full.stackSize = 1;
             List<ItemStack> out = new ArrayList<ItemStack>(2);
             out.add(base);
-            out.add(exact);
+            out.add(full);
             return Collections.unmodifiableList(out);
         }
         return Collections.singletonList(exact);
@@ -80,7 +80,7 @@ public final class CofhChargeStatePolicy {
             if (max <= 0 || current < 0) return State.EXACT;
             boolean extractable = true;
             if (current > 0) {
-                // Prove the item is actually extractable without performing a full drain just to classify it.
+                // Prove this is a real extractable energy state before treating a numeric value as charge semantics.
                 int simulated = number(API.extractEnergy.invoke(observed.getItem(), observed, Integer.MAX_VALUE, true));
                 extractable = simulated > 0;
             }
@@ -105,7 +105,7 @@ public final class CofhChargeStatePolicy {
             copy.stackSize = 1;
             int remaining = number(API.getEnergyStored.invoke(copy.getItem(), copy));
             if (remaining < 0) return null;
-            for (int pass = 0; remaining > 0 && pass < MAX_DRAIN_PASSES; pass++) {
+            for (int pass = 0; remaining > 0 && pass < MAX_TRANSFER_PASSES; pass++) {
                 int extracted = number(API.extractEnergy.invoke(copy.getItem(), copy, Integer.MAX_VALUE, false));
                 int after = number(API.getEnergyStored.invoke(copy.getItem(), copy));
                 if (extracted <= 0 || after < 0 || after >= remaining) return null;
@@ -122,6 +122,31 @@ public final class CofhChargeStatePolicy {
         }
     }
 
+    private static ItemStack toFull(ItemStack observed) {
+        if (observed == null || observed.getItem() == null || API == null) return null;
+        try {
+            if (!API.energyItemClass.isInstance(observed.getItem())) return null;
+            ItemStack copy = observed.copy();
+            copy.stackSize = 1;
+            int max = number(API.getMaxEnergyStored.invoke(copy.getItem(), copy));
+            int current = number(API.getEnergyStored.invoke(copy.getItem(), copy));
+            if (max <= 0 || current < 0 || current > max) return null;
+            for (int pass = 0; current < max && pass < MAX_TRANSFER_PASSES; pass++) {
+                int received = number(API.receiveEnergy.invoke(copy.getItem(), copy, Integer.MAX_VALUE, false));
+                int after = number(API.getEnergyStored.invoke(copy.getItem(), copy));
+                if (received <= 0 || after <= current || after > max) return null;
+                current = after;
+            }
+            return current >= max ? copy : null;
+        } catch (ReflectiveOperationException ignored) {
+            return null;
+        } catch (RuntimeException ignored) {
+            return null;
+        } catch (LinkageError ignored) {
+            return null;
+        }
+    }
+
     private static int number(Object value) {
         return value instanceof Number ? ((Number) value).intValue() : -1;
     }
@@ -129,12 +154,15 @@ public final class CofhChargeStatePolicy {
     private static final class Api {
 
         final Class<?> energyItemClass;
+        final Method receiveEnergy;
         final Method extractEnergy;
         final Method getEnergyStored;
         final Method getMaxEnergyStored;
 
-        private Api(Class<?> energyItemClass, Method extractEnergy, Method getEnergyStored, Method getMaxEnergyStored) {
+        private Api(Class<?> energyItemClass, Method receiveEnergy, Method extractEnergy, Method getEnergyStored,
+            Method getMaxEnergyStored) {
             this.energyItemClass = energyItemClass;
+            this.receiveEnergy = receiveEnergy;
             this.extractEnergy = extractEnergy;
             this.getEnergyStored = getEnergyStored;
             this.getMaxEnergyStored = getMaxEnergyStored;
@@ -145,6 +173,7 @@ public final class CofhChargeStatePolicy {
                 Class<?> energyItemClass = Class.forName("cofh.api.energy.IEnergyContainerItem");
                 return new Api(
                     energyItemClass,
+                    energyItemClass.getMethod("receiveEnergy", ItemStack.class, int.class, boolean.class),
                     energyItemClass.getMethod("extractEnergy", ItemStack.class, int.class, boolean.class),
                     energyItemClass.getMethod("getEnergyStored", ItemStack.class),
                     energyItemClass.getMethod("getMaxEnergyStored", ItemStack.class));

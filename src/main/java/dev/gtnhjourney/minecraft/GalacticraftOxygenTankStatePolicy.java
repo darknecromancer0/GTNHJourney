@@ -1,6 +1,6 @@
 package dev.gtnhjourney.minecraft;
 
-/** Canonical Journey identity for Galacticraft oxygen tanks. */
+/** Canonical Journey identity for Galacticraft oxygen tanks in GTNH. */
 public final class GalacticraftOxygenTankStatePolicy {
 
     static final String LIGHT_TANK = "GalacticraftCore:item.oxygenTankLightFull";
@@ -14,7 +14,7 @@ public final class GalacticraftOxygenTankStatePolicy {
         return emptyMeta(itemId) >= 0;
     }
 
-    /** EMPTY stays at max damage; any positive oxygen amount collapses to the FULL endpoint. */
+    /** EMPTY is GTNH's tier-specific zero-percent damage; any positive oxygen amount collapses to FULL. */
     public static int canonicalMeta(String itemId, int meta) {
         int emptyMeta = emptyMeta(itemId);
         if (emptyMeta < 0) return meta;
@@ -22,17 +22,25 @@ public final class GalacticraftOxygenTankStatePolicy {
     }
 
     /**
-     * Journey <= 1.1.18 collapsed crafted empty tanks through generic durability handling and persisted meta 0. Treat
-     * that legacy ambiguous endpoint as EMPTY. A genuinely oxygenated tank observed after migration re-adds FULL.
+     * Journey 1.1.19 used upstream Galacticraft's 900/1800/2700 empty values, which display as 10% in GTNH because
+     * GTNH recipes deliberately use 1000/2000/4000. Migrate only those known bad 1.1.19 endpoints. Meta 0 is already
+     * the legitimate FULL endpoint in 1.1.19 and must remain FULL.
      */
     public static int migratePersistedMeta(String itemId, int meta) {
         int emptyMeta = emptyMeta(itemId);
         if (emptyMeta < 0) return meta;
-        if (meta == FULL_META) return emptyMeta;
+        if (meta == legacy119EmptyMeta(itemId)) return emptyMeta;
         return canonicalMeta(itemId, meta);
     }
 
     static int emptyMeta(String itemId) {
+        if (LIGHT_TANK.equals(itemId)) return 1000;
+        if (MEDIUM_TANK.equals(itemId)) return 2000;
+        if (HEAVY_TANK.equals(itemId)) return 4000;
+        return -1;
+    }
+
+    private static int legacy119EmptyMeta(String itemId) {
         if (LIGHT_TANK.equals(itemId)) return 900;
         if (MEDIUM_TANK.equals(itemId)) return 1800;
         if (HEAVY_TANK.equals(itemId)) return 2700;
