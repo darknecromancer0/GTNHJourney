@@ -11,6 +11,7 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
+import cpw.mods.fml.common.gameevent.PlayerEvent.PlayerLoggedOutEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 import dev.gtnhjourney.config.JourneyConfig;
 import dev.gtnhjourney.research.ResearchFingerprint;
@@ -94,6 +95,11 @@ public final class ServerResearchSyncQueue {
         synchronized (ACTIVE) {
             ACTIVE.remove(player.getUniqueID());
         }
+    }
+
+    @SubscribeEvent
+    public void onPlayerLoggedOut(PlayerLoggedOutEvent event) {
+        if (event != null && event.player instanceof EntityPlayerMP) cancel((EntityPlayerMP) event.player);
     }
 
     @SubscribeEvent
