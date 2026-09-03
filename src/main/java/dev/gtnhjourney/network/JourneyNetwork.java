@@ -6,6 +6,7 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 
 import cpw.mods.fml.common.network.NetworkRegistry;
+import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.SimpleNetworkWrapper;
 import cpw.mods.fml.relauncher.Side;
 import dev.gtnhjourney.research.ResearchFingerprint;
@@ -96,14 +97,14 @@ public final class JourneyNetwork {
                 if (candidate != null && !candidate.trim().isEmpty()) displayName = candidate;
             } catch (RuntimeException ignoredAgain) {}
         }
-        CHANNEL.sendTo(new ResearchUnlockNotificationMessage(displayName), player);
+        sendToConnected(new ResearchUnlockNotificationMessage(displayName), player);
     }
 
     static void sendUnlockImmediate(EntityPlayerMP player, ItemStack stack) {
         ResearchKey key = safeKey(stack);
         if (key == null) return;
-        if (ItemStackPayloadSizer.canSync(stack)) CHANNEL.sendTo(new ResearchUnlockMessage(stack), player);
-        else CHANNEL.sendTo(new ResearchServerOnlyUnlockMessage(), player);
+        if (ItemStackPayloadSizer.canSync(stack)) sendToConnected(new ResearchUnlockMessage(stack), player);
+        else sendToConnected(new ResearchServerOnlyUnlockMessage(), player);
     }
 
     public static void sendActivityTouch(EntityPlayerMP player, ResearchFingerprint fingerprint) {
@@ -114,7 +115,7 @@ public final class JourneyNetwork {
     }
 
     static void sendActivityTouchImmediate(EntityPlayerMP player, ResearchFingerprint fingerprint) {
-        if (player != null && fingerprint != null) CHANNEL.sendTo(new ResearchActivityTouchMessage(fingerprint), player);
+        if (player != null && fingerprint != null) sendToConnected(new ResearchActivityTouchMessage(fingerprint), player);
     }
 
     public static void sendRemove(EntityPlayerMP player, ResearchFingerprint fingerprint) {
@@ -123,13 +124,13 @@ public final class JourneyNetwork {
     }
 
     static void sendRemoveImmediate(EntityPlayerMP player, ResearchFingerprint fingerprint) {
-        if (player != null && fingerprint != null) CHANNEL.sendTo(new ResearchRemoveMessage(fingerprint), player);
+        if (player != null && fingerprint != null) sendToConnected(new ResearchRemoveMessage(fingerprint), player);
     }
 
     static void sendSyncBegin(EntityPlayerMP player, int epoch, int availableTotal, int syncableTotal, int activityTotal,
         boolean normalizeGtTransientIdentity, boolean resetGtToolTemplateState, boolean normalizeGtChargeEndpoints,
         boolean normalizeIc2ChargeEndpoints, boolean normalizeTconToolWear, boolean normalizeCofhChargeEndpoints) {
-        CHANNEL.sendTo(
+        sendToConnected(
             new ResearchSyncBeginMessage(
                 epoch,
                 availableTotal,
@@ -145,15 +146,31 @@ public final class JourneyNetwork {
     }
 
     static void sendSyncChunk(EntityPlayerMP player, int epoch, List<ItemStack> chunk) {
-        CHANNEL.sendTo(new ResearchSyncChunkMessage(epoch, chunk), player);
+        sendToConnected(new ResearchSyncChunkMessage(epoch, chunk), player);
     }
 
     static void sendActivitySyncChunk(EntityPlayerMP player, int epoch, List<ResearchFingerprint> chunk) {
-        CHANNEL.sendTo(new ResearchActivitySyncChunkMessage(epoch, chunk), player);
+        sendToConnected(new ResearchActivitySyncChunkMessage(epoch, chunk), player);
     }
 
     static void sendSyncEnd(EntityPlayerMP player, int epoch) {
-        CHANNEL.sendTo(new ResearchSyncEndMessage(epoch), player);
+        sendToConnected(new ResearchSyncEndMessage(epoch), player);
+    }
+
+    /**
+     * SimpleNetworkWrapper resolves the target channel through player.playerNetServerHandler. A logout can clear that
+     * field between a server-tick usability check and the actual send, so every Journey server->client packet passes
+     * through this narrow gate. Only that specific disconnect race is swallowed; unrelated packet NPEs still surface.
+     */
+    private static boolean sendToConnected(IMessage message, EntityPlayerMP player) {
+        if (message == null || player == null || player.isDead || player.playerNetServerHandler == null) return false;
+        try {
+            CHANNEL.sendTo(message, player);
+            return true;
+        } catch (NullPointerException disconnectedRace) {
+            if (player.playerNetServerHandler == null) return false;
+            throw disconnectedRace;
+        }
     }
 
     private static ResearchKey safeKey(ItemStack stack) {
