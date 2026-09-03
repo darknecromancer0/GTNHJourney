@@ -1,6 +1,7 @@
 package dev.gtnhjourney.network;
 
 import java.util.Queue;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -9,6 +10,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.ChatComponentText;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
+import cpw.mods.fml.common.gameevent.PlayerEvent.PlayerLoggedOutEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 import dev.gtnhjourney.GTNHJourney;
 import dev.gtnhjourney.acquisition.ManualInventoryResearchService;
@@ -66,6 +68,19 @@ public final class ServerRequestQueue {
         enqueueRequest(Request.debugTool(player));
     }
 
+    static void cancelPending(EntityPlayerMP player) {
+        if (player == null) return;
+        UUID playerId = player.getUniqueID();
+        if (playerId == null) return;
+        for (Request request : REQUESTS) {
+            if (request == null || !playerId.equals(request.playerId)) continue;
+            if (REQUESTS.remove(request)) {
+                QUEUED.decrementAndGet();
+                PER_PLAYER.release(request.playerId);
+            }
+        }
+    }
+
     private static void enqueueRequest(Request request) {
         if (request == null || request.player == null) return;
         if (request.requiresFingerprint() && request.fingerprint == null) return;
@@ -76,6 +91,11 @@ public final class ServerRequestQueue {
             return;
         }
         REQUESTS.add(request);
+    }
+
+    @SubscribeEvent
+    public void onPlayerLoggedOut(PlayerLoggedOutEvent event) {
+        if (event != null && event.player instanceof EntityPlayerMP) cancelPending((EntityPlayerMP) event.player);
     }
 
     @SubscribeEvent
@@ -189,7 +209,7 @@ public final class ServerRequestQueue {
     private static final class Request {
 
         final EntityPlayerMP player;
-        final java.util.UUID playerId;
+        final UUID playerId;
         final ResearchFingerprint fingerprint;
         final int amount;
         final RequestKind kind;
