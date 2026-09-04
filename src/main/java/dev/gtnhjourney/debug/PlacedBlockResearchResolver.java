@@ -1,9 +1,15 @@
 package dev.gtnhjourney.debug;
 
+import java.util.Map;
+
 import net.minecraft.block.Block;
+import net.minecraft.entity.EntityList;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.tileentity.TileEntityMobSpawner;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
@@ -37,6 +43,10 @@ public final class PlacedBlockResearchResolver {
         }
         if (block == null) return null;
 
+        if (block == Blocks.mob_spawner) {
+            return resolveMobSpawner(world, x, y, z);
+        }
+
         return resolve(new StackStrategy() {
 
             @Override
@@ -58,6 +68,26 @@ public final class PlacedBlockResearchResolver {
                 return new ItemStack(item, 1, world.getBlockMetadata(x, y, z));
             }
         });
+    }
+
+    @SuppressWarnings("unchecked")
+    private static ItemStack resolveMobSpawner(World world, int x, int y, int z) {
+        try {
+            TileEntity tile = world.getTileEntity(x, y, z);
+            if (!(tile instanceof TileEntityMobSpawner)) return null;
+            String entityName = ((TileEntityMobSpawner) tile).func_145881_a().getEntityNameToSpawn();
+            int entityMeta = MobSpawnerResearchIdentity.resolveEntityMeta(
+                entityName,
+                (Map<String, Integer>) (Map<?, ?>) EntityList.stringToIDMapping);
+            if (entityMeta <= 0) return null;
+            Item item = Item.getItemFromBlock(Blocks.mob_spawner);
+            if (item == null) return null;
+            return new ItemStack(item, 1, entityMeta);
+        } catch (RuntimeException ignored) {
+            return null;
+        } catch (LinkageError ignored) {
+            return null;
+        }
     }
 
     private static ItemStack safelyResolve(StackStrategy strategy) {
