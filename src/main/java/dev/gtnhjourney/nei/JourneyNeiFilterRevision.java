@@ -14,4 +14,8 @@ public final class JourneyNeiFilterRevision {
     public static synchronized long revision() {
         return revision;
     }
+
+    public static synchronized void reset() {
+        revision = 0L;
+    }
 }
