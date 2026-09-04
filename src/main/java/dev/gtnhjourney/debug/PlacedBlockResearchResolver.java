@@ -1,8 +1,7 @@
 package dev.gtnhjourney.debug;
 
-import java.util.Map;
-
 import net.minecraft.block.Block;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityList;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
@@ -70,16 +69,18 @@ public final class PlacedBlockResearchResolver {
         });
     }
 
-    @SuppressWarnings("unchecked")
     private static ItemStack resolveMobSpawner(World world, int x, int y, int z) {
         try {
             TileEntity tile = world.getTileEntity(x, y, z);
             if (!(tile instanceof TileEntityMobSpawner)) return null;
             String entityName = ((TileEntityMobSpawner) tile).func_145881_a().getEntityNameToSpawn();
-            int entityMeta = MobSpawnerResearchIdentity.resolveEntityMeta(
-                entityName,
-                (Map<String, Integer>) (Map<?, ?>) EntityList.stringToIDMapping);
+            if (entityName == null || entityName.length() == 0) return null;
+
+            Entity entity = EntityList.createEntityByName(entityName, world);
+            if (entity == null) return null;
+            int entityMeta = EntityList.getEntityID(entity);
             if (entityMeta <= 0) return null;
+
             Item item = Item.getItemFromBlock(Blocks.mob_spawner);
             if (item == null) return null;
             return new ItemStack(item, 1, entityMeta);
