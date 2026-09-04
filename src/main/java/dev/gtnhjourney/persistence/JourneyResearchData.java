@@ -15,6 +15,7 @@ import net.minecraft.world.World;
 import net.minecraft.world.WorldSavedData;
 import net.minecraft.world.storage.MapStorage;
 
+import dev.gtnhjourney.minecraft.CropsNhSeedStatePolicy;
 import dev.gtnhjourney.minecraft.ItemStackKeyFactory;
 import dev.gtnhjourney.minecraft.NbtCanonicalizer;
 import dev.gtnhjourney.minecraft.PersistedResearchEntryResolver;
@@ -64,20 +65,17 @@ public final class JourneyResearchData extends WorldSavedData {
         return !unlockStates(playerId, stack).isEmpty();
     }
 
-    /**
-     * Unlocks every semantic endpoint proven by one observed stack. A verified FULL GT electric item, for example,
-     * proves both its base/empty endpoint and its FULL endpoint while partial charge proves only the base endpoint.
-     */
+    /** Unlocks semantic endpoints, or upgrades an existing CropsNH seed with the best observed stats. */
     public List<ItemStack> unlockStates(UUID playerId, ItemStack stack) {
         if (playerId == null || stack == null || stack.getItem() == null) return Collections.emptyList();
         ResearchRegistry registry = research.forPlayer(playerId);
         List<ResearchKey> preparedKeys = new ArrayList<ResearchKey>();
         List<NBTTagCompound> preparedTags = new ArrayList<NBTTagCompound>();
         List<ItemStack> preparedClientTemplates = new ArrayList<ItemStack>();
+        List<ResearchKey> updateKeys = new ArrayList<ResearchKey>();
+        List<NBTTagCompound> updateTags = new ArrayList<NBTTagCompound>();
+        List<ItemStack> updateClientTemplates = new ArrayList<ItemStack>();
 
-        // Prepare every failure-prone semantic/template operation before mutating authoritative research. If optional
-        // integration code fails on any endpoint, the caller can safely report an observation failure with no partial
-        // registry/template/timeline commit left behind.
         for (ItemStack candidate : ResearchStateExpander.expand(stack)) {
             if (candidate == null || candidate.getItem() == null) continue;
             ResearchKey key;
@@ -86,9 +84,24 @@ public final class JourneyResearchData extends WorldSavedData {
             } catch (IllegalArgumentException ignored) {
                 continue;
             }
-            if (registry.contains(key)) continue;
 
             NBTTagCompound savedTag = copyTag(candidate);
+            if (registry.contains(key)) {
+                NBTTagCompound existing = rawTemplate(playerId, key);
+                NBTTagCompound merged = CropsNhSeedStatePolicy.merge(key.getItemId(), existing, savedTag);
+                if (merged == null || sameTemplate(existing, merged)) continue;
+                ItemStack clientTemplate = dev.gtnhjourney.retrieval.ItemStackTemplateFactory.create(key, merged, 1);
+                if (clientTemplate == null) {
+                    clientTemplate = candidate.copy();
+                    clientTemplate.stackSize = 1;
+                    clientTemplate.setTagCompound((NBTTagCompound) merged.copy());
+                }
+                updateKeys.add(key);
+                updateTags.add(merged);
+                updateClientTemplates.add(clientTemplate);
+                continue;
+            }
+
             ItemStack clientTemplate = dev.gtnhjourney.retrieval.ItemStackTemplateFactory.create(key, savedTag, 1);
             if (clientTemplate == null) {
                 clientTemplate = candidate.copy();
@@ -99,16 +112,20 @@ public final class JourneyResearchData extends WorldSavedData {
             preparedClientTemplates.add(clientTemplate);
         }
 
-        List<ItemStack> addedStacks = new ArrayList<ItemStack>();
+        List<ItemStack> changedStacks = new ArrayList<ItemStack>();
         for (int i = 0; i < preparedKeys.size(); i++) {
             ResearchKey key = preparedKeys.get(i);
             if (!registry.unlock(key)) continue;
             templateMap(playerId).put(key, preparedTags.get(i));
             timeline(playerId).record(key);
-            addedStacks.add(preparedClientTemplates.get(i));
+            changedStacks.add(preparedClientTemplates.get(i));
         }
-        if (!addedStacks.isEmpty()) markDirty();
-        return Collections.unmodifiableList(addedStacks);
+        for (int i = 0; i < updateKeys.size(); i++) {
+            templateMap(playerId).put(updateKeys.get(i), updateTags.get(i));
+            changedStacks.add(updateClientTemplates.get(i));
+        }
+        if (!changedStacks.isEmpty()) markDirty();
+        return Collections.unmodifiableList(changedStacks);
     }
 
     public NBTTagCompound template(UUID playerId, ResearchKey key) {
@@ -119,15 +136,11 @@ public final class JourneyResearchData extends WorldSavedData {
     }
 
     public List<ResearchKey> snapshot(UUID playerId) {
-        return research.forPlayer(playerId)
-            .snapshot();
+        return research.forPlayer(playerId).snapshot();
     }
 
     public List<ItemStack> snapshotStacks(UUID playerId) {
-        return stacksForKeys(
-            playerId,
-            research.forPlayer(playerId)
-                .snapshot());
+        return stacksForKeys(playerId, research.forPlayer(playerId).snapshot());
     }
 
     public List<ResearchKey> snapshotNewest(UUID playerId, int limit) {
@@ -151,7 +164,6 @@ public final class JourneyResearchData extends WorldSavedData {
         return new ResearchStateSnapshot(entries);
     }
 
-    /** Removes one exact entry without touching the legacy one-shot undo backup. */
     public ResearchEntrySnapshot removeEntry(UUID playerId, ResearchKey key) {
         if (playerId == null || key == null) return null;
         ResearchRegistry registry = research.forPlayer(playerId);
@@ -175,7 +187,6 @@ public final class JourneyResearchData extends WorldSavedData {
         return removed;
     }
 
-    /** Restores one exact entry at its recorded chronology position. Existing entries are left untouched. */
     public boolean restoreEntry(UUID playerId, ResearchEntrySnapshot entry) {
         if (playerId == null || entry == null) return false;
         ResearchRegistry registry = research.forPlayer(playerId);
@@ -196,7 +207,6 @@ public final class JourneyResearchData extends WorldSavedData {
         return stacksForKeys(playerId, timeline(playerId).snapshotNewest(limit));
     }
 
-    /** @deprecated explicit recovery commands now use JourneyMutationService transactions. */
     @Deprecated
     public boolean forget(UUID playerId, ResearchKey key) {
         if (playerId == null || key == null) return false;
@@ -218,7 +228,6 @@ public final class JourneyResearchData extends WorldSavedData {
         return true;
     }
 
-    /** @deprecated explicit recovery commands now use JourneyMutationService transactions. */
     @Deprecated
     public int clear(UUID playerId) {
         ResearchRegistry registry = research.forPlayer(playerId);
@@ -232,13 +241,11 @@ public final class JourneyResearchData extends WorldSavedData {
         return previous;
     }
 
-    /** @deprecated legacy one-shot undo remains session-only for compatibility and is no longer persisted. */
     @Deprecated
     public int undo(UUID playerId) {
         if (playerId == null) return 0;
         PlayerResearchBackup backup = undoBackups.remove(playerId);
         if (backup == null) return 0;
-
         List<ResearchKey> keys = backup.keys();
         research.restore(playerId, keys);
         Map<ResearchKey, NBTTagCompound> restoredTemplates = backup.templateCopies();
@@ -250,27 +257,23 @@ public final class JourneyResearchData extends WorldSavedData {
         return keys.size();
     }
 
-    /** @deprecated legacy one-shot undo remains session-only for compatibility and is no longer persisted. */
     @Deprecated
     public int undoSize(UUID playerId) {
+        if (playerId == null) return 0;
         PlayerResearchBackup backup = undoBackups.get(playerId);
         return backup == null ? 0 : backup.size();
     }
 
-    /** @deprecated explicit recovery commands now use JourneyMutationService transactions. */
     @Deprecated
     public int pruneUnavailable(UUID playerId) {
         if (playerId == null) return 0;
-        List<ResearchKey> keys = research.forPlayer(playerId)
-            .snapshot();
+        List<ResearchKey> keys = research.forPlayer(playerId).snapshot();
         List<ResearchKey> unavailable = new ArrayList<ResearchKey>();
         for (ResearchKey key : keys) {
-            ItemStack stack = dev.gtnhjourney.retrieval.ItemStackTemplateFactory
-                .create(key, template(playerId, key), 1);
+            ItemStack stack = dev.gtnhjourney.retrieval.ItemStackTemplateFactory.create(key, template(playerId, key), 1);
             if (stack == null) unavailable.add(key);
         }
         if (unavailable.isEmpty()) return 0;
-
         saveUndoSnapshot(playerId);
         ResearchRegistry registry = research.forPlayer(playerId);
         Map<ResearchKey, NBTTagCompound> playerTemplates = templates.get(playerId);
@@ -299,7 +302,6 @@ public final class JourneyResearchData extends WorldSavedData {
             UUID playerId = new UUID(playerTag.getLong("UuidMost"), playerTag.getLong("UuidLeast"));
             NBTTagList entries = playerTag.getTagList("Entries", 10);
             MigratedEntryAccumulator accumulator = new MigratedEntryAccumulator();
-
             for (int j = 0; j < entries.tagCount(); j++) {
                 NBTTagCompound entry = entries.getCompoundTagAt(j);
                 String itemId = entry.getString("ItemId");
@@ -315,22 +317,16 @@ public final class JourneyResearchData extends WorldSavedData {
                 }
                 ResearchKey key = resolved.key();
                 NBTTagCompound template = resolved.template();
-                if (key.getMeta() != persistedMeta || !key.getCanonicalNbt()
-                    .equals(persistedCanonical) || !sameTemplate(persistedTemplate, template)) migrated = true;
-                if (!accumulator.accept(key, template)) {
-                    migrated = true;
-                }
+                if (key.getMeta() != persistedMeta || !key.getCanonicalNbt().equals(persistedCanonical)
+                    || !sameTemplate(persistedTemplate, template)) migrated = true;
+                if (!accumulator.accept(key, template)) migrated = true;
             }
-
             List<ResearchKey> keys = accumulator.keys();
             Map<ResearchKey, NBTTagCompound> playerTemplates = accumulator.templateCopies();
             if (!playerTemplates.isEmpty()) templates.put(playerId, playerTemplates);
             research.restore(playerId, keys);
             timeline(playerId).restore(keys);
         }
-
-        // v7 and older may contain a one-shot UndoPlayers backup. Research lives in Players, so the obsolete backup can
-        // be discarded safely once the primary entries above are loaded. New recovery state is stored separately.
         if (root.hasKey("UndoPlayers", 9)) migrated = true;
         if (migrated) markDirty();
     }
@@ -339,15 +335,12 @@ public final class JourneyResearchData extends WorldSavedData {
     public void writeToNBT(NBTTagCompound root) {
         root.setInteger("Version", DATA_VERSION);
         NBTTagList players = new NBTTagList();
-
         for (UUID playerId : allPlayerIds()) {
             NBTTagCompound playerTag = new NBTTagCompound();
             playerTag.setLong("UuidMost", playerId.getMostSignificantBits());
             playerTag.setLong("UuidLeast", playerId.getLeastSignificantBits());
             NBTTagList entries = new NBTTagList();
-
-            List<ResearchKey> persistedOrder = snapshotInUnlockOrder(playerId);
-            for (ResearchKey key : persistedOrder) {
+            for (ResearchKey key : snapshotInUnlockOrder(playerId)) {
                 NBTTagCompound entry = new NBTTagCompound();
                 entry.setString("ItemId", key.getItemId());
                 entry.setInteger("Meta", key.getMeta());
@@ -372,8 +365,7 @@ public final class JourneyResearchData extends WorldSavedData {
     private List<ItemStack> stacksForKeys(UUID playerId, List<ResearchKey> keys) {
         List<ItemStack> out = new ArrayList<ItemStack>();
         for (ResearchKey key : keys) {
-            ItemStack stack = dev.gtnhjourney.retrieval.ItemStackTemplateFactory
-                .create(key, template(playerId, key), 1);
+            ItemStack stack = dev.gtnhjourney.retrieval.ItemStackTemplateFactory.create(key, template(playerId, key), 1);
             if (stack != null) out.add(stack);
         }
         return Collections.unmodifiableList(out);
@@ -389,7 +381,6 @@ public final class JourneyResearchData extends WorldSavedData {
     }
 
     private Collection<UUID> allPlayerIds() {
-        // Every researched player with entries also has a template map; empty players need not be persisted.
         List<UUID> ids = new ArrayList<UUID>(templates.keySet());
         Collections.sort(ids);
         return ids;
@@ -411,8 +402,7 @@ public final class JourneyResearchData extends WorldSavedData {
 
     private static boolean sameTemplate(NBTTagCompound a, NBTTagCompound b) {
         try {
-            return NbtCanonicalizer.canonicalize(a)
-                .equals(NbtCanonicalizer.canonicalize(b));
+            return NbtCanonicalizer.canonicalize(a).equals(NbtCanonicalizer.canonicalize(b));
         } catch (IllegalArgumentException unsafeNbt) {
             return false;
         } catch (RuntimeException unsafeNbt) {
