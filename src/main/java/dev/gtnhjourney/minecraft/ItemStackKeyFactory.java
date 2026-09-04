@@ -27,17 +27,12 @@ public final class ItemStackKeyFactory {
             throw new IllegalArgumentException("stack and item must not be null");
         }
 
-        // IC2 exposes the crafted empty RE-Battery as a separate non-electric placeholder item. When IC2 endpoint
-        // normalization is enabled, identify that placeholder as the real rechargeable item before charge semantics and
-        // registry identity are evaluated. Disabling the compatibility option still preserves exact legacy identity.
         ItemStack canonicalInput = ResearchCompatibilityOptions.normalizeIc2ChargeEndpoints()
             ? Ic2LegacyBatteryAliasPolicy.identityStack(stack) : stack.copy();
         if (canonicalInput == null || canonicalInput.getItem() == null) {
             throw new IllegalArgumentException("IC2 alias identity produced no item");
         }
 
-        // Semantic normalization may legitimately transform an electric stack into its base/empty representation.
-        // Registry id and metadata therefore belong to the normalized stack too, not to the pre-normalization input.
         GtChargeStatePolicy.State gtChargeState = ResearchCompatibilityOptions.normalizeGtChargeEndpoints()
             ? GtChargeStatePolicy.classify(canonicalInput) : GtChargeStatePolicy.State.EXACT;
         ItemStack identityStack;
@@ -70,35 +65,24 @@ public final class ItemStackKeyFactory {
         }
 
         String rawItemId = id.modId + ":" + id.name;
-        String itemId = GalacticraftCanisterStatePolicy.canonicalItemId(rawItemId, identityStack.getItemDamage());
-        String nbt = ResearchNbtIdentity.canonicalize(identityStack);
+        String aliasedItemId = KnownResearchItemAliasPolicy.canonicalItemId(rawItemId);
+        String itemId = GalacticraftCanisterStatePolicy.canonicalItemId(aliasedItemId, identityStack.getItemDamage());
+        String nbt = ResearchNbtIdentity.canonicalize(identityStack, itemId);
         int meta = VanillaMetadataPolicy.canonicalMeta(itemId, researchMeta(itemId, identityStack));
         return new ResearchKey(itemId, meta, nbt);
     }
 
     private static int researchMeta(String itemId, ItemStack stack) {
-        // Galacticraft oxygen tanks also encode fill state in ItemStack.damage. EMPTY is max damage for that tank tier;
-        // once even a single unit of oxygen enters, Journey owns the FULL endpoint instead of thousands of partials.
         if (GalacticraftOxygenTankStatePolicy.matches(itemId)) {
             return GalacticraftOxygenTankStatePolicy.canonicalMeta(itemId, stack.getItemDamage());
         }
-
-        // Galacticraft uses ItemStack.damage as the canister fill amount. Handle that before the generic durability
-        // fallback or a crafted empty canister (1001) becomes the filled/partial meta 0 state.
         if (GalacticraftCanisterStatePolicy.matches(itemId)) {
             return GalacticraftCanisterStatePolicy.canonicalMeta(itemId, stack.getItemDamage());
         }
-
-        // Legacy IC2 may encode electric state in ItemStack.damage itself. Once the stack is proven to participate in
-        // IC2 charge endpoint semantics, preserve the manager-produced damage value instead of mistaking it for wear.
         if (ResearchCompatibilityOptions.normalizeIc2ChargeEndpoints()
             && Ic2ChargeStatePolicy.classify(stack) != Ic2ChargeStatePolicy.State.EXACT) {
             return stack.getItemDamage();
         }
-
-        // In 1.7.10 ItemStack.damage doubles as both metadata and durability. Only collapse it when the Item itself
-        // declares classic durability semantics and no subtypes. GT meta-items explicitly have subtypes, so their
-        // tool/part IDs remain intact.
         try {
             if (stack.getItem().isDamageable() && !stack.getItem().getHasSubtypes()) return 0;
         } catch (RuntimeException ignored) {}
