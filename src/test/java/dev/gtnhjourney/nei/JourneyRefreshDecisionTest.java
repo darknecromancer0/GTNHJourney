@@ -13,30 +13,50 @@ public class JourneyRefreshDecisionTest {
     public void researchChangeInsideJourneyRefreshesOnlyJourneyPanel() {
         assertEquals(
             JourneyRefreshDecision.Action.PANEL_REFRESH,
-            JourneyRefreshDecision.decide(JourneyViewState.Mode.RESEARCHED, true, false));
+            JourneyRefreshDecision.decide(JourneyViewState.Mode.RESEARCHED, true, false, false));
         assertEquals(
             JourneyRefreshDecision.Action.PANEL_REFRESH,
-            JourneyRefreshDecision.decide(JourneyViewState.Mode.NEWEST, true, false));
+            JourneyRefreshDecision.decide(JourneyViewState.Mode.NEWEST, true, false, false));
+    }
+
+    @Test
+    public void nativeNeiFilterChangeRefreshesJourneyPanel() {
+        assertEquals(
+            JourneyRefreshDecision.Action.PANEL_REFRESH,
+            JourneyRefreshDecision.decide(JourneyViewState.Mode.RESEARCHED, false, false, true));
+        assertEquals(
+            JourneyRefreshDecision.Action.PANEL_REFRESH,
+            JourneyRefreshDecision.decide(JourneyViewState.Mode.NEWEST, false, false, true));
     }
 
     @Test
     public void enteringJourneyRefreshesPanelAndStableJourneyOnlyEnsuresOwnership() {
         assertEquals(
             JourneyRefreshDecision.Action.PANEL_REFRESH,
-            JourneyRefreshDecision.decide(JourneyViewState.Mode.RESEARCHED, false, true));
+            JourneyRefreshDecision.decide(JourneyViewState.Mode.RESEARCHED, false, true, false));
         assertEquals(
             JourneyRefreshDecision.Action.PANEL_ENSURE,
-            JourneyRefreshDecision.decide(JourneyViewState.Mode.NEWEST, false, false));
+            JourneyRefreshDecision.decide(JourneyViewState.Mode.NEWEST, false, false, false));
     }
 
     @Test
     public void allModeUsesOnlyNormalNeiFilterRefreshWhenViewChanges() {
         assertEquals(
             JourneyRefreshDecision.Action.NEI_FILTER_REFRESH,
-            JourneyRefreshDecision.decide(JourneyViewState.Mode.ALL, false, true));
+            JourneyRefreshDecision.decide(JourneyViewState.Mode.ALL, false, true, false));
         assertEquals(
             JourneyRefreshDecision.Action.NONE,
-            JourneyRefreshDecision.decide(JourneyViewState.Mode.ALL, false, false));
+            JourneyRefreshDecision.decide(JourneyViewState.Mode.ALL, false, false, true));
+        assertEquals(
+            JourneyRefreshDecision.Action.NONE,
+            JourneyRefreshDecision.decide(JourneyViewState.Mode.ALL, false, false, false));
+    }
+
+    @Test
+    public void researchOnlyRefreshDoesNotRequestPageReset() {
+        assertFalse(JourneyRefreshDecision.shouldResetPage(true, false, false));
+        assertEquals(true, JourneyRefreshDecision.shouldResetPage(false, true, false));
+        assertEquals(true, JourneyRefreshDecision.shouldResetPage(false, false, true));
     }
 
     @Test
