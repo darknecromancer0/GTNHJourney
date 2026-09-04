@@ -45,8 +45,9 @@ public final class PersistedResearchEntryResolver {
 
         if (itemId == null || itemId.trim().isEmpty()) return null;
 
-        String aliasedItemId = ResearchCompatibilityOptions.normalizeIc2ChargeEndpoints()
+        String compatibilityAliasedItemId = ResearchCompatibilityOptions.normalizeIc2ChargeEndpoints()
             ? Ic2LegacyBatteryAliasPolicy.canonicalItemId(itemId) : itemId;
+        String aliasedItemId = KnownResearchItemAliasPolicy.canonicalItemId(compatibilityAliasedItemId);
         int migratedMeta = GalacticraftOxygenTankStatePolicy.migratePersistedMeta(aliasedItemId, meta);
         if (GalacticraftCanisterStatePolicy.isLegacyAmbiguousMeta(aliasedItemId, migratedMeta)) return null;
         String canonicalItemId = GalacticraftCanisterStatePolicy.canonicalItemId(aliasedItemId, migratedMeta);
