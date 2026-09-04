@@ -33,6 +33,22 @@ public class MigratedEntryAccumulatorTest {
     }
 
     @Test
+    public void collapsedCropsNhSeedIdentityKeepsComponentWiseBestTemplate() {
+        MigratedEntryAccumulator accumulator = new MigratedEntryAccumulator();
+        ResearchKey potato = new ResearchKey("cropsnh:genericSeed", 0, "crop=potato");
+
+        assertTrue(accumulator.accept(potato, seed("cropsnh:potato", 10, 10, 10, 1)));
+        assertFalse(accumulator.accept(potato, seed("cropsnh:potato", 12, 10, 10, 0)));
+        assertFalse(accumulator.accept(potato, seed("cropsnh:potato", 10, 12, 10, 0)));
+
+        NBTTagCompound merged = accumulator.template(potato);
+        assertEquals(12, merged.getByte("ga"));
+        assertEquals(12, merged.getByte("gr"));
+        assertEquals(10, merged.getByte("re"));
+        assertEquals(1, merged.getByte("scan"));
+    }
+
+    @Test
     public void templatesAreDefensivelyCopiedAndNewestEquivalentReplacesTheSurvivor() {
         MigratedEntryAccumulator accumulator = new MigratedEntryAccumulator();
         ResearchKey key = new ResearchKey("test:item", 0, "state");
@@ -60,6 +76,16 @@ public class MigratedEntryAccumulatorTest {
     private static NBTTagCompound tag(String key, String value) {
         NBTTagCompound tag = new NBTTagCompound();
         tag.setString(key, value);
+        return tag;
+    }
+
+    private static NBTTagCompound seed(String crop, int gain, int growth, int resistance, int scan) {
+        NBTTagCompound tag = new NBTTagCompound();
+        tag.setString("crop", crop);
+        tag.setByte("ga", (byte) gain);
+        tag.setByte("gr", (byte) growth);
+        tag.setByte("re", (byte) resistance);
+        tag.setByte("scan", (byte) scan);
         return tag;
     }
 }
