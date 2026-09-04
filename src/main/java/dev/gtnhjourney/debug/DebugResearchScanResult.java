@@ -13,6 +13,7 @@ public final class DebugResearchScanResult {
     private final int positionsVisited;
     private final int blockCandidates;
     private final int inventoriesVisited;
+    private final int droppedItemsVisited;
     private final int rawStacks;
     private final int newlyUnlockedStates;
 
@@ -23,10 +24,22 @@ public final class DebugResearchScanResult {
         int inventoriesVisited,
         int rawStacks,
         int newlyUnlockedStates) {
+        this(candidates, positionsVisited, blockCandidates, inventoriesVisited, 0, rawStacks, newlyUnlockedStates);
+    }
+
+    public DebugResearchScanResult(
+        List<ItemStack> candidates,
+        int positionsVisited,
+        int blockCandidates,
+        int inventoriesVisited,
+        int droppedItemsVisited,
+        int rawStacks,
+        int newlyUnlockedStates) {
         this.candidates = copyCandidates(candidates);
         this.positionsVisited = positionsVisited;
         this.blockCandidates = blockCandidates;
         this.inventoriesVisited = inventoriesVisited;
+        this.droppedItemsVisited = droppedItemsVisited;
         this.rawStacks = rawStacks;
         this.newlyUnlockedStates = newlyUnlockedStates;
     }
@@ -47,6 +60,10 @@ public final class DebugResearchScanResult {
         return inventoriesVisited;
     }
 
+    public int getDroppedItemsVisited() {
+        return droppedItemsVisited;
+    }
+
     public int getRawStacks() {
         return rawStacks;
     }
@@ -65,6 +82,7 @@ public final class DebugResearchScanResult {
             positionsVisited,
             blockCandidates,
             inventoriesVisited,
+            droppedItemsVisited,
             rawStacks,
             value);
     }
