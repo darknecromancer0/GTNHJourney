@@ -1,14 +1,12 @@
 package dev.gtnhjourney.nei;
 
-/** Separates Journey-compatible query filters from NEI's global item-visibility masks. */
+/** Lets Journey consume the same native NEI filter providers as the normal item panel. */
 final class JourneyNeiFilterProviderPolicy {
-
-    private static final String SUBSET_WIDGET = "codechicken.nei.SubsetWidget";
 
     private JourneyNeiFilterProviderPolicy() {}
 
     static boolean shouldApply(String providerClassName, boolean searchField, boolean searchVisible) {
         if (searchField) return searchVisible;
-        return !SUBSET_WIDGET.equals(providerClassName);
+        return true;
     }
 }
