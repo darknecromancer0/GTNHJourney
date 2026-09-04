@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import dev.gtnhjourney.minecraft.CropsNhSeedStatePolicy;
 import dev.gtnhjourney.research.ResearchKey;
 import net.minecraft.nbt.NBTTagCompound;
 
@@ -16,8 +17,13 @@ final class MigratedEntryAccumulator {
     boolean accept(ResearchKey key, NBTTagCompound template) {
         if (key == null) return false;
         boolean first = !entries.containsKey(key);
-        if (!first) entries.remove(key);
-        entries.put(key, copy(template));
+        NBTTagCompound selected = copy(template);
+        if (!first) {
+            NBTTagCompound merged = CropsNhSeedStatePolicy.merge(key.getItemId(), entries.get(key), template);
+            if (merged != null) selected = merged;
+            entries.remove(key);
+        }
+        entries.put(key, selected);
         return first;
     }
 
