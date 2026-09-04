@@ -23,6 +23,7 @@ public final class KnownTransientItemStatePolicy {
     private static final int RAILCRAFT_DEFAULT_WHITE = 15;
     private static final String AE2_NETWORK_VISUALISER = "appliedenergistics2:item.ToolNetworkVisualiser";
     private static final String BETTER_P2P_ADVANCED_MEMORY_CARD = "betterp2p:advanced_memory_card";
+    private static final String VANILLA_WATER = "minecraft:water";
 
     private KnownTransientItemStatePolicy() {}
 
@@ -37,12 +38,9 @@ public final class KnownTransientItemStatePolicy {
         if (registryId == null || tag == null) return;
 
         if (registryId.startsWith("chisel:") && tag.hasKey("chiselTarget")) {
-            // Chisel writes the most recently targeted block stack here. It is use/UI state, not a different chisel.
             tag.removeTag("chiselTarget");
         }
-
         if (registryId.startsWith("betterbuilderswands:wand") && tag.hasKey("bbw")) {
-            // Better Builder's Wands stores last-block and placement-coordinate history in this wrapper.
             tag.removeTag("bbw");
         }
 
@@ -50,17 +48,14 @@ public final class KnownTransientItemStatePolicy {
         if (GOLDEN_LASSO.equals(registryId) && meta == 1) normalizeCapturedEntityRuntime(tag);
         if (JABBA_MOVER.equals(registryId)) tag.removeTag("Container");
         if (OVEN_GLOVE.equals(registryId) || OVEN_GLOVE_ALT.equals(registryId)) normalizeOvenGlove(tag);
-        if (GT_BLOCK_MACHINES.equals(registryId)) {
-            // Covers are attachments to a machine/pipe stack, not a distinct research target. Keeping them would also
-            // make Journey retrieval duplicate the installed cover, so remove the payload from identity and template.
-            tag.removeTag("gt.covers");
-        }
+        if (GT_BLOCK_MACHINES.equals(registryId)) tag.removeTag("gt.covers");
         if (GT_META_ITEM_01.equals(registryId) && meta == GT_UNIVERSAL_FLUID_CELL_META) {
             normalizeUniversalFluidCell(tag);
         }
         if (isRailcraftTankStructure(registryId, meta)) normalizeRailcraftTankStructure(tag);
         if (AE2_NETWORK_VISUALISER.equals(registryId)) normalizeAe2NetworkVisualiser(tag);
         if (BETTER_P2P_ADVANCED_MEMORY_CARD.equals(registryId)) normalizeBetterP2pAdvancedMemoryCard(tag);
+        if (VANILLA_WATER.equals(registryId)) normalizeGeneratedWaterAmountName(tag);
     }
 
     private static void normalizeAirFilter(NBTTagCompound tag) {
@@ -97,27 +92,36 @@ public final class KnownTransientItemStatePolicy {
     }
 
     private static void normalizeRailcraftTankStructure(NBTTagCompound tag) {
-        // Railcraft writes the default white paint marker onto picked/dropped tank wall, gauge and valve stacks.
-        // The ordinary craftable item has no tag, so color=15 would otherwise create a duplicate Journey state.
-        // Preserve non-default paint colours because those are intentional cosmetic item variants.
         if (tag.hasKey("color", 99) && tag.getInteger("color") == RAILCRAFT_DEFAULT_WHITE) tag.removeTag("color");
     }
 
     private static void normalizeAe2NetworkVisualiser(NBTTagCompound tag) {
-        // AE2 writes the selected overlay mode and last targeted coordinates as the visualiser is used. Live GTNH
-        // dumps show these values changing repeatedly on the same tool, so none of them define a research variant.
         remove(tag, "NETWORK_VISUALISER", "dim", "x", "y", "z");
     }
 
     private static void normalizeBetterP2pAdvancedMemoryCard(NBTTagCompound tag) {
-        // BetterP2P stores the active frequency, GUI/mode and selected tunnel position on the card. They are mutable
-        // selection/use state rather than card identity and otherwise create one Journey entry per interaction.
         remove(tag, "frequency", "gui", "mode", "selectedIndex");
     }
 
+    private static void normalizeGeneratedWaterAmountName(NBTTagCompound tag) {
+        if (tag.func_150296_c().size() != 1 || !tag.hasKey("display", 10)) return;
+        NBTTagCompound display = tag.getCompoundTag("display");
+        if (display.func_150296_c().size() != 1 || !display.hasKey("Name", 8)) return;
+        if (!isGeneratedWaterAmountName(display.getString("Name"))) return;
+        tag.removeTag("display");
+    }
+
+    private static boolean isGeneratedWaterAmountName(String name) {
+        if (name == null || !name.endsWith("L Water")) return false;
+        String amount = name.substring(0, name.length() - "L Water".length());
+        if (amount.isEmpty()) return false;
+        for (int i = 0; i < amount.length(); i++) {
+            if (amount.charAt(i) < '0' || amount.charAt(i) > '9') return false;
+        }
+        return true;
+    }
+
     private static void normalizeCapturedEntityRuntime(NBTTagCompound tag) {
-        // Golden Lasso stores a serialized entity. Preserve entity type, age/baby state, colour, equipment, custom
-        // name, attributes and mod-specific permanent upgrades while dropping only moment-to-moment world/runtime data.
         remove(tag,
             "UUIDMost",
             "UUIDLeast",
