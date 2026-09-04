@@ -58,5 +58,6 @@ public final class JourneyNEIRefreshTracker {
     /** Clears Journey-owned client panel state during connection/session teardown without forcing a global NEI reload. */
     public static void resetJourneyPanel() {
         JourneyPanelController.clear();
+        JourneyNeiFilterRevision.reset();
     }
 }
