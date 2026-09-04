@@ -121,39 +121,51 @@ public final class GTNHJourney {
                     MinecraftForge.EVENT_BUS.register(listener);
                 }
             },
-            EXPLOSION_GUARD,
-            WORLD_BACKUP_TICKER);
+            WORLD_BACKUP_TICKER,
+            EXPLOSION_GUARD);
     }
 
     @EventHandler
     public void serverStarting(FMLServerStartingEvent event) {
-        event.registerServerCommand(new CommandJourney(RESEARCH));
+        SPEED.reset();
+        // A remote server may have overwritten the client-side static identity policy in the same JVM earlier.
+        // Every actual server start reasserts this instance's local authoritative config before touching a world.
+        dev.gtnhjourney.minecraft.ResearchCompatibilityOptions.configure(
+            JourneyConfig.normalizeGtTransientIdentity(),
+            JourneyConfig.resetGtToolTemplateState(),
+            JourneyConfig.normalizeGtChargeEndpoints(),
+            JourneyConfig.normalizeIc2ChargeEndpoints(),
+            JourneyConfig.normalizeTconToolWear(),
+            JourneyConfig.normalizeCofhChargeEndpoints());
+        dev.gtnhjourney.diagnostics.RuntimeCompatibilityReport.logStartup();
+        event.registerServerCommand(new CommandJourney());
     }
 
     @EventHandler
     public void serverStarted(FMLServerStartedEvent event) {
+        // Persist semantic migrations that were applied while WorldSavedData was being reconstructed. This also covers
+        // migrations whose only visible change is a registry-id alias, such as IC2:itemBatREDischarged -> itemBatRE.
         World rootWorld = DimensionManager.getWorld(0);
-        if (rootWorld != null) {
-            JourneyResearchData data = JourneyResearchData.get(rootWorld);
-            data.bind(RESEARCH);
-            data.repairAndLoad(RESEARCH);
-            data.markDirty();
-            MUTATIONS.bind(rootWorld, RESEARCH);
-        }
-        WORLD_BACKUPS.onServerStarted();
+        if (rootWorld != null) JourneyResearchData.get(rootWorld).markDirty();
+        WORLD_BACKUPS.markWorldLoaded();
     }
 
     @EventHandler
     public void serverStopping(FMLServerStoppingEvent event) {
-        WORLD_BACKUPS.onServerStopping();
-        if (MUTATIONS != null) MUTATIONS.flush();
+        WORLD_BACKUPS.finishForShutdown();
     }
 
     @EventHandler
     public void serverStopped(FMLServerStoppedEvent event) {
-        RESEARCH.clearAll();
-        if (MUTATIONS != null) MUTATIONS.clear();
+        SPEED.reset();
+        ServerRequestQueue.clearPending();
+        ServerResearchSyncQueue.clear();
+        if (inventoryTracker != null) inventoryTracker.clearCaches();
+        if (furnaceTracker != null) furnaceTracker.clear();
         SNAPSHOT_TICKER.clear();
-        WORLD_BACKUPS.onServerStopped();
+        WORLD_BACKUPS.resetSession();
+        EXPLOSION_GUARD.reset();
+        dev.gtnhjourney.diagnostics.ResearchTrace.clear();
+        dev.gtnhjourney.diagnostics.ResearchFailureLog.clear();
     }
 }
