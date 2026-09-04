@@ -7,10 +7,15 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.Test;
 
 public class Release1111ContractTest {
+
+    private static final Pattern RUNTIME_VERSION = Pattern.compile(
+        "public static final String VERSION = \\\"([^\\\"]+)\\\";");
 
     @Test
     public void runtimeMetadataAndJourneyPanelIsolationAgreeOnCurrentRelease() throws IOException {
@@ -20,9 +25,11 @@ public class Release1111ContractTest {
         String mixin = read("src/main/java/dev/gtnhjourney/mixin/ItemsPanelGridJourneyMixin.java");
         String mixins = read("src/main/resources/mixins.gtnhjourney.json");
 
-        assertTrue(source.contains("public static final String VERSION = \"1.1.22\";"));
-        assertTrue(mcmod.contains("\"version\": \"1.1.22\""));
-        assertTrue(build.contains("version = \"1.1.22\""));
+        Matcher matcher = RUNTIME_VERSION.matcher(source);
+        assertTrue(matcher.find(), "runtime version constant missing");
+        String version = matcher.group(1);
+        assertTrue(mcmod.contains("\"version\": \"" + version + "\""));
+        assertTrue(build.contains("version = \"" + version + "\""));
         assertTrue(mixin.contains("CollapsibleItems;isEmpty()Z"));
         assertTrue(mixin.contains("JourneyViewState.isEnabled()"));
         assertTrue(mixins.contains("\"ItemsPanelGridJourneyMixin\""));
