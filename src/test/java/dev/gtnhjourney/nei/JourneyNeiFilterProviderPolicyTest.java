@@ -18,8 +18,8 @@ public class JourneyNeiFilterProviderPolicyTest {
     }
 
     @Test
-    public void neiSubsetHiddenItemMaskCannotEraseJourneyResearch() {
-        assertFalse(JourneyNeiFilterProviderPolicy.shouldApply("codechicken.nei.SubsetWidget", false, true));
+    public void neiSubsetProviderFiltersJourneyExactlyLikeNei() {
+        assertTrue(JourneyNeiFilterProviderPolicy.shouldApply("codechicken.nei.SubsetWidget", false, true));
     }
 
     @Test
