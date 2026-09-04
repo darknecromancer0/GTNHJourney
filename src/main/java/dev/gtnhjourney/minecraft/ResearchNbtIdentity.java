@@ -10,9 +10,13 @@ public final class ResearchNbtIdentity {
 
     /** Stack-aware identity. Only verified/structurally proven transient payload may be ignored. */
     public static String canonicalize(ItemStack stack) {
+        return canonicalize(stack, null);
+    }
+
+    /** Stack-aware identity with an already-resolved canonical registry id. */
+    public static String canonicalize(ItemStack stack, String canonicalItemId) {
         if (stack == null || !stack.hasTagCompound()) return "";
-        NBTTagCompound identityTag = (NBTTagCompound) stack.getTagCompound()
-            .copy();
+        NBTTagCompound identityTag = (NBTTagCompound) stack.getTagCompound().copy();
         BotaniaTransientStatePolicy.normalize(stack, identityTag);
         DraconicTransientStatePolicy.normalize(stack, identityTag);
         WearableTransientStatePolicy.normalize(stack, identityTag);
@@ -21,6 +25,7 @@ public final class ResearchNbtIdentity {
         KnownTransientItemStatePolicy.normalize(stack, identityTag);
         EmbeddedInventoryPolicy.normalize(stack, identityTag);
         ForestryGeneticsNbtPolicy.normalize(stack, identityTag);
+        if (canonicalItemId != null) identityTag = CropsNhSeedStatePolicy.identityTag(canonicalItemId, identityTag);
         final boolean normalizeToolState = ResearchCompatibilityOptions.normalizeGtTransientIdentity()
             && GtToolStatePolicy.isVerifiedTool(stack);
         final boolean normalizeTconWear = ResearchCompatibilityOptions.normalizeTconToolWear()
@@ -29,8 +34,7 @@ public final class ResearchNbtIdentity {
             TconToolStatePolicy.normalizeAmmoState(identityTag);
             TconToolStatePolicy.normalizeDisplayName(stack, identityTag);
         }
-        if (identityTag.func_150296_c()
-            .isEmpty()) return "";
+        if (identityTag == null || identityTag.func_150296_c().isEmpty()) return "";
         return NbtCanonicalizer.canonicalize(identityTag, new NbtCanonicalizer.KeyFilter() {
 
             @Override
