@@ -48,7 +48,7 @@ public final class GTNHJourney {
 
     public static final String MODID = "gtnhjourney";
     public static final String NAME = "GTNH Journey";
-    public static final String VERSION = "1.1.22";
+    public static final String VERSION = "1.1.23";
     public static final String TARGET_GTNH = "2.9.0-beta-2";
     public static final String TARGET_NEI = "2.8.111-GTNH";
     public static final PlayerResearchService RESEARCH = new PlayerResearchService();
@@ -121,51 +121,39 @@ public final class GTNHJourney {
                     MinecraftForge.EVENT_BUS.register(listener);
                 }
             },
-            WORLD_BACKUP_TICKER,
-            EXPLOSION_GUARD);
+            EXPLOSION_GUARD,
+            WORLD_BACKUP_TICKER);
     }
 
     @EventHandler
     public void serverStarting(FMLServerStartingEvent event) {
-        SPEED.reset();
-        // A remote server may have overwritten the client-side static identity policy in the same JVM earlier.
-        // Every actual server start reasserts this instance's local authoritative config before touching a world.
-        dev.gtnhjourney.minecraft.ResearchCompatibilityOptions.configure(
-            JourneyConfig.normalizeGtTransientIdentity(),
-            JourneyConfig.resetGtToolTemplateState(),
-            JourneyConfig.normalizeGtChargeEndpoints(),
-            JourneyConfig.normalizeIc2ChargeEndpoints(),
-            JourneyConfig.normalizeTconToolWear(),
-            JourneyConfig.normalizeCofhChargeEndpoints());
-        dev.gtnhjourney.diagnostics.RuntimeCompatibilityReport.logStartup();
-        event.registerServerCommand(new CommandJourney());
+        event.registerServerCommand(new CommandJourney(RESEARCH));
     }
 
     @EventHandler
     public void serverStarted(FMLServerStartedEvent event) {
-        // Persist semantic migrations that were applied while WorldSavedData was being reconstructed. This also covers
-        // migrations whose only visible change is a registry-id alias, such as IC2:itemBatREDischarged -> itemBatRE.
         World rootWorld = DimensionManager.getWorld(0);
-        if (rootWorld != null) JourneyResearchData.get(rootWorld).markDirty();
-        WORLD_BACKUPS.markWorldLoaded();
+        if (rootWorld != null) {
+            JourneyResearchData data = JourneyResearchData.get(rootWorld);
+            data.bind(RESEARCH);
+            data.repairAndLoad(RESEARCH);
+            data.markDirty();
+            MUTATIONS.bind(rootWorld, RESEARCH);
+        }
+        WORLD_BACKUPS.onServerStarted();
     }
 
     @EventHandler
     public void serverStopping(FMLServerStoppingEvent event) {
-        WORLD_BACKUPS.finishForShutdown();
+        WORLD_BACKUPS.onServerStopping();
+        if (MUTATIONS != null) MUTATIONS.flush();
     }
 
     @EventHandler
     public void serverStopped(FMLServerStoppedEvent event) {
-        SPEED.reset();
-        ServerRequestQueue.clearPending();
-        ServerResearchSyncQueue.clear();
-        if (inventoryTracker != null) inventoryTracker.clearCaches();
-        if (furnaceTracker != null) furnaceTracker.clear();
+        RESEARCH.clearAll();
+        if (MUTATIONS != null) MUTATIONS.clear();
         SNAPSHOT_TICKER.clear();
-        WORLD_BACKUPS.resetSession();
-        EXPLOSION_GUARD.reset();
-        dev.gtnhjourney.diagnostics.ResearchTrace.clear();
-        dev.gtnhjourney.diagnostics.ResearchFailureLog.clear();
+        WORLD_BACKUPS.onServerStopped();
     }
 }
