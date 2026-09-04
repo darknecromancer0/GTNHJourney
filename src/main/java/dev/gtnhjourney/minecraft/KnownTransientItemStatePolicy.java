@@ -21,6 +21,8 @@ public final class KnownTransientItemStatePolicy {
     private static final String RAILCRAFT_MACHINE_BETA = "Railcraft:machine.beta";
     private static final String RAILCRAFT_MACHINE_ZETA = "Railcraft:machine.zeta";
     private static final int RAILCRAFT_DEFAULT_WHITE = 15;
+    private static final String AE2_NETWORK_VISUALISER = "appliedenergistics2:item.ToolNetworkVisualiser";
+    private static final String BETTER_P2P_ADVANCED_MEMORY_CARD = "betterp2p:advanced_memory_card";
 
     private KnownTransientItemStatePolicy() {}
 
@@ -57,6 +59,8 @@ public final class KnownTransientItemStatePolicy {
             normalizeUniversalFluidCell(tag);
         }
         if (isRailcraftTankStructure(registryId, meta)) normalizeRailcraftTankStructure(tag);
+        if (AE2_NETWORK_VISUALISER.equals(registryId)) normalizeAe2NetworkVisualiser(tag);
+        if (BETTER_P2P_ADVANCED_MEMORY_CARD.equals(registryId)) normalizeBetterP2pAdvancedMemoryCard(tag);
     }
 
     private static void normalizeAirFilter(NBTTagCompound tag) {
@@ -97,6 +101,18 @@ public final class KnownTransientItemStatePolicy {
         // The ordinary craftable item has no tag, so color=15 would otherwise create a duplicate Journey state.
         // Preserve non-default paint colours because those are intentional cosmetic item variants.
         if (tag.hasKey("color", 99) && tag.getInteger("color") == RAILCRAFT_DEFAULT_WHITE) tag.removeTag("color");
+    }
+
+    private static void normalizeAe2NetworkVisualiser(NBTTagCompound tag) {
+        // AE2 writes the selected overlay mode and last targeted coordinates as the visualiser is used. Live GTNH
+        // dumps show these values changing repeatedly on the same tool, so none of them define a research variant.
+        remove(tag, "NETWORK_VISUALISER", "dim", "x", "y", "z");
+    }
+
+    private static void normalizeBetterP2pAdvancedMemoryCard(NBTTagCompound tag) {
+        // BetterP2P stores the active frequency, GUI/mode and selected tunnel position on the card. They are mutable
+        // selection/use state rather than card identity and otherwise create one Journey entry per interaction.
+        remove(tag, "frequency", "gui", "mode", "selectedIndex");
     }
 
     private static void normalizeCapturedEntityRuntime(NBTTagCompound tag) {
