@@ -13,15 +13,11 @@ public final class JourneySortPlanner {
 
     private JourneySortPlanner() {}
 
-    public static List<JourneySortEntry> sort(
-        List<JourneySortEntry> source,
-        JourneyGroupMode groupMode,
-        JourneyOrderMode orderMode,
-        boolean latest) {
+    public static List<JourneySortEntry> sort(List<JourneySortEntry> source, JourneyGroupMode groupMode,
+        JourneyOrderMode orderMode, boolean latest) {
         if (source == null || source.isEmpty()) return Collections.emptyList();
         JourneyGroupMode group = groupMode == null ? JourneyGroupMode.NONE : groupMode;
         JourneyOrderMode order = orderMode == null ? JourneyOrderMode.NONE : orderMode;
-
         List<Bucket> buckets = buckets(source, group);
         Collections.sort(buckets, bucketComparator(group, order, latest));
         List<JourneySortEntry> out = new ArrayList<JourneySortEntry>(source.size());
@@ -39,10 +35,7 @@ public final class JourneySortPlanner {
         long latestSequence = entries.get(0).activitySequence();
         for (int i = 1; i < entries.size(); i++) {
             long sequence = entries.get(i).activitySequence();
-            if (sequence > latestSequence) {
-                latestIndex = i;
-                latestSequence = sequence;
-            }
+            if (sequence > latestSequence) { latestIndex = i; latestSequence = sequence; }
         }
         if (latestIndex <= 0) return;
         JourneySortEntry latestEntry = entries.remove(latestIndex);
@@ -56,10 +49,7 @@ public final class JourneySortPlanner {
             if (entry == null) continue;
             String key = groupKey(entry, group, ordinal++);
             Bucket bucket = buckets.get(key);
-            if (bucket == null) {
-                bucket = new Bucket(key);
-                buckets.put(key, bucket);
-            }
+            if (bucket == null) { bucket = new Bucket(key); buckets.put(key, bucket); }
             bucket.add(entry);
         }
         return new ArrayList<Bucket>(buckets.values());
@@ -67,27 +57,19 @@ public final class JourneySortPlanner {
 
     private static String groupKey(JourneySortEntry entry, JourneyGroupMode group, int ordinal) {
         switch (group) {
-            case NATIVE:
-                return "n:" + entry.nativeFamily();
-            case MOD:
-                return "m:" + entry.modGroup();
-            case TYPE:
-                return "t:" + entry.typeGroup();
-            case KIND:
-                return "k:" + entry.kindGroup();
+            case NATIVE: return "n:" + entry.nativeFamily();
+            case MOD: return "m:" + entry.modGroup();
+            case TYPE: return "t:" + entry.typeGroup();
+            case KIND: return "k:" + entry.kindGroup();
             case NONE:
-            default:
-                return "i:" + ordinal + ':' + entry.key().toString();
+            default: return "i:" + ordinal + ':' + entry.key().toString();
         }
     }
 
-    private static Comparator<Bucket> bucketComparator(
-        final JourneyGroupMode group,
-        final JourneyOrderMode order,
+    private static Comparator<Bucket> bucketComparator(final JourneyGroupMode group, final JourneyOrderMode order,
         final boolean latest) {
         return new Comparator<Bucket>() {
-            @Override
-            public int compare(Bucket left, Bucket right) {
+            @Override public int compare(Bucket left, Bucket right) {
                 if (latest) {
                     int activity = compareLongDesc(left.maxActivity, right.maxActivity);
                     if (activity != 0) return activity;
@@ -107,27 +89,20 @@ public final class JourneySortPlanner {
 
     private static int compareByOrder(Bucket left, Bucket right, JourneyOrderMode order) {
         switch (order) {
-            case UNLOCK:
-                return compareLongDesc(left.maxUnlock, right.maxUnlock);
-            case FAVOURITE_ADDED:
-                return compareLongDesc(left.maxFavourite, right.maxFavourite);
-            case ALPHABETICAL:
-                return left.minName.compareTo(right.minName);
+            case UNLOCK: return compareLongDesc(left.maxUnlock, right.maxUnlock);
+            case ISSUED: return compareLongDesc(left.maxIssued, right.maxIssued);
+            case FAVOURITE_ADDED: return compareLongDesc(left.maxFavourite, right.maxFavourite);
+            case ALPHABETICAL: return left.minName.compareTo(right.minName);
             case NONE:
-            default:
-                return 0;
+            default: return 0;
         }
     }
 
-    private static Comparator<JourneySortEntry> memberComparator(
-        final JourneyGroupMode group,
+    private static Comparator<JourneySortEntry> memberComparator(final JourneyGroupMode group,
         final JourneyOrderMode order) {
         return new Comparator<JourneySortEntry>() {
-            @Override
-            public int compare(JourneySortEntry left, JourneySortEntry right) {
-                // N without L is the strict family mode: subtype/state order remains exactly native NEI.
+            @Override public int compare(JourneySortEntry left, JourneySortEntry right) {
                 if (group == JourneyGroupMode.NATIVE) return stableNative(left, right);
-
                 if (group != JourneyGroupMode.NONE) {
                     int ordered = compareMembersByOrder(left, right, order);
                     if (ordered != 0) return ordered;
@@ -137,23 +112,16 @@ public final class JourneySortPlanner {
         };
     }
 
-    private static int compareMembersByOrder(
-        JourneySortEntry left,
-        JourneySortEntry right,
-        JourneyOrderMode order) {
+    private static int compareMembersByOrder(JourneySortEntry left, JourneySortEntry right, JourneyOrderMode order) {
         switch (order) {
-            case UNLOCK:
-                return compareLongDesc(left.unlockSequence(), right.unlockSequence());
-            case FAVOURITE_ADDED:
-                return compareLongDesc(left.favouriteSequence(), right.favouriteSequence());
+            case UNLOCK: return compareLongDesc(left.unlockSequence(), right.unlockSequence());
+            case ISSUED: return compareLongDesc(left.issuedSequence(), right.issuedSequence());
+            case FAVOURITE_ADDED: return compareLongDesc(left.favouriteSequence(), right.favouriteSequence());
             case ALPHABETICAL:
-                int name = left.displayName().toLowerCase(Locale.ROOT)
-                    .compareTo(right.displayName().toLowerCase(Locale.ROOT));
-                if (name != 0) return name;
-                return 0;
+                int name = left.displayName().toLowerCase(Locale.ROOT).compareTo(right.displayName().toLowerCase(Locale.ROOT));
+                return name;
             case NONE:
-            default:
-                return 0;
+            default: return 0;
         }
     }
 
@@ -169,28 +137,24 @@ public final class JourneySortPlanner {
         return left.key().getCanonicalNbt().compareTo(right.key().getCanonicalNbt());
     }
 
-    private static int compareLongDesc(long left, long right) {
-        return left == right ? 0 : (left > right ? -1 : 1);
-    }
+    private static int compareLongDesc(long left, long right) { return left == right ? 0 : (left > right ? -1 : 1); }
 
     private static final class Bucket {
         final String key;
         final List<JourneySortEntry> entries = new ArrayList<JourneySortEntry>();
         long maxUnlock = Long.MIN_VALUE;
         long maxActivity = Long.MIN_VALUE;
+        long maxIssued = Long.MIN_VALUE;
         long maxFavourite = Long.MIN_VALUE;
         int minNativeIndex = Integer.MAX_VALUE;
         int minCanonicalIndex = Integer.MAX_VALUE;
         String minName = "\uffff";
-
-        Bucket(String key) {
-            this.key = key;
-        }
-
+        Bucket(String key) { this.key = key; }
         void add(JourneySortEntry entry) {
             entries.add(entry);
             maxUnlock = Math.max(maxUnlock, entry.unlockSequence());
             maxActivity = Math.max(maxActivity, entry.activitySequence());
+            maxIssued = Math.max(maxIssued, entry.issuedSequence());
             maxFavourite = Math.max(maxFavourite, entry.favouriteSequence());
             minNativeIndex = Math.min(minNativeIndex, entry.nativeIndex());
             minCanonicalIndex = Math.min(minCanonicalIndex, entry.canonicalIndex());

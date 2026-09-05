@@ -29,6 +29,7 @@ public final class ClientConnectionTracker {
 
     private static void resetClientSessionState() {
         ClientStackMirror.clear();
+        ClientIssuedMirror.clear();
         ClientFavouriteMirror.clear();
         ClientPresentationActivityMirror.clear();
         ClientCommandSuggestionState.clear();

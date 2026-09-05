@@ -4,6 +4,7 @@ package dev.gtnhjourney.nei;
 public enum JourneyOrderMode {
     NONE("-", "None"),
     UNLOCK("U", "Unlock order"),
+    ISSUED("I", "Issued order"),
     ALPHABETICAL("A", "Alphabetical"),
     FAVOURITE_ADDED("F+", "Favourite added");
 

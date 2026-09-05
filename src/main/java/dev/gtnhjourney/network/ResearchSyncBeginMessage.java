@@ -4,6 +4,7 @@ import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
 import cpw.mods.fml.common.network.simpleimpl.MessageContext;
 import dev.gtnhjourney.client.ClientActivityMirror;
+import dev.gtnhjourney.client.ClientIssuedMirror;
 import dev.gtnhjourney.client.ClientNetworkQueue;
 import dev.gtnhjourney.client.ClientStackMirror;
 import dev.gtnhjourney.minecraft.ResearchCompatibilityOptions;
@@ -16,6 +17,7 @@ public final class ResearchSyncBeginMessage implements IMessage {
     private int availableTotal;
     private int syncableTotal;
     private int activityTotal;
+    private int issuedTotal;
     private boolean normalizeGtTransientIdentity;
     private boolean resetGtToolTemplateState;
     private boolean normalizeGtChargeEndpoints;
@@ -28,10 +30,19 @@ public final class ResearchSyncBeginMessage implements IMessage {
     public ResearchSyncBeginMessage(int epoch, int availableTotal, int syncableTotal, int activityTotal,
         boolean normalizeGtTransientIdentity, boolean resetGtToolTemplateState, boolean normalizeGtChargeEndpoints,
         boolean normalizeIc2ChargeEndpoints, boolean normalizeTconToolWear, boolean normalizeCofhChargeEndpoints) {
+        this(epoch, availableTotal, syncableTotal, activityTotal, 0, normalizeGtTransientIdentity,
+            resetGtToolTemplateState, normalizeGtChargeEndpoints, normalizeIc2ChargeEndpoints, normalizeTconToolWear,
+            normalizeCofhChargeEndpoints);
+    }
+
+    public ResearchSyncBeginMessage(int epoch, int availableTotal, int syncableTotal, int activityTotal, int issuedTotal,
+        boolean normalizeGtTransientIdentity, boolean resetGtToolTemplateState, boolean normalizeGtChargeEndpoints,
+        boolean normalizeIc2ChargeEndpoints, boolean normalizeTconToolWear, boolean normalizeCofhChargeEndpoints) {
         this.epoch = epoch;
         this.availableTotal = Math.max(0, availableTotal);
         this.syncableTotal = Math.max(0, Math.min(this.availableTotal, syncableTotal));
         this.activityTotal = Math.max(0, activityTotal);
+        this.issuedTotal = Math.max(0, issuedTotal);
         this.normalizeGtTransientIdentity = normalizeGtTransientIdentity;
         this.resetGtToolTemplateState = resetGtToolTemplateState;
         this.normalizeGtChargeEndpoints = normalizeGtChargeEndpoints;
@@ -45,6 +56,7 @@ public final class ResearchSyncBeginMessage implements IMessage {
         availableTotal = Math.max(0, buf.readInt());
         syncableTotal = Math.max(0, Math.min(availableTotal, buf.readInt()));
         activityTotal = Math.max(0, buf.readInt());
+        issuedTotal = Math.max(0, buf.readInt());
         normalizeGtTransientIdentity = buf.readBoolean();
         resetGtToolTemplateState = buf.readBoolean();
         normalizeGtChargeEndpoints = buf.readBoolean();
@@ -58,6 +70,7 @@ public final class ResearchSyncBeginMessage implements IMessage {
         buf.writeInt(availableTotal);
         buf.writeInt(syncableTotal);
         buf.writeInt(activityTotal);
+        buf.writeInt(issuedTotal);
         buf.writeBoolean(normalizeGtTransientIdentity);
         buf.writeBoolean(resetGtToolTemplateState);
         buf.writeBoolean(normalizeGtChargeEndpoints);
@@ -67,12 +80,12 @@ public final class ResearchSyncBeginMessage implements IMessage {
     }
 
     public static final class Handler implements IMessageHandler<ResearchSyncBeginMessage, IMessage> {
-
         public IMessage onMessage(final ResearchSyncBeginMessage message, MessageContext ctx) {
             final int epoch = message.epoch;
             final int availableTotal = message.availableTotal;
             final int syncableTotal = message.syncableTotal;
             final int activityTotal = message.activityTotal;
+            final int issuedTotal = message.issuedTotal;
             final boolean normalizeGtTransientIdentity = message.normalizeGtTransientIdentity;
             final boolean resetGtToolTemplateState = message.resetGtToolTemplateState;
             final boolean normalizeGtChargeEndpoints = message.normalizeGtChargeEndpoints;
@@ -80,18 +93,13 @@ public final class ResearchSyncBeginMessage implements IMessage {
             final boolean normalizeTconToolWear = message.normalizeTconToolWear;
             final boolean normalizeCofhChargeEndpoints = message.normalizeCofhChargeEndpoints;
             ClientNetworkQueue.enqueue(new Runnable() {
-
-                @Override
-                public void run() {
+                @Override public void run() {
                     ResearchCompatibilityOptions.configure(
-                        normalizeGtTransientIdentity,
-                        resetGtToolTemplateState,
-                        normalizeGtChargeEndpoints,
-                        normalizeIc2ChargeEndpoints,
-                        normalizeTconToolWear,
-                        normalizeCofhChargeEndpoints);
+                        normalizeGtTransientIdentity, resetGtToolTemplateState, normalizeGtChargeEndpoints,
+                        normalizeIc2ChargeEndpoints, normalizeTconToolWear, normalizeCofhChargeEndpoints);
                     ClientStackMirror.begin(epoch, availableTotal, syncableTotal);
                     ClientActivityMirror.begin(epoch, activityTotal);
+                    ClientIssuedMirror.begin(epoch, issuedTotal);
                 }
             });
             return null;

@@ -2,6 +2,8 @@ package dev.gtnhjourney.nei;
 
 import net.minecraft.item.ItemStack;
 
+import dev.gtnhjourney.client.ClientIssuedMirror;
+import dev.gtnhjourney.research.ResearchFingerprint;
 import dev.gtnhjourney.research.ResearchKey;
 
 /** Immutable presentation metadata consumed by the pure Journey sorting planner. */
@@ -17,22 +19,20 @@ public final class JourneySortEntry {
     private final String displayName;
     private final long unlockSequence;
     private final long activitySequence;
+    private final long issuedSequence;
     private final long favouriteSequence;
     private final int canonicalIndex;
 
-    public JourneySortEntry(
-        ResearchKey key,
-        ItemStack stack,
-        int nativeIndex,
-        String nativeFamily,
-        String modGroup,
-        String typeGroup,
-        String kindGroup,
-        String displayName,
-        long unlockSequence,
-        long activitySequence,
-        long favouriteSequence,
-        int canonicalIndex) {
+    public JourneySortEntry(ResearchKey key, ItemStack stack, int nativeIndex, String nativeFamily, String modGroup,
+        String typeGroup, String kindGroup, String displayName, long unlockSequence, long activitySequence,
+        long favouriteSequence, int canonicalIndex) {
+        this(key, stack, nativeIndex, nativeFamily, modGroup, typeGroup, kindGroup, displayName, unlockSequence,
+            activitySequence, issuedSequence(key), favouriteSequence, canonicalIndex);
+    }
+
+    public JourneySortEntry(ResearchKey key, ItemStack stack, int nativeIndex, String nativeFamily, String modGroup,
+        String typeGroup, String kindGroup, String displayName, long unlockSequence, long activitySequence,
+        long issuedSequence, long favouriteSequence, int canonicalIndex) {
         if (key == null) throw new IllegalArgumentException("key must not be null");
         this.key = key;
         this.stack = stack;
@@ -44,6 +44,7 @@ public final class JourneySortEntry {
         this.displayName = safe(displayName, key.getItemId());
         this.unlockSequence = unlockSequence;
         this.activitySequence = activitySequence;
+        this.issuedSequence = issuedSequence;
         this.favouriteSequence = favouriteSequence;
         this.canonicalIndex = canonicalIndex;
     }
@@ -58,10 +59,15 @@ public final class JourneySortEntry {
     public String displayName() { return displayName; }
     public long unlockSequence() { return unlockSequence; }
     public long activitySequence() { return activitySequence; }
+    public long issuedSequence() { return issuedSequence; }
     public long favouriteSequence() { return favouriteSequence; }
     public int canonicalIndex() { return canonicalIndex; }
 
-    private static String safe(String value, String fallback) {
-        return value == null || value.isEmpty() ? fallback : value;
+    private static long issuedSequence(ResearchKey key) {
+        if (key == null) return -1L;
+        try { return ClientIssuedMirror.sequence(ResearchFingerprint.of(key)); }
+        catch (RuntimeException ignored) { return -1L; }
     }
+
+    private static String safe(String value, String fallback) { return value == null || value.isEmpty() ? fallback : value; }
 }
