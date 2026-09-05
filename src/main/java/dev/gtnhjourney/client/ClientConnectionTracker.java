@@ -7,9 +7,10 @@ import dev.gtnhjourney.config.JourneyConfig;
 import dev.gtnhjourney.diagnostics.JourneyRuntimeCounters;
 import dev.gtnhjourney.minecraft.ResearchCompatibilityOptions;
 import dev.gtnhjourney.nei.JourneyNEIRefreshTracker;
+import dev.gtnhjourney.nei.JourneySortState;
 import dev.gtnhjourney.nei.JourneyViewState;
 
-/** Prevents research, command hints and remote-server identity rules from leaking into the next client session. */
+/** Prevents research, presentation state and remote-server identity rules from leaking into the next client session. */
 public final class ClientConnectionTracker {
 
     @SubscribeEvent
@@ -29,8 +30,10 @@ public final class ClientConnectionTracker {
     private static void resetClientSessionState() {
         ClientStackMirror.clear();
         ClientFavouriteMirror.clear();
+        ClientPresentationActivityMirror.clear();
         ClientCommandSuggestionState.clear();
         JourneyRuntimeCounters.reset();
+        JourneySortState.reset();
         JourneyViewState.setMode(JourneyViewState.Mode.ALL);
         JourneyNEIRefreshTracker.resetJourneyPanel();
         ResearchCompatibilityOptions.configure(
