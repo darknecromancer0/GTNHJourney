@@ -36,6 +36,11 @@ public final class ClientResearchMirror {
         revision++;
     }
 
+    /** Invalidates cached presentation when an existing research identity receives a newer exact ItemStack template. */
+    public static synchronized void invalidateTemplate() {
+        revision++;
+    }
+
     public static synchronized boolean remove(ResearchKey key) {
         if (key == null || !keys.contains(key)) return false;
         HashSet<ResearchKey> copy = new HashSet<ResearchKey>(keys);
