@@ -80,6 +80,7 @@ public final class InventoryResearchTracker {
             scanCaches.remove(player.getUniqueID());
         }
         reconcileRequests.discard(player.getUniqueID());
+        CreativeIssueResearchSuppressor.clear(player);
         ServerResearchSyncQueue.cancel(player);
     }
 
@@ -102,6 +103,7 @@ public final class InventoryResearchTracker {
             scanCaches.clear();
         }
         reconcileRequests.clear();
+        CreativeIssueResearchSuppressor.clearAll();
     }
 
     private void scanChanged(final EntityPlayerMP player, boolean force, final boolean sendIncrementalUnlocks) {
@@ -113,12 +115,14 @@ public final class InventoryResearchTracker {
                 @Override
                 public void visit(String slotId, ItemStack stack) {
                     if (!cache.shouldInspect(slotId, InventoryStackSignature.of(stack))) return;
+                    if (CreativeIssueResearchSuppressor.shouldSuppress(player, stack)) return;
                     if (sendIncrementalUnlocks) observations.observe(player, stack);
                     else research.unlock(player, stack);
                 }
             });
         } finally {
             cache.endPass();
+            CreativeIssueResearchSuppressor.retainPresent(player);
         }
     }
 
