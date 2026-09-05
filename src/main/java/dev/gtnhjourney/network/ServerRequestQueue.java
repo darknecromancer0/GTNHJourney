@@ -13,8 +13,8 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.PlayerEvent.PlayerLoggedOutEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 import dev.gtnhjourney.GTNHJourney;
-import dev.gtnhjourney.acquisition.CreativeIssueResearchSuppressor;
 import dev.gtnhjourney.acquisition.ManualInventoryResearchService;
+import dev.gtnhjourney.acquisition.ResearchObservationService;
 import dev.gtnhjourney.command.DebugToolPermissionPolicy;
 import dev.gtnhjourney.command.JourneyAdminPermissionPolicy;
 import dev.gtnhjourney.minecraft.ItemStackKeyFactory;
@@ -34,6 +34,7 @@ public final class ServerRequestQueue {
     private static final PendingRequestLimiter PER_PLAYER = new PendingRequestLimiter(MAX_PENDING_PER_PLAYER);
     private final PlayerResearchService research;
     private final JourneyMutationService mutations;
+    private final ResearchObservationService observations;
 
     public ServerRequestQueue(PlayerResearchService research) {
         this(research, null);
@@ -43,6 +44,7 @@ public final class ServerRequestQueue {
         if (research == null) throw new IllegalArgumentException("research must not be null");
         this.research = research;
         this.mutations = mutations;
+        this.observations = new ResearchObservationService(research, mutations);
     }
 
     public static void clearPending() {
@@ -197,7 +199,7 @@ public final class ServerRequestQueue {
         if (request.fillInventory) {
             int filled = MainInventoryFillService.fillEmptyMainSlots(player, template);
             if (filled <= 0) return;
-            CreativeIssueResearchSuppressor.mark(player, template);
+            observeCreativeIssue(player, template);
             player.inventoryContainer.detectAndSendChanges();
             JourneyNetwork.sendCreativeIssueSuccess(player, template);
             return;
@@ -210,9 +212,13 @@ public final class ServerRequestQueue {
         issued.stackSize = amount;
         player.inventory.addItemStackToInventory(issued);
         if (issued.stackSize > 0) player.dropPlayerItemWithRandomChoice(issued, false);
-        CreativeIssueResearchSuppressor.mark(player, template);
+        observeCreativeIssue(player, template);
         player.inventoryContainer.detectAndSendChanges();
         JourneyNetwork.sendCreativeIssueSuccess(player, template);
+    }
+
+    private void observeCreativeIssue(EntityPlayerMP player, ItemStack template) {
+        observations.observe(player, template);
     }
 
     private void handleDelete(EntityPlayerMP player, ResearchFingerprint fingerprint) {
