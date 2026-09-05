@@ -9,6 +9,7 @@ import net.minecraft.item.ItemStack;
 
 import codechicken.nei.Button;
 import codechicken.nei.ItemPanels;
+import codechicken.nei.NEIClientUtils;
 import codechicken.nei.guihook.IContainerDrawHandler;
 import codechicken.nei.guihook.IContainerInputHandler;
 import codechicken.nei.guihook.IContainerTooltipHandler;
@@ -234,23 +235,25 @@ public final class JourneyNEIToggleWidget
     public void postRenderObjects(GuiContainer gui, int mousex, int mousey) {
         if (!visible) return;
 
-        neiButton.draw(mousex, mousey);
-        researchButton.draw(mousex, mousey);
-        favouriteButton.draw(mousex, mousey);
-        creativeButton.draw(mousex, mousey);
-        deleteButton.draw(mousex, mousey);
+        NEIClientUtils.gl2DRenderContext(() -> {
+            neiButton.draw(mousex, mousey);
+            researchButton.draw(mousex, mousey);
+            favouriteButton.draw(mousex, mousey);
+            creativeButton.draw(mousex, mousey);
+            deleteButton.draw(mousex, mousey);
 
-        if (!rightControlsVisible) return;
+            if (!rightControlsVisible) return;
 
-        latestButton.draw(mousex, mousey);
-        if (scanVisible) scanButton.draw(mousex, mousey);
-        if (debugToolVisible) debugToolButton.draw(mousex, mousey);
-        groupDropdown.drawMain(mousex, mousey);
-        orderDropdown.drawMain(mousex, mousey);
+            latestButton.draw(mousex, mousey);
+            if (scanVisible) scanButton.draw(mousex, mousey);
+            if (debugToolVisible) debugToolButton.draw(mousex, mousey);
+            groupDropdown.drawMain(mousex, mousey);
+            orderDropdown.drawMain(mousex, mousey);
 
-        // Popup options are deliberately last so no Journey or native NEI item cell can cover them.
-        groupDropdown.drawOverlay(mousex, mousey);
-        orderDropdown.drawOverlay(mousex, mousey);
+            // Popup options are deliberately last so no Journey or native NEI item cell can cover them.
+            groupDropdown.drawOverlay(mousex, mousey);
+            orderDropdown.drawOverlay(mousex, mousey);
+        });
     }
 
     @Override
