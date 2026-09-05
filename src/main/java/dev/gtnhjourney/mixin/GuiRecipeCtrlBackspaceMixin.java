@@ -1,19 +1,21 @@
 package dev.gtnhjourney.mixin;
 
-import org.lwjgl.input.Keyboard;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import codechicken.nei.KeyManager;
+import codechicken.nei.LayoutManager;
 import codechicken.nei.NEIClientUtils;
 import codechicken.nei.recipe.GuiRecipe;
+import dev.gtnhjourney.nei.JourneyRecipeBackGuard;
 
 /**
- * NEI's recipe.back binding checks only whether Backspace is down, so Ctrl+Backspace can navigate away from a recipe
- * screen after normal text/input handling has finished. Cancel only that modified chord immediately before NEI evaluates
- * recipe.back. Plain Backspace keeps its native recipe-history behavior, and a focused recipe search field still handles
- * Ctrl+Backspace earlier in GuiRecipe.keyTyped().
+ * NEI's recipe.back check reads the physical key state, not the current keyTyped event. While Backspace is held, a
+ * repeat or unrelated keyboard event can therefore reach recipe.back even after the original Ctrl+Backspace event was
+ * consumed. Suppress recipe navigation whenever recipe.back is physically down and Ctrl is still held or the main NEI
+ * search field still owns keyboard focus. Plain Backspace outside search keeps native recipe-history behavior.
  */
 @Mixin(value = GuiRecipe.class, remap = false)
 public abstract class GuiRecipeCtrlBackspaceMixin {
@@ -27,7 +29,14 @@ public abstract class GuiRecipeCtrlBackspaceMixin {
             remap = false),
         cancellable = true,
         remap = true)
-    private void gtnhjourney$doNotTreatCtrlBackspaceAsRecipeBack(char character, int keyCode, CallbackInfo ci) {
-        if (keyCode == Keyboard.KEY_BACK && NEIClientUtils.controlKey()) ci.cancel();
+    private void gtnhjourney$doNotTreatSearchBackspaceAsRecipeBack(char character, int keyCode, CallbackInfo ci) {
+        boolean mainSearchFocused = LayoutManager.searchField != null && LayoutManager.searchField.isVisible()
+            && LayoutManager.searchField.focused();
+        if (JourneyRecipeBackGuard.shouldSuppress(
+            KeyManager.isKeyDown("recipe.back"),
+            NEIClientUtils.controlKey(),
+            mainSearchFocused)) {
+            ci.cancel();
+        }
     }
 }
