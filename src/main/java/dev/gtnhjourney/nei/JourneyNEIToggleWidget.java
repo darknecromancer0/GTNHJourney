@@ -167,14 +167,37 @@ public final class JourneyNEIToggleWidget
     };
 
     private boolean visible;
+    private boolean rightControlsVisible;
     private boolean scanVisible;
     private boolean debugToolVisible;
     private JourneyHeaderLayout.Layout layout;
 
     @Override
     public void onPreDraw(GuiContainer gui) {
-        visible = ItemPanels.itemPanel.pagePrev != null && ItemPanels.itemPanel.pageNext != null;
+        visible = ItemPanels.itemPanel.pagePrev != null;
+        rightControlsVisible = false;
+        scanVisible = false;
+        debugToolVisible = false;
+
         if (!visible) {
+            layout = null;
+            groupDropdown.close();
+            orderDropdown.close();
+            return;
+        }
+
+        JourneyHeaderLayout.LeftLayout left = JourneyHeaderLayout.left(
+            ItemPanels.itemPanel.pagePrev.x,
+            ItemPanels.itemPanel.pagePrev.y,
+            ItemPanels.itemPanel.pagePrev.w);
+        place(neiButton, left.nei);
+        place(researchButton, left.researched);
+        place(favouriteButton, left.favourite);
+        place(creativeButton, left.creative);
+        place(deleteButton, left.delete);
+
+        if (ItemPanels.itemPanel.pageNext == null) {
+            layout = null;
             groupDropdown.close();
             orderDropdown.close();
             return;
@@ -186,12 +209,7 @@ public final class JourneyNEIToggleWidget
             ItemPanels.itemPanel.pagePrev.w,
             ItemPanels.itemPanel.pageNext.x,
             ItemPanels.itemPanel.pageNext.w);
-
-        place(neiButton, layout.nei);
-        place(researchButton, layout.researched);
-        place(favouriteButton, layout.favourite);
-        place(creativeButton, layout.creative);
-        place(deleteButton, layout.delete);
+        rightControlsVisible = true;
         place(latestButton, layout.latest);
         groupDropdown.place(layout.group);
         orderDropdown.place(layout.order);
@@ -210,23 +228,27 @@ public final class JourneyNEIToggleWidget
     }
 
     @Override
-    public void renderObjects(GuiContainer gui, int mousex, int mousey) {
+    public void renderObjects(GuiContainer gui, int mousex, int mousey) {}
+
+    @Override
+    public void postRenderObjects(GuiContainer gui, int mousex, int mousey) {
         if (!visible) return;
+
         neiButton.draw(mousex, mousey);
         researchButton.draw(mousex, mousey);
         favouriteButton.draw(mousex, mousey);
         creativeButton.draw(mousex, mousey);
         deleteButton.draw(mousex, mousey);
+
+        if (!rightControlsVisible) return;
+
         latestButton.draw(mousex, mousey);
         if (scanVisible) scanButton.draw(mousex, mousey);
         if (debugToolVisible) debugToolButton.draw(mousex, mousey);
         groupDropdown.drawMain(mousex, mousey);
         orderDropdown.drawMain(mousex, mousey);
-    }
 
-    @Override
-    public void postRenderObjects(GuiContainer gui, int mousex, int mousey) {
-        if (!visible) return;
+        // Popup options are deliberately last so no Journey or native NEI item cell can cover them.
         groupDropdown.drawOverlay(mousex, mousey);
         orderDropdown.drawOverlay(mousex, mousey);
     }
@@ -240,15 +262,18 @@ public final class JourneyNEIToggleWidget
     @Override
     public boolean mouseClicked(GuiContainer gui, int mousex, int mousey, int mouseButton) {
         if (!visible) return false;
-        if (groupDropdown.isOpen() && consume(groupDropdown.click(mousex, mousey, mouseButton))) return true;
-        if (orderDropdown.isOpen() && consume(orderDropdown.click(mousex, mousey, mouseButton))) return true;
-        if (consume(groupDropdown.click(mousex, mousey, mouseButton))) return true;
-        if (consume(orderDropdown.click(mousex, mousey, mouseButton))) return true;
+        if (rightControlsVisible) {
+            if (groupDropdown.isOpen() && consume(groupDropdown.click(mousex, mousey, mouseButton))) return true;
+            if (orderDropdown.isOpen() && consume(orderDropdown.click(mousex, mousey, mouseButton))) return true;
+            if (consume(groupDropdown.click(mousex, mousey, mouseButton))) return true;
+            if (consume(orderDropdown.click(mousex, mousey, mouseButton))) return true;
+        }
         if (consume(click(neiButton, mousex, mousey, mouseButton))) return true;
         if (consume(click(researchButton, mousex, mousey, mouseButton))) return true;
         if (consume(click(favouriteButton, mousex, mousey, mouseButton))) return true;
         if (consume(click(creativeButton, mousex, mousey, mouseButton))) return true;
         if (consume(click(deleteButton, mousex, mousey, mouseButton))) return true;
+        if (!rightControlsVisible) return false;
         if (consume(click(latestButton, mousex, mousey, mouseButton))) return true;
         if (scanVisible && consume(click(scanButton, mousex, mousey, mouseButton))) return true;
         return debugToolVisible && consume(click(debugToolButton, mousex, mousey, mouseButton));
@@ -278,6 +303,7 @@ public final class JourneyNEIToggleWidget
         favouriteButton.handleTooltip(mousex, mousey, currenttip);
         creativeButton.handleTooltip(mousex, mousey, currenttip);
         deleteButton.handleTooltip(mousex, mousey, currenttip);
+        if (!rightControlsVisible) return currenttip;
         latestButton.handleTooltip(mousex, mousey, currenttip);
         groupDropdown.tooltip(mousex, mousey, currenttip);
         orderDropdown.tooltip(mousex, mousey, currenttip);
