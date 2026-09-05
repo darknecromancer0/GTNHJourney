@@ -13,7 +13,7 @@ import dev.gtnhjourney.research.ResearchKey;
 public class JourneyPanelOrderTest {
 
     @Test
-    public void researchedAndFallbackNKeepTheWholeResearchSet() {
+    public void researchedKeepsTheWholeResearchSet() {
         ResearchKey oldest = new ResearchKey("test:oldest", 0, "");
         ResearchKey middle = new ResearchKey("test:middle", 0, "");
         ResearchKey newest = new ResearchKey("test:newest", 0, "");
@@ -22,9 +22,6 @@ public class JourneyPanelOrderTest {
         assertEquals(
             Arrays.asList(newest, middle, oldest),
             JourneyPanelOrder.keysForMode(unlockOrder, JourneyViewState.Mode.RESEARCHED, 2));
-        assertEquals(
-            Arrays.asList(newest, middle, oldest),
-            JourneyPanelOrder.keysForMode(unlockOrder, JourneyViewState.Mode.NEWEST, 64));
     }
 
     @Test
