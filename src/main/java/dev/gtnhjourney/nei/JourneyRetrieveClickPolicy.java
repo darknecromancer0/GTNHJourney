@@ -11,10 +11,9 @@ public final class JourneyRetrieveClickPolicy {
         return (button == 0 || button == 1) && controlDown;
     }
 
-    /** Alt+LMB only adds from J (researched) or N (newest). */
+    /** Alt+LMB only adds from J (researched). */
     public static boolean shouldAddFavourite(JourneyViewState.Mode mode, int button, boolean altDown) {
-        if (button != 0 || !altDown || mode == null) return false;
-        return mode == JourneyViewState.Mode.RESEARCHED || mode == JourneyViewState.Mode.NEWEST;
+        return button == 0 && altDown && mode == JourneyViewState.Mode.RESEARCHED;
     }
 
     /** Alt+RMB only removes from F (favourites). */
