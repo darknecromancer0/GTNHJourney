@@ -20,8 +20,8 @@ public final class FavouriteRequestQueue {
 
     private static final Queue<Request> REQUESTS = new ConcurrentLinkedQueue<Request>();
 
-    static void enqueue(EntityPlayerMP player, ResearchFingerprint fingerprint) {
-        if (player != null && fingerprint != null) REQUESTS.add(new Request(player, fingerprint));
+    static void enqueue(EntityPlayerMP player, ResearchFingerprint fingerprint, boolean favourite) {
+        if (player != null && fingerprint != null) REQUESTS.add(new Request(player, fingerprint, favourite));
     }
 
     public static void clear() { REQUESTS.clear(); }
@@ -41,12 +41,18 @@ public final class FavouriteRequestQueue {
         World root = DimensionManager.getWorld(0);
         JourneyFavouriteData data = JourneyFavouriteData.get(root == null ? player.worldObj : root);
         boolean before = data.contains(player.getUniqueID(), request.fingerprint);
-        boolean after = data.toggle(player.getUniqueID(), request.fingerprint);
-        if (before != after && GTNHJourney.ACTIONS != null) {
+        boolean changed = data.set(player.getUniqueID(), request.fingerprint, request.favourite);
+        boolean after = data.contains(player.getUniqueID(), request.fingerprint);
+        if (changed && before != after && GTNHJourney.ACTIONS != null) {
             NBTTagCompound beforeTag = favouriteState(request.fingerprint, before);
             NBTTagCompound afterTag = favouriteState(request.fingerprint, after);
             GTNHJourney.MUTATIONS.notePassiveMutation(player);
-            GTNHJourney.ACTIONS.record(player, JourneyActionKind.FAVOURITE, "Favourite toggle", beforeTag, afterTag);
+            GTNHJourney.ACTIONS.record(
+                player,
+                JourneyActionKind.FAVOURITE,
+                request.favourite ? "Favourite add" : "Favourite remove",
+                beforeTag,
+                afterTag);
         }
         Journey1124Network.sendFavourites(player, data.snapshot(player.getUniqueID()));
     }
@@ -61,9 +67,11 @@ public final class FavouriteRequestQueue {
     private static final class Request {
         final EntityPlayerMP player;
         final ResearchFingerprint fingerprint;
-        Request(EntityPlayerMP player, ResearchFingerprint fingerprint) {
+        final boolean favourite;
+        Request(EntityPlayerMP player, ResearchFingerprint fingerprint, boolean favourite) {
             this.player = player;
             this.fingerprint = fingerprint;
+            this.favourite = favourite;
         }
     }
 }
