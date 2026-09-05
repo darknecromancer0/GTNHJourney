@@ -1,7 +1,9 @@
 package dev.gtnhjourney.network;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import net.minecraft.entity.player.EntityPlayerMP;
 
@@ -15,10 +17,11 @@ import cpw.mods.fml.relauncher.Side;
 import dev.gtnhjourney.client.ClientCommandSuggestionState;
 import dev.gtnhjourney.client.ClientFavouriteMirror;
 import dev.gtnhjourney.client.ClientNetworkQueue;
+import dev.gtnhjourney.persistence.JourneyFavouriteData;
 import dev.gtnhjourney.research.ResearchFingerprint;
 import io.netty.buffer.ByteBuf;
 
-/** Auxiliary channel for 1.1.24+ favourite state and global command completion. */
+/** Auxiliary channel for favourite state/chronology and global command completion. */
 public final class Journey1124Network {
 
     private static final int MAX_FAVOURITES = 4096;
@@ -44,7 +47,7 @@ public final class Journey1124Network {
         CHANNEL.sendToServer(new CommandSuggestionRequest(requestId, limit(prefix, MAX_COMMAND_PREFIX)));
     }
 
-    public static void sendFavourites(EntityPlayerMP player, List<ResearchFingerprint> values) {
+    public static void sendFavourites(EntityPlayerMP player, List<JourneyFavouriteData.FavouriteEntry> values) {
         if (player == null || player.playerNetServerHandler == null) return;
         CHANNEL.sendTo(new FavouriteSync(values), player);
     }
@@ -82,31 +85,40 @@ public final class Journey1124Network {
     }
 
     public static final class FavouriteSync implements IMessage {
-        private final List<ResearchFingerprint> values = new ArrayList<ResearchFingerprint>();
+        private final LinkedHashMap<ResearchFingerprint, Long> values = new LinkedHashMap<ResearchFingerprint, Long>();
         public FavouriteSync() {}
-        FavouriteSync(List<ResearchFingerprint> source) {
+        FavouriteSync(List<JourneyFavouriteData.FavouriteEntry> source) {
             if (source != null) {
-                for (ResearchFingerprint value : source) {
-                    if (value != null && values.size() < MAX_FAVOURITES) values.add(value);
+                for (JourneyFavouriteData.FavouriteEntry value : source) {
+                    if (value == null || value.fingerprint() == null || values.size() >= MAX_FAVOURITES) continue;
+                    values.put(value.fingerprint(), Long.valueOf(value.addedSequence()));
                 }
             }
         }
         @Override public void fromBytes(ByteBuf buf) {
             values.clear();
             int count = Math.max(0, Math.min(MAX_FAVOURITES, buf.readInt()));
-            for (int i = 0; i < count; i++) values.add(ResearchFingerprintBuf.read(buf));
+            for (int i = 0; i < count; i++) {
+                ResearchFingerprint fingerprint = ResearchFingerprintBuf.read(buf);
+                long sequence = buf.readLong();
+                if (fingerprint != null) values.put(fingerprint, Long.valueOf(sequence));
+            }
         }
         @Override public void toBytes(ByteBuf buf) {
             buf.writeInt(values.size());
-            for (ResearchFingerprint value : values) ResearchFingerprintBuf.write(buf, value);
+            for (Map.Entry<ResearchFingerprint, Long> value : values.entrySet()) {
+                ResearchFingerprintBuf.write(buf, value.getKey());
+                buf.writeLong(value.getValue().longValue());
+            }
         }
 
         public static final class Handler implements IMessageHandler<FavouriteSync, IMessage> {
             @Override public IMessage onMessage(final FavouriteSync message, MessageContext ctx) {
                 if (message == null) return null;
-                final List<ResearchFingerprint> copy = new ArrayList<ResearchFingerprint>(message.values);
+                final LinkedHashMap<ResearchFingerprint, Long> copy =
+                    new LinkedHashMap<ResearchFingerprint, Long>(message.values);
                 ClientNetworkQueue.enqueue(new Runnable() {
-                    @Override public void run() { ClientFavouriteMirror.replace(copy); }
+                    @Override public void run() { ClientFavouriteMirror.replaceEntries(copy); }
                 });
                 return null;
             }
