@@ -15,32 +15,23 @@ public final class ClientConnectionTracker {
     @SubscribeEvent
     public void onConnect(ClientConnectedToServerEvent event) {
         ClientNetworkQueue.beginSession(new Runnable() {
-
-            @Override
-            public void run() {
-                resetClientSessionState();
-            }
+            @Override public void run() { resetClientSessionState(); }
         });
     }
 
     @SubscribeEvent
     public void onDisconnect(ClientDisconnectionFromServerEvent event) {
         ClientNetworkQueue.endSession(new Runnable() {
-
-            @Override
-            public void run() {
-                resetClientSessionState();
-            }
+            @Override public void run() { resetClientSessionState(); }
         });
     }
 
     private static void resetClientSessionState() {
         ClientStackMirror.clear();
+        ClientFavouriteMirror.clear();
         JourneyRuntimeCounters.reset();
         JourneyViewState.setMode(JourneyViewState.Mode.ALL);
         JourneyNEIRefreshTracker.resetJourneyPanel();
-        // Remote server identity rules are client-only session state. Restore local config so a later integrated
-        // server in the same JVM cannot inherit another server's semantic policy.
         ResearchCompatibilityOptions.configure(
             JourneyConfig.normalizeGtTransientIdentity(),
             JourneyConfig.resetGtToolTemplateState(),
