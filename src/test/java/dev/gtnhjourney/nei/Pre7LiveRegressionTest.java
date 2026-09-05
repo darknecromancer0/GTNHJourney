@@ -23,25 +23,18 @@ import net.minecraft.item.ItemStack;
 public class Pre7LiveRegressionTest {
 
     @Test
-    public void nShowsTheFullJSetButUsesMeaningfulActivityOrder() {
-        ResearchKey log = new ResearchKey("test:log", 0, "");
-        ResearchKey stone = new ResearchKey("test:stone", 0, "");
-        ResearchKey potato = new ResearchKey("test:potato", 0, "");
-        List<ResearchKey> researchOldestFirst = Arrays.asList(log, stone, potato);
-        List<ResearchKey> activityOldestFirst = Arrays.asList(stone, potato, log);
+    public void latestModifierKeepsTheFullJSetButUsesMeaningfulActivityOrder() {
+        JourneySortEntry log = entry("test:log", 1, 30);
+        JourneySortEntry stone = entry("test:stone", 2, 10);
+        JourneySortEntry potato = entry("test:potato", 3, 20);
 
-        assertEquals(
-            Arrays.asList(potato, stone, log),
-            JourneyPanelOrder.keysForMode(
-                researchOldestFirst,
-                activityOldestFirst,
-                JourneyViewState.Mode.RESEARCHED));
-        assertEquals(
-            Arrays.asList(log, potato, stone),
-            JourneyPanelOrder.keysForMode(
-                researchOldestFirst,
-                activityOldestFirst,
-                JourneyViewState.Mode.NEWEST));
+        List<JourneySortEntry> result = JourneySortPlanner.sort(
+            Arrays.asList(log, stone, potato),
+            JourneyGroupMode.NONE,
+            JourneyOrderMode.NONE,
+            true);
+
+        assertEquals(Arrays.asList(log, potato, stone), result);
     }
 
     @Test
@@ -96,5 +89,11 @@ public class Pre7LiveRegressionTest {
     public void journeyForcesTheNeiItemSectionVisibleInCreativeScreens() {
         assertTrue(JourneyCreativeVisibilityPolicy.forceItemSection(true));
         assertFalse(JourneyCreativeVisibilityPolicy.forceItemSection(false));
+    }
+
+    private static JourneySortEntry entry(String id, long unlock, long activity) {
+        ResearchKey key = new ResearchKey(id, 0, "");
+        return new JourneySortEntry(
+            key, null, (int) unlock, id, "test", "misc", "misc", id, unlock, activity, 0L, (int) unlock);
     }
 }
