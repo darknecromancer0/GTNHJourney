@@ -28,7 +28,7 @@ public class StoredResearchVisibilityTest {
     }
 
     @Test
-    public void nFallbackKeepsEveryStoredResearchStateWhenNoSeparateActivitySnapshotIsAvailable() {
+    public void latestSortingDoesNotChangeTheUnderlyingStoredResearchMembership() {
         ResearchKey drillBase = new ResearchKey("IC2:itemToolDrill", 26, "");
         ResearchKey drillFull = new ResearchKey("IC2:itemToolDrill", 1, "10{6:charge=6:30000.0d;}");
         ResearchKey filledCell = new ResearchKey(
@@ -40,7 +40,7 @@ public class StoredResearchVisibilityTest {
             Arrays.asList(filledCell, drillFull, drillBase),
             JourneyPanelSnapshot.keys(
                 Arrays.asList(drillBase, drillFull, filledCell),
-                JourneyViewState.Mode.NEWEST,
+                JourneyViewState.Mode.RESEARCHED,
                 2));
     }
 }
