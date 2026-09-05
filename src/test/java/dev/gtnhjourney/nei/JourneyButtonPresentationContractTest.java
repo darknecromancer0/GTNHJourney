@@ -14,16 +14,27 @@ public class JourneyButtonPresentationContractTest {
 
         assertTrue(inactive.contains("all researched"));
         assertTrue(inactive.contains("recent Journey activity"));
+        assertTrue(inactive.contains("Alt+LMB adds to F"));
         assertTrue(active.contains("all researched"));
         assertTrue(active.contains("recent Journey activity"));
+        assertTrue(active.contains("Alt+LMB adds to F"));
     }
 
     @Test
-    public void scanAndDebugButtonsOnlyAppearWhenHeaderHasRoom() {
-        assertFalse(JourneyButtonPresentation.scanVisible(167));
-        assertTrue(JourneyButtonPresentation.scanVisible(168));
-        assertFalse(JourneyButtonPresentation.debugToolVisible(185));
-        assertTrue(JourneyButtonPresentation.debugToolVisible(186));
+    public void scanAndDebugButtonsOnlyAppearWhenHeaderHasRoomAfterFCDButtons() {
+        assertFalse(JourneyButtonPresentation.scanVisible(203));
+        assertTrue(JourneyButtonPresentation.scanVisible(204));
+        assertFalse(JourneyButtonPresentation.debugToolVisible(221));
+        assertTrue(JourneyButtonPresentation.debugToolVisible(222));
+    }
+
+    @Test
+    public void favouriteTooltipUsesDirectionalAddAndRemoveGestures() {
+        String inactive = JourneyButtonPresentation.favouriteTooltip(false);
+        String active = JourneyButtonPresentation.favouriteTooltip(true);
+        assertTrue(inactive.contains("Alt+LMB from J/N"));
+        assertTrue(inactive.contains("Alt+RMB in F"));
+        assertTrue(active.contains("Alt+RMB removes from F"));
     }
 
     @Test
