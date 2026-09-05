@@ -12,30 +12,24 @@ final class JourneyHeaderLayout {
 
     static Layout layout(int pagePrevX, int pagePrevY, int pagePrevW, int pageNextX, int pageNextW) {
         int x = pagePrevX + pagePrevW + GAP;
-        Slot nei = slot(x, pagePrevY, NEI_WIDTH); x = nei.right() + GAP;
-        Slot researched = slot(x, pagePrevY, SMALL); x = researched.right() + GAP;
-        Slot favourite = slot(x, pagePrevY, SMALL); x = favourite.right() + GAP;
-        Slot creative = slot(x, pagePrevY, SMALL); x = creative.right() + GAP;
-        Slot delete = slot(x, pagePrevY, SMALL); x = delete.right() + GAP;
-        Slot latest = slot(x, pagePrevY, SMALL); x = latest.right() + GAP;
-        Slot group = slot(x, pagePrevY, SMALL); x = group.right() + GAP;
-        Slot order = slot(x, pagePrevY, SMALL);
-        int leftEnd = order.right();
+        Slot nei = slot(x, pagePrevY, NEI_WIDTH);
+        x = nei.right() + GAP;
+        Slot researched = slot(x, pagePrevY, SMALL);
+        x = researched.right() + GAP;
+        Slot favourite = slot(x, pagePrevY, SMALL);
+        x = favourite.right() + GAP;
+        Slot creative = slot(x, pagePrevY, SMALL);
+        x = creative.right() + GAP;
+        Slot delete = slot(x, pagePrevY, SMALL);
+        int leftEnd = delete.right();
 
         // ItemPanel.resizeHeader places native G immediately left of pageNext with a 2 px gap.
         int nativeGX = pageNextX - pageNextW - GAP;
         Slot nativeG = slot(nativeGX, pagePrevY, pageNextW);
-        Slot debug = slot(nativeG.x - GAP - SMALL, pagePrevY, SMALL);
-        Slot scan = slot(debug.x - GAP - SMALL, pagePrevY, SMALL);
 
-        boolean scanVisible = leftEnd + GAP <= scan.x;
-        boolean debugVisible = scanVisible;
-        if (!scanVisible && leftEnd + GAP <= debug.x) {
-            // Prefer the frequently used scan button if only one service slot fits.
-            scan = debug;
-            scanVisible = true;
-            debugVisible = false;
-        }
+        RightCluster cluster = rightCluster(nativeG, pagePrevY, 2);
+        if (!fits(leftEnd, cluster.latest)) cluster = rightCluster(nativeG, pagePrevY, 1);
+        if (!fits(leftEnd, cluster.latest)) cluster = rightCluster(nativeG, pagePrevY, 0);
 
         return new Layout(
             nei,
@@ -43,17 +37,63 @@ final class JourneyHeaderLayout {
             favourite,
             creative,
             delete,
-            latest,
-            group,
-            order,
-            scan,
-            debug,
+            cluster.latest,
+            cluster.group,
+            cluster.order,
+            cluster.scan,
+            cluster.debug,
             nativeG,
-            scanVisible,
-            debugVisible);
+            cluster.serviceCount >= 1,
+            cluster.serviceCount >= 2);
     }
 
-    private static Slot slot(int x, int y, int width) { return new Slot(x, y, width, HEIGHT); }
+    private static boolean fits(int leftEnd, Slot latest) {
+        return latest != null && leftEnd + GAP <= latest.x;
+    }
+
+    private static RightCluster rightCluster(Slot nativeG, int y, int serviceCount) {
+        int services = Math.max(0, Math.min(2, serviceCount));
+        Slot immediateLeft = slot(nativeG.x - GAP - SMALL, y, SMALL);
+        Slot debug = immediateLeft;
+        Slot scan = slot(immediateLeft.x - GAP - SMALL, y, SMALL);
+        int cursor;
+
+        if (services >= 2) {
+            cursor = scan.x;
+        } else if (services == 1) {
+            scan = immediateLeft;
+            cursor = scan.x;
+        } else {
+            cursor = nativeG.x;
+        }
+
+        Slot order = slot(cursor - GAP - SMALL, y, SMALL);
+        Slot group = slot(order.x - GAP - SMALL, y, SMALL);
+        Slot latest = slot(group.x - GAP - SMALL, y, SMALL);
+        return new RightCluster(latest, group, order, scan, debug, services);
+    }
+
+    private static Slot slot(int x, int y, int width) {
+        return new Slot(x, y, width, HEIGHT);
+    }
+
+    private static final class RightCluster {
+        final Slot latest;
+        final Slot group;
+        final Slot order;
+        final Slot scan;
+        final Slot debug;
+        final int serviceCount;
+
+        RightCluster(Slot latest, Slot group, Slot order, Slot scan, Slot debug, int serviceCount) {
+            this.latest = latest;
+            this.group = group;
+            this.order = order;
+            this.scan = scan;
+            this.debug = debug;
+            this.serviceCount = serviceCount;
+        }
+    }
 
     static final class Layout {
         final Slot nei;
@@ -113,8 +153,14 @@ final class JourneyHeaderLayout {
             this.h = h;
         }
 
-        int right() { return x + w; }
-        boolean contains(int px, int py) { return px >= x && py >= y && px < x + w && py < y + h; }
+        int right() {
+            return x + w;
+        }
+
+        boolean contains(int px, int py) {
+            return px >= x && py >= y && px < x + w && py < y + h;
+        }
+
         boolean overlaps(Slot other) {
             return other != null && x < other.x + other.w && x + w > other.x && y < other.y + other.h && y + h > other.y;
         }
