@@ -14,7 +14,7 @@ import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
 
-/** Native-looking J/N/F/C/D/S/T controls in NEI's item-panel header. */
+/** Native-looking J/F/C/D/S/T controls in NEI's item-panel header. Sorting controls are added separately in 1.1.26. */
 public final class JourneyNEIToggleWidget
     implements IContainerDrawHandler, IContainerInputHandler, IContainerTooltipHandler {
 
@@ -25,15 +25,6 @@ public final class JourneyNEIToggleWidget
         }
         @Override public void draw(int mousex, int mousey) {
             state = JourneyViewState.mode() == JourneyViewState.Mode.RESEARCHED ? 1 : 0;
-            super.draw(mousex, mousey);
-        }
-    };
-
-    private final Button newestButton = new Button("N") {
-        @Override public boolean onButtonPress(boolean rightclick) { JourneyViewState.toggleNewest(); return true; }
-        @Override public String getButtonTip() { return JourneyButtonPresentation.newestTooltip(JourneyViewState.isNewest()); }
-        @Override public void draw(int mousex, int mousey) {
-            state = JourneyViewState.mode() == JourneyViewState.Mode.NEWEST ? 1 : 0;
             super.draw(mousex, mousey);
         }
     };
@@ -80,7 +71,6 @@ public final class JourneyNEIToggleWidget
     };
 
     private boolean visible;
-    private boolean newestVisible;
     private boolean favouriteVisible;
     private boolean creativeVisible;
     private boolean deleteVisible;
@@ -91,7 +81,6 @@ public final class JourneyNEIToggleWidget
     public void onPreDraw(GuiContainer gui) {
         int width = ItemPanels.itemPanel.w;
         visible = ItemPanels.itemPanel.pagePrev != null && JourneyButtonPresentation.researchVisible(width);
-        newestVisible = visible && JourneyButtonPresentation.newestVisible(width);
         favouriteVisible = visible && JourneyButtonPresentation.favouriteVisible(width);
         creativeVisible = visible && JourneyButtonPresentation.creativeVisible(width);
         deleteVisible = visible && JourneyButtonPresentation.deleteVisible(width);
@@ -99,12 +88,11 @@ public final class JourneyNEIToggleWidget
         debugToolVisible = visible && JourneyButtonPresentation.debugToolVisible(width);
         if (!visible) return;
         place(researchButton, 18);
-        if (newestVisible) place(newestButton, 36);
-        if (favouriteVisible) place(favouriteButton, 54);
-        if (creativeVisible) place(creativeButton, 72);
-        if (deleteVisible) place(deleteButton, 90);
-        if (scanVisible) place(scanButton, 108);
-        if (debugToolVisible) place(debugToolButton, 126);
+        if (favouriteVisible) place(favouriteButton, 36);
+        if (creativeVisible) place(creativeButton, 54);
+        if (deleteVisible) place(deleteButton, 72);
+        if (scanVisible) place(scanButton, 90);
+        if (debugToolVisible) place(debugToolButton, 108);
     }
 
     private static void place(Button button, int offset) {
@@ -116,7 +104,6 @@ public final class JourneyNEIToggleWidget
 
     @Override public void renderObjects(GuiContainer gui, int mousex, int mousey) {
         if (visible) researchButton.draw(mousex, mousey);
-        if (newestVisible) newestButton.draw(mousex, mousey);
         if (favouriteVisible) favouriteButton.draw(mousex, mousey);
         if (creativeVisible) creativeButton.draw(mousex, mousey);
         if (deleteVisible) deleteButton.draw(mousex, mousey);
@@ -130,7 +117,6 @@ public final class JourneyNEIToggleWidget
 
     @Override public boolean mouseClicked(GuiContainer gui, int mousex, int mousey, int mouseButton) {
         if (click(visible, researchButton, mousex, mousey, mouseButton)) return true;
-        if (click(newestVisible, newestButton, mousex, mousey, mouseButton)) return true;
         if (click(favouriteVisible, favouriteButton, mousex, mousey, mouseButton)) return true;
         if (click(creativeVisible, creativeButton, mousex, mousey, mouseButton)) return true;
         if (click(deleteVisible, deleteButton, mousex, mousey, mouseButton)) return true;
@@ -146,7 +132,6 @@ public final class JourneyNEIToggleWidget
 
     @Override public List<String> handleTooltip(GuiContainer gui, int mousex, int mousey, List<String> currenttip) {
         if (visible) researchButton.handleTooltip(mousex, mousey, currenttip);
-        if (newestVisible) newestButton.handleTooltip(mousex, mousey, currenttip);
         if (favouriteVisible) favouriteButton.handleTooltip(mousex, mousey, currenttip);
         if (creativeVisible) creativeButton.handleTooltip(mousex, mousey, currenttip);
         if (deleteVisible) deleteButton.handleTooltip(mousex, mousey, currenttip);
