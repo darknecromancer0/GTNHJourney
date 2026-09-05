@@ -17,6 +17,7 @@ import cpw.mods.fml.common.event.FMLServerStoppingEvent;
 import cpw.mods.fml.common.registry.GameRegistry;
 import dev.gtnhjourney.acquisition.FurnaceOwnershipTracker;
 import dev.gtnhjourney.acquisition.InventoryResearchTracker;
+import dev.gtnhjourney.acquisition.MobSpawnerPlacementHandler;
 import dev.gtnhjourney.acquisition.ResearchObservationService;
 import dev.gtnhjourney.backup.WorldBackupCoordinator;
 import dev.gtnhjourney.backup.WorldBackupTicker;
@@ -72,6 +73,7 @@ public final class GTNHJourney {
         new ReflectiveServerTickRateAdapter());
     private static final MachineTickAccelerator MACHINE_TICK_ACCELERATOR = new MachineTickAccelerator(SPEED);
     private static final WorldBackupTicker WORLD_BACKUP_TICKER = new WorldBackupTicker(WORLD_BACKUPS);
+    private static final MobSpawnerPlacementHandler MOB_SPAWNER_PLACEMENT = new MobSpawnerPlacementHandler();
     public static JourneyMutationService MUTATIONS;
     public static JourneyReversibleActionService ACTIONS;
     public static JourneyUndoCoordinator UNDO;
@@ -114,6 +116,7 @@ public final class GTNHJourney {
         MinecraftForge.EVENT_BUS.register(inventoryTracker);
         MinecraftForge.EVENT_BUS.register(furnaceTracker);
         MinecraftForge.EVENT_BUS.register(DEATH_GUARD);
+        MinecraftForge.EVENT_BUS.register(MOB_SPAWNER_PLACEMENT);
         FMLCommonHandler.instance().bus().register(new ServerRequestQueue(RESEARCH, MUTATIONS));
         FMLCommonHandler.instance().bus().register(new ServerResearchSyncQueue());
         FMLCommonHandler.instance().bus().register(SNAPSHOT_TICKER);
