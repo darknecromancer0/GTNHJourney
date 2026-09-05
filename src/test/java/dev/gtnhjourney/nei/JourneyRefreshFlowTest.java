@@ -11,7 +11,8 @@ public class JourneyRefreshFlowTest {
     public void journeyModeFilterNeverRecursivelyFiltersControllerOwnedPanel() {
         assertTrue(JourneyItemFilterModePolicy.allowThrough(JourneyViewState.Mode.ALL));
         assertTrue(JourneyItemFilterModePolicy.allowThrough(JourneyViewState.Mode.RESEARCHED));
-        assertTrue(JourneyItemFilterModePolicy.allowThrough(JourneyViewState.Mode.NEWEST));
+        assertTrue(JourneyItemFilterModePolicy.allowThrough(JourneyViewState.Mode.FAVOURITE));
+        assertTrue(JourneyItemFilterModePolicy.allowThrough(JourneyViewState.Mode.CREATIVE));
     }
 
     @Test
@@ -21,7 +22,7 @@ public class JourneyRefreshFlowTest {
             JourneyRefreshDecision.decide(JourneyViewState.Mode.RESEARCHED, true, false));
         assertEquals(
             JourneyRefreshDecision.Action.PANEL_ENSURE,
-            JourneyRefreshDecision.decide(JourneyViewState.Mode.NEWEST, false, false));
+            JourneyRefreshDecision.decide(JourneyViewState.Mode.FAVOURITE, false, false));
         assertEquals(
             JourneyRefreshDecision.Action.NEI_FILTER_REFRESH,
             JourneyRefreshDecision.decide(JourneyViewState.Mode.ALL, false, true));
