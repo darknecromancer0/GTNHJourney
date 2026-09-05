@@ -24,6 +24,7 @@ public final class ClientStackMirror {
     private static int expectedSyncedTotal;
     private static int previousServerAvailableTotal;
     private static int previousExpectedSyncedTotal;
+    private static long revision;
 
     private ClientStackMirror() {}
 
@@ -85,6 +86,7 @@ public final class ClientStackMirror {
         syncing = false;
         previousServerAvailableTotal = serverAvailableTotal;
         previousExpectedSyncedTotal = expectedSyncedTotal;
+        revision++;
         ClientResearchMirror.replace(stacks.keySet());
         return true;
     }
@@ -92,7 +94,13 @@ public final class ClientStackMirror {
     public static synchronized void addUnlock(ItemStack stack) {
         int before = stacks.size();
         ResearchKey key = addInternal(stacks, stack);
-        if (key != null && stacks.size() > before) {
+        if (key == null) return;
+
+        // The canonical research identity may remain unchanged while the server upgrades the exact retrievable template
+        // behind it, e.g. CropsNH seed Resistance 5 -> 6. Signal every authoritative template delivery independently
+        // from membership so an open Journey panel cannot keep rendering its old copied ItemStack.
+        revision++;
+        if (stacks.size() > before) {
             ClientResearchMirror.add(key);
             ClientActivityMirror.recordUnlock(key);
             serverAvailableTotal++;
@@ -119,6 +127,7 @@ public final class ClientStackMirror {
             return true;
         }
         stacks.remove(found);
+        revision++;
         ClientResearchMirror.remove(found);
         ClientActivityMirror.remove(found);
         serverAvailableTotal = Math.max(0, serverAvailableTotal - 1);
@@ -165,6 +174,10 @@ public final class ClientStackMirror {
         return stack == null ? null : stack.copy();
     }
 
+    public static synchronized long revision() {
+        return revision;
+    }
+
     public static synchronized boolean isSyncing() {
         return syncing;
     }
@@ -192,6 +205,7 @@ public final class ClientStackMirror {
         expectedSyncedTotal = 0;
         previousServerAvailableTotal = 0;
         previousExpectedSyncedTotal = 0;
+        revision++;
         ClientResearchMirror.clear();
         ClientActivityMirror.clear();
     }
