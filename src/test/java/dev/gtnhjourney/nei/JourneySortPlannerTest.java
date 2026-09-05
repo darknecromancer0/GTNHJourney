@@ -78,6 +78,18 @@ public class JourneySortPlannerTest {
             JourneySortPlanner.sort(Arrays.asList(z, a), JourneyGroupMode.NONE, JourneyOrderMode.ALPHABETICAL, false));
     }
 
+    @Test
+    public void alphabeticalOrderAlsoSortsMembersInsideModGroups() {
+        JourneySortEntry z = entry("mod:z", 0, 0, "z", 0, 0, 0, "Zulu");
+        JourneySortEntry a = entry("mod:a", 0, 1, "a", 0, 0, 0, "Alpha");
+        JourneySortEntry other = entry("other:item", 0, 2, "other", 0, 0, 0, "Beta");
+
+        List<JourneySortEntry> result = JourneySortPlanner.sort(
+            Arrays.asList(z, a, other), JourneyGroupMode.MOD, JourneyOrderMode.ALPHABETICAL, false);
+
+        assertEquals(Arrays.asList(a, z, other), result);
+    }
+
     private static JourneySortEntry entry(
         String id,
         int meta,
