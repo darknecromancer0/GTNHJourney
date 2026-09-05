@@ -62,7 +62,7 @@ public final class JourneyPanelController {
 
         final ArrayList<ItemStack> visible;
         if (mode == JourneyViewState.Mode.ALL) {
-            visible = nativeVisible(byKey, activeFilters, representatives, nativeFamilies);
+            visible = nativeVisible(activeFilters, representatives, nativeFamilies);
         } else if (mode == JourneyViewState.Mode.CREATIVE) {
             visible = creativeVisible(authoritative, byKey, activeFilters, representatives, nativeFamilies);
         } else {
@@ -73,12 +73,10 @@ public final class JourneyPanelController {
         JourneyRuntimeCounters.panelPublication(authoritative.size(), byKey.size(), visible.size());
         ItemPanel.updateItemList(visible);
         JourneyRuntimeCounters.panelIncrementalUpdate();
-        if (resetPage) {
-            ItemPanels.itemPanel.getGrid().setPage(0);
-        } else {
-            int lastPage = Math.max(0, ItemPanels.itemPanel.getGrid().getNumPages() - 1);
-            ItemPanels.itemPanel.getGrid().setPage(Math.min(previousPage, lastPage));
-        }
+        ItemPanels.itemPanel.getGrid().setPage(JourneyPageRetentionPolicy.pageAfterRefresh(
+            previousPage,
+            ItemPanels.itemPanel.getGrid().getNumPages(),
+            resetPage));
         owned = true;
         lastPublishedList = visible;
     }
@@ -182,7 +180,6 @@ public final class JourneyPanelController {
     }
 
     private static ArrayList<ItemStack> nativeVisible(
-        Map<ResearchKey, ItemStack> byKey,
         List<JourneyNeiFilterPipeline.FilterBinding> activeFilters,
         JourneyNativeRepresentativeIndex representatives,
         JourneyNativeFamilyIndex nativeFamilies) {
