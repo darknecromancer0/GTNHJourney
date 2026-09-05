@@ -1,6 +1,6 @@
 package dev.gtnhjourney.nei;
 
-/** Client-side revision bumped whenever NEI restarts its native item-filter task. */
+/** Client-side revision bumped only when a completed NEI/Journey filter result is staged for client-thread publication. */
 public final class JourneyNeiFilterRevision {
 
     private static long revision;
