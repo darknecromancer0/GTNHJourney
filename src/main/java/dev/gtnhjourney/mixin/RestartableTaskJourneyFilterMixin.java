@@ -1,20 +1,11 @@
 package dev.gtnhjourney.mixin;
 
-import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+/**
+ * Legacy source marker kept only so old source-level regression references fail safely during the 1.1.26 migration.
+ * Runtime observation moved to ItemPanelJourneyFilterMixin: RestartableTask.restart() is deliberately not intercepted.
+ */
+@Deprecated
+public final class RestartableTaskJourneyFilterMixin {
 
-import codechicken.nei.ItemList;
-import codechicken.nei.RestartableTask;
-import dev.gtnhjourney.nei.JourneyNeiFilterRevision;
-
-/** Mirrors NEI's own filter invalidation signal so Journey refreshes for search syntax and Item Subsets changes. */
-@Mixin(value = RestartableTask.class, remap = false)
-public abstract class RestartableTaskJourneyFilterMixin {
-
-    @Inject(method = "restart", at = @At("HEAD"), remap = false)
-    private void gtnhjourney$observeFilterRestart(CallbackInfo ci) {
-        if ((Object) this == ItemList.updateFilter) JourneyNeiFilterRevision.invalidate();
-    }
+    private RestartableTaskJourneyFilterMixin() {}
 }
