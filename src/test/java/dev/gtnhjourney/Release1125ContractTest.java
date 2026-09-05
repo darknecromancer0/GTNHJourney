@@ -38,7 +38,7 @@ public class Release1125ContractTest {
     public void itemPanelRefreshRoutesPreviousPageThroughRetentionPolicyAfterNativeReset() throws IOException {
         String panel = compactWhitespace(read("src/main/java/dev/gtnhjourney/nei/JourneyPanelController.java"));
         String capture = "getGrid().getPage()-1";
-        String publish = "ItemPanel.updateItemList(visible)";
+        String publish = "ItemPanel.updateItemList(built.visible)";
         String restore = "JourneyPageRetentionPolicy.pageAfterRefresh(previousPage,ItemPanels.itemPanel.getGrid().getNumPages(),resetPage)";
         assertTrue(panel.contains(capture));
         assertTrue(panel.contains(publish));
