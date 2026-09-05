@@ -13,8 +13,11 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.PlayerEvent.PlayerLoggedOutEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 import dev.gtnhjourney.GTNHJourney;
+import dev.gtnhjourney.acquisition.CreativeIssueResearchSuppressor;
 import dev.gtnhjourney.acquisition.ManualInventoryResearchService;
 import dev.gtnhjourney.command.DebugToolPermissionPolicy;
+import dev.gtnhjourney.command.JourneyAdminPermissionPolicy;
+import dev.gtnhjourney.minecraft.ItemStackKeyFactory;
 import dev.gtnhjourney.persistence.PlayerResearchService;
 import dev.gtnhjourney.recovery.JourneyMutationService;
 import dev.gtnhjourney.research.ResearchFingerprint;
@@ -56,6 +59,10 @@ public final class ServerRequestQueue {
         enqueueRequest(Request.fillInventory(player, fingerprint));
     }
 
+    static void enqueueCreativeIssue(EntityPlayerMP player, ItemStack stack, int amount, boolean fillInventory) {
+        enqueueRequest(Request.creativeIssue(player, stack, amount, fillInventory));
+    }
+
     static void enqueueDelete(EntityPlayerMP player, ResearchFingerprint fingerprint) {
         enqueueRequest(Request.delete(player, fingerprint));
     }
@@ -84,6 +91,8 @@ public final class ServerRequestQueue {
     private static void enqueueRequest(Request request) {
         if (request == null || request.player == null) return;
         if (request.requiresFingerprint() && request.fingerprint == null) return;
+        if (request.kind == RequestKind.CREATIVE_ISSUE
+            && (request.creativeStack == null || request.creativeStack.getItem() == null)) return;
         if (!PER_PLAYER.tryAcquire(request.playerId)) return;
         if (QUEUED.incrementAndGet() > MAX_QUEUED_REQUESTS) {
             QUEUED.decrementAndGet();
@@ -122,6 +131,9 @@ public final class ServerRequestQueue {
                 return;
             case FILL_INVENTORY:
                 handleFillInventory(player, request.fingerprint);
+                return;
+            case CREATIVE_ISSUE:
+                handleCreativeIssue(player, request);
                 return;
             case INVENTORY_SCAN:
                 handleInventoryScan(player);
@@ -163,6 +175,46 @@ public final class ServerRequestQueue {
         JourneyNetwork.sendActivityTouch(player, ResearchFingerprint.of(key));
     }
 
+    private void handleCreativeIssue(EntityPlayerMP player, Request request) {
+        if (!JourneyAdminPermissionPolicy.mayMutate(player)) {
+            tell(player, "C / Creative issuance requires the integrated-server owner or operator permission.");
+            return;
+        }
+        ItemStack template = request.creativeStack == null ? null : request.creativeStack.copy();
+        if (template == null || template.getItem() == null) return;
+        template.stackSize = 1;
+        if (!ItemStackPayloadSizer.canSync(template)) return;
+        try {
+            if (ItemStackKeyFactory.from(template) == null) return;
+        } catch (IllegalArgumentException ignored) {
+            return;
+        } catch (RuntimeException ignored) {
+            return;
+        } catch (LinkageError ignored) {
+            return;
+        }
+
+        if (request.fillInventory) {
+            int filled = MainInventoryFillService.fillEmptyMainSlots(player, template);
+            if (filled <= 0) return;
+            CreativeIssueResearchSuppressor.mark(player, template);
+            player.inventoryContainer.detectAndSendChanges();
+            JourneyNetwork.sendCreativeIssueSuccess(player, template);
+            return;
+        }
+
+        int inventoryLimit = player.inventory == null ? 64 : player.inventory.getInventoryStackLimit();
+        int max = Math.max(1, Math.min(Math.max(1, inventoryLimit), template.getMaxStackSize()));
+        int amount = Math.max(1, Math.min(max, request.amount));
+        ItemStack issued = template.copy();
+        issued.stackSize = amount;
+        player.inventory.addItemStackToInventory(issued);
+        if (issued.stackSize > 0) player.dropPlayerItemWithRandomChoice(issued, false);
+        CreativeIssueResearchSuppressor.mark(player, template);
+        player.inventoryContainer.detectAndSendChanges();
+        JourneyNetwork.sendCreativeIssueSuccess(player, template);
+    }
+
     private void handleDelete(EntityPlayerMP player, ResearchFingerprint fingerprint) {
         if (mutations == null) return;
         ResearchKey key = research.registry(player)
@@ -201,6 +253,7 @@ public final class ServerRequestQueue {
     private enum RequestKind {
         RETRIEVE,
         FILL_INVENTORY,
+        CREATIVE_ISSUE,
         DELETE,
         INVENTORY_SCAN,
         DEBUG_TOOL
@@ -211,14 +264,25 @@ public final class ServerRequestQueue {
         final EntityPlayerMP player;
         final UUID playerId;
         final ResearchFingerprint fingerprint;
+        final ItemStack creativeStack;
         final int amount;
+        final boolean fillInventory;
         final RequestKind kind;
 
-        private Request(EntityPlayerMP player, ResearchFingerprint fingerprint, int amount, RequestKind kind) {
+        private Request(
+            EntityPlayerMP player,
+            ResearchFingerprint fingerprint,
+            ItemStack creativeStack,
+            int amount,
+            boolean fillInventory,
+            RequestKind kind) {
             this.player = player;
             this.playerId = player == null ? null : player.getUniqueID();
             this.fingerprint = fingerprint;
+            this.creativeStack = creativeStack == null ? null : creativeStack.copy();
+            if (this.creativeStack != null) this.creativeStack.stackSize = 1;
             this.amount = amount;
+            this.fillInventory = fillInventory;
             this.kind = kind == null ? RequestKind.RETRIEVE : kind;
         }
 
@@ -227,23 +291,27 @@ public final class ServerRequestQueue {
         }
 
         static Request retrieve(EntityPlayerMP player, ResearchFingerprint fingerprint, int amount) {
-            return new Request(player, fingerprint, amount, RequestKind.RETRIEVE);
+            return new Request(player, fingerprint, null, amount, false, RequestKind.RETRIEVE);
         }
 
         static Request fillInventory(EntityPlayerMP player, ResearchFingerprint fingerprint) {
-            return new Request(player, fingerprint, 0, RequestKind.FILL_INVENTORY);
+            return new Request(player, fingerprint, null, 0, true, RequestKind.FILL_INVENTORY);
+        }
+
+        static Request creativeIssue(EntityPlayerMP player, ItemStack stack, int amount, boolean fillInventory) {
+            return new Request(player, null, stack, amount, fillInventory, RequestKind.CREATIVE_ISSUE);
         }
 
         static Request delete(EntityPlayerMP player, ResearchFingerprint fingerprint) {
-            return new Request(player, fingerprint, 0, RequestKind.DELETE);
+            return new Request(player, fingerprint, null, 0, false, RequestKind.DELETE);
         }
 
         static Request inventoryScan(EntityPlayerMP player) {
-            return new Request(player, null, 0, RequestKind.INVENTORY_SCAN);
+            return new Request(player, null, null, 0, false, RequestKind.INVENTORY_SCAN);
         }
 
         static Request debugTool(EntityPlayerMP player) {
-            return new Request(player, null, 0, RequestKind.DEBUG_TOOL);
+            return new Request(player, null, null, 0, false, RequestKind.DEBUG_TOOL);
         }
     }
 }
