@@ -9,7 +9,10 @@ import codechicken.nei.Button;
 /** Small native-looking dropdown used by the header Group and Order selectors. */
 final class JourneySortDropdown {
 
-    enum Kind { GROUP, ORDER }
+    enum Kind {
+        GROUP,
+        ORDER
+    }
 
     private static final int OPTION_WIDTH = 108;
     private static final int OPTION_HEIGHT = 16;
@@ -25,15 +28,23 @@ final class JourneySortDropdown {
         if (kind == null) throw new IllegalArgumentException("kind must not be null");
         this.kind = kind;
         this.mainButton = new Button("") {
-            @Override public boolean onButtonPress(boolean rightclick) {
+            @Override
+            public boolean onButtonPress(boolean rightclick) {
                 open = !open;
                 openedForView = JourneyViewState.mode();
                 rebuildOptions();
                 return true;
             }
 
-            @Override public String getRenderLabel() { return activeAbbreviation(); }
-            @Override public String getButtonTip() { return mainTooltip(); }
+            @Override
+            public String getRenderLabel() {
+                return activeAbbreviation();
+            }
+
+            @Override
+            public String getButtonTip() {
+                return mainTooltip();
+            }
         };
     }
 
@@ -46,9 +57,13 @@ final class JourneySortDropdown {
         rebuildOptionGeometry();
     }
 
-    void draw(int mousex, int mousey) {
-        if (open && openedForView != JourneyViewState.mode()) close();
+    void drawMain(int mousex, int mousey) {
+        closeIfViewChanged();
         mainButton.draw(mousex, mousey);
+    }
+
+    void drawOverlay(int mousex, int mousey) {
+        closeIfViewChanged();
         if (open) for (OptionButton option : options) option.draw(mousex, mousey);
     }
 
@@ -60,6 +75,7 @@ final class JourneySortDropdown {
                     return true;
                 }
             }
+            if (containsPopup(mousex, mousey)) return true;
         }
         if (mainButton.contains(mousex, mousey)) {
             mainButton.handleClick(mousex, mousey, mouseButton);
@@ -74,14 +90,31 @@ final class JourneySortDropdown {
         if (open) for (OptionButton option : options) option.handleTooltip(mousex, mousey, currenttip);
     }
 
-    boolean isOpen() { return open; }
-    void close() { open = false; options.clear(); }
+    boolean isOpen() {
+        return open;
+    }
+
+    void close() {
+        open = false;
+        options.clear();
+    }
 
     List<String> optionLabelsForTests() {
         rebuildOptions();
         List<String> labels = new ArrayList<String>();
         for (OptionButton option : options) labels.add(option.labelText);
         return Collections.unmodifiableList(labels);
+    }
+
+    private void closeIfViewChanged() {
+        if (open && openedForView != JourneyViewState.mode()) close();
+    }
+
+    private boolean containsPopup(int mousex, int mousey) {
+        if (!open || options.isEmpty()) return false;
+        OptionButton first = options.get(0);
+        OptionButton last = options.get(options.size() - 1);
+        return mousex >= first.x && mousex < first.x + OPTION_WIDTH && mousey >= first.y && mousey < last.y + last.h;
     }
 
     private String activeAbbreviation() {
@@ -145,17 +178,22 @@ final class JourneySortDropdown {
             JourneyViewState.Mode view = JourneyViewState.mode();
             if (kind == Kind.GROUP && groupValue != null) {
                 JourneyGroupMode current = JourneySortState.group(view);
-                JourneySortState.setGroup(view, current == groupValue && groupValue != JourneyGroupMode.NONE
-                    ? JourneyGroupMode.NONE : groupValue);
+                JourneySortState.setGroup(
+                    view,
+                    current == groupValue && groupValue != JourneyGroupMode.NONE ? JourneyGroupMode.NONE : groupValue);
             } else if (kind == Kind.ORDER && orderValue != null) {
                 JourneyOrderMode current = JourneySortState.order(view);
-                JourneySortState.setOrder(view, current == orderValue && orderValue != JourneyOrderMode.NONE
-                    ? JourneyOrderMode.NONE : orderValue);
+                JourneySortState.setOrder(
+                    view,
+                    current == orderValue && orderValue != JourneyOrderMode.NONE ? JourneyOrderMode.NONE : orderValue);
             }
             close();
             return true;
         }
 
-        @Override public String getButtonTip() { return labelText; }
+        @Override
+        public String getButtonTip() {
+            return labelText;
+        }
     }
 }
