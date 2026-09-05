@@ -12,7 +12,7 @@ import dev.gtnhjourney.research.ResearchKey;
 public class JourneySortPlannerTest {
 
     @Test
-    public void nativeLatestMovesWholeFluidFamilyWithoutBreakingNativeMemberOrder() {
+    public void nativeLatestMovesWholeFluidFamilyAndPutsLatestMemberAtItsHead() {
         JourneySortEntry batteryA = entry("mod:battery", 0, 0, "battery", 1, 10, 50, "Battery A");
         JourneySortEntry fluidEmpty = entry("mod:cell", 0, 1, "fluid", 2, 20, 30, "Empty Cell");
         JourneySortEntry fluidWater = entry("mod:cell", 1, 2, "fluid", 3, 30, 100, "Water Cell");
@@ -24,7 +24,7 @@ public class JourneySortPlannerTest {
             JourneyOrderMode.NONE,
             true);
 
-        assertEquals(Arrays.asList(fluidEmpty, fluidWater, batteryA, batteryB), result);
+        assertEquals(Arrays.asList(fluidWater, fluidEmpty, batteryB, batteryA), result);
     }
 
     @Test
@@ -40,6 +40,17 @@ public class JourneySortPlannerTest {
             true);
 
         assertEquals(Arrays.asList(fluidWater, battery, fluidEmpty), result);
+    }
+
+    @Test
+    public void nativeWithoutLatestKeepsStrictNativeMemberOrder() {
+        JourneySortEntry fluidEmpty = entry("mod:cell", 0, 1, "fluid", 2, 20, 30, "Empty Cell");
+        JourneySortEntry fluidWater = entry("mod:cell", 1, 2, "fluid", 3, 30, 100, "Water Cell");
+
+        assertEquals(
+            Arrays.asList(fluidEmpty, fluidWater),
+            JourneySortPlanner.sort(
+                Arrays.asList(fluidEmpty, fluidWater), JourneyGroupMode.NATIVE, JourneyOrderMode.NONE, false));
     }
 
     @Test
