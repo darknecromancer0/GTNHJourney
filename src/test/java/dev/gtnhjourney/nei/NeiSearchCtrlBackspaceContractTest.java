@@ -26,19 +26,19 @@ class NeiSearchCtrlBackspaceContractTest {
     }
 
     @Test
-    void recipeViewGuardsPhysicalBackStateInsteadOfOnlyCurrentBackspaceEvent() throws IOException {
-        String mixin = read("src/main/java/dev/gtnhjourney/mixin/GuiRecipeCtrlBackspaceMixin.java");
+    void recipeViewDelegatesPhysicalBackStateToGuardPolicy() throws IOException {
+        String mixin = compactWhitespace(
+            read("src/main/java/dev/gtnhjourney/mixin/GuiRecipeCtrlBackspaceMixin.java"));
         String config = read("src/main/resources/mixins.gtnhjourney.json");
 
-        assertTrue(mixin.contains("GuiRecipe"));
-        assertTrue(mixin.contains("method = \"keyTyped\""));
-        assertTrue(mixin.contains("KeyManager;isKeyDown"));
-        assertTrue(mixin.contains("KeyManager.isKeyDown(\"recipe.back\")"));
-        assertTrue(mixin.contains("LayoutManager.searchField.focused()"));
-        assertTrue(mixin.contains("NEIClientUtils.controlKey()"));
-        assertTrue(mixin.contains("JourneyRecipeBackGuard.shouldSuppress"));
-        assertTrue(mixin.contains("ci.cancel()"));
-        assertTrue(config.contains("GuiRecipeCtrlBackspaceMixin"));
+        assertTrue(mixin.contains("@Mixin(value=GuiRecipe.class,remap=false)"), "must target GuiRecipe");
+        assertTrue(mixin.contains("method=\"keyTyped\""), "must intercept GuiRecipe.keyTyped");
+        assertTrue(
+            mixin.contains(
+                "JourneyRecipeBackGuard.shouldSuppress(KeyManager.isKeyDown(\"recipe.back\"),NEIClientUtils.controlKey(),mainSearchFocused)"),
+            "guard must use physical recipe.back state, Ctrl state, and main-search focus");
+        assertTrue(mixin.contains("ci.cancel();"), "guarded path must consume navigation");
+        assertTrue(config.contains("GuiRecipeCtrlBackspaceMixin"), "mixin must remain registered");
     }
 
     @Test
