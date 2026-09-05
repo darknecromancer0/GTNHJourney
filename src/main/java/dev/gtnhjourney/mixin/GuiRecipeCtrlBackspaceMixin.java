@@ -23,9 +23,10 @@ public abstract class GuiRecipeCtrlBackspaceMixin {
         at = @At(
             value = "INVOKE",
             target = "Lcodechicken/nei/KeyManager;isKeyDown(Ljava/lang/String;)Z",
-            ordinal = 0),
+            ordinal = 2,
+            remap = false),
         cancellable = true,
-        remap = false)
+        remap = true)
     private void gtnhjourney$doNotTreatCtrlBackspaceAsRecipeBack(char character, int keyCode, CallbackInfo ci) {
         if (keyCode == Keyboard.KEY_BACK && NEIClientUtils.controlKey()) ci.cancel();
     }
