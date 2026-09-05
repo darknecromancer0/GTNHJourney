@@ -23,6 +23,17 @@ final class JourneyPresentationKeyResolver {
         if (presentation != null) presentationKeys.remove(presentation);
     }
 
+    /** Atomically swaps worker-built presentation mappings together with the matching visible panel. */
+    static synchronized void replace(Map<ItemStack, ResearchKey> replacements) {
+        presentationKeys.clear();
+        if (replacements == null || replacements.isEmpty()) return;
+        for (Map.Entry<ItemStack, ResearchKey> entry : replacements.entrySet()) {
+            ItemStack stack = entry.getKey();
+            ResearchKey key = entry.getValue();
+            if (stack != null && stack.getItem() != null && key != null) presentationKeys.put(stack, key);
+        }
+    }
+
     static synchronized void clear() {
         presentationKeys.clear();
     }
