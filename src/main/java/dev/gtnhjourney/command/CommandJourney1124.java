@@ -7,6 +7,7 @@ import java.util.Locale;
 import java.util.Set;
 
 import net.minecraft.command.CommandBase;
+import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.nbt.NBTTagCompound;
@@ -16,12 +17,13 @@ import dev.gtnhjourney.GTNHJourney;
 import dev.gtnhjourney.config.JourneyConfig;
 import dev.gtnhjourney.network.JourneyNetwork;
 import dev.gtnhjourney.recovery.DeathInventoryReturnService;
+import dev.gtnhjourney.recovery.ExternalJourneySnapshotRestoreService;
 import dev.gtnhjourney.recovery.JourneyActionKind;
 import dev.gtnhjourney.recovery.JourneyUndoCoordinator;
 import dev.gtnhjourney.time.JourneySpeedController;
 import dev.gtnhjourney.time.JourneySpeedMode;
 
-/** 1.1.24 command facade. Unchanged commands delegate to the proven 1.1.23 implementation. */
+/** 1.1.24 command facade. Unchanged commands delegate to the proven legacy implementation. */
 public final class CommandJourney1124 extends CommandBase {
 
     private final CommandJourney legacy = new CommandJourney();
@@ -31,14 +33,15 @@ public final class CommandJourney1124 extends CommandBase {
     @Override public int getRequiredPermissionLevel() { return legacy.getRequiredPermissionLevel(); }
 
     @Override
-    public void processCommand(ICommandSender sender, String[] args) {
+    public void processCommand(ICommandSender sender, String[] args) throws CommandException {
         if (args == null || args.length == 0) {
             legacy.processCommand(sender, args);
             return;
         }
         String action = args[0].toLowerCase(Locale.ROOT);
         if (!(sender instanceof EntityPlayerMP)) {
-            legacy.processCommand(sender, args);
+            if (isKnownRoot(action)) legacy.processCommand(sender, args);
+            else throw commandError(JourneyCommandErrorPolicy.invalidRoot(args[0]));
             return;
         }
         EntityPlayerMP player = (EntityPlayerMP) sender;
@@ -55,16 +58,31 @@ public final class CommandJourney1124 extends CommandBase {
             explosions(player, args);
             return;
         }
-        if ("return".equals(action) && args.length >= 3 && "death".equalsIgnoreCase(args[1])
-            && "inventory".equalsIgnoreCase(args[2])) {
-            deathReturn(player);
+        if ("snapshot".equals(action) && args.length >= 2 && "latest".equalsIgnoreCase(args[1])) {
+            snapshotLatest(player, args);
             return;
         }
-        if ("death".equals(action) && args.length >= 2 && "inventory".equalsIgnoreCase(args[1])) {
-            deathInventory(player, args);
+        if ("return".equals(action)) {
+            if (args.length == 3 && "death".equalsIgnoreCase(args[1]) && "inventory".equalsIgnoreCase(args[2])) {
+                deathReturn(player);
+                return;
+            }
+            String invalid = args.length > 1 ? args[1] : "";
+            throw commandError(JourneyCommandErrorPolicy.invalid("return", invalid, "death"));
+        }
+        if ("death".equals(action)) {
+            if (args.length >= 2 && "inventory".equalsIgnoreCase(args[1])) {
+                deathInventory(player, args);
+                return;
+            }
+            String invalid = args.length > 1 ? args[1] : "";
+            throw commandError(JourneyCommandErrorPolicy.invalid("death", invalid, "inventory"));
+        }
+        if (isKnownRoot(action)) {
+            legacy.processCommand(sender, args);
             return;
         }
-        legacy.processCommand(sender, args);
+        throw commandError(JourneyCommandErrorPolicy.invalidRoot(args[0]));
     }
 
     private static void unifiedUndoRedo(EntityPlayerMP player, String[] args, boolean redo) {
@@ -75,7 +93,7 @@ public final class CommandJourney1124 extends CommandBase {
             + " research, " + result.actionApplied() + " runtime.");
     }
 
-    private static void speed(EntityPlayerMP player, String[] args) {
+    private static void speed(EntityPlayerMP player, String[] args) throws CommandException {
         if (args.length == 1 || "status".equalsIgnoreCase(args[1])) {
             speedStatus(player);
             return;
@@ -103,15 +121,32 @@ public final class CommandJourney1124 extends CommandBase {
             int multiplier;
             if (mode != null) {
                 if (args.length < 3) {
-                    tell(player, speedUsage());
-                    return;
+                    throw commandError(JourneyCommandErrorPolicy.invalid(
+                        "speed " + mode.commandName(), "", speedChoices(mode)));
                 }
                 multiplier = parseInt(args[2], -1);
+                if (multiplier < 0) {
+                    throw commandError(JourneyCommandErrorPolicy.invalid(
+                        "speed " + mode.commandName(), args[2], speedChoices(mode)));
+                }
             } else {
-                mode = JourneySpeedMode.MACHINES;
                 multiplier = parseInt(args[1], -1);
+                if (multiplier < 0) {
+                    throw commandError(JourneyCommandErrorPolicy.invalid(
+                        "speed", args[1], "status|default|undo|redo|machines|world|1|2|4|8|16"));
+                }
+                mode = JourneySpeedMode.MACHINES;
             }
             result = GTNHJourney.SPEED.set(mode, multiplier);
+        }
+        if (result.status() == JourneySpeedController.Status.UNSAFE) {
+            throw commandError(
+                "Unsafe machine speed x" + (args.length > 2 ? args[2] : args[1])
+                    + ". machines is limited to x16 because higher direct TileEntity acceleration can desync GT energy flow. "
+                    + "Use /journey speed world <32|64|128> for whole-world acceleration.");
+        }
+        if (result.status() == JourneySpeedController.Status.INVALID) {
+            throw commandError("Invalid speed multiplier. " + speedUsage());
         }
         if (result.status() != JourneySpeedController.Status.APPLIED) {
             tell(player, "Speed change failed: " + result.status().name() + ". " + speedUsage());
@@ -123,7 +158,7 @@ public final class CommandJourney1124 extends CommandBase {
         speedStatus(player);
     }
 
-    private static void explosions(EntityPlayerMP player, String[] args) {
+    private static void explosions(EntityPlayerMP player, String[] args) throws CommandException {
         if (args.length == 1 || "status".equalsIgnoreCase(args[1])) {
             explosionStatus(player);
             return;
@@ -155,15 +190,15 @@ public final class CommandJourney1124 extends CommandBase {
             }
             String value = args[2].toLowerCase(Locale.ROOT);
             if (!"on".equals(value) && !"off".equals(value)) {
-                tell(player, explosionUsage());
-                return;
+                throw commandError(JourneyCommandErrorPolicy.invalid(
+                    "explosions machines", args[2], "status|on|off"));
             }
             applied = GTNHJourney.MACHINE_EXPLOSIONS.setEnabled("on".equals(value));
         } else if ("on".equals(sub) || "off".equals(sub)) {
             JourneyConfig.setExplosionsEnabled("on".equals(sub));
         } else {
-            tell(player, explosionUsage());
-            return;
+            throw commandError(JourneyCommandErrorPolicy.invalid(
+                "explosions", args[1], "status|on|off|default|undo|redo|machines"));
         }
 
         if (!applied) {
@@ -177,7 +212,33 @@ public final class CommandJourney1124 extends CommandBase {
         explosionStatus(player);
     }
 
-    private static void deathInventory(EntityPlayerMP player, String[] args) {
+    private static void snapshotLatest(EntityPlayerMP player, String[] args) throws CommandException {
+        if (args.length != 3 || !"return".equalsIgnoreCase(args[2])) {
+            String invalid = args.length > 2 ? args[2] : "";
+            throw commandError(JourneyCommandErrorPolicy.invalid("snapshot latest", invalid, "return"));
+        }
+        ExternalJourneySnapshotRestoreService.Result result = new ExternalJourneySnapshotRestoreService().restoreLatest(player);
+        switch (result.status()) {
+            case RESTORED:
+                syncResearch(player);
+                tell(player, "Returned " + result.entries() + " Journey entries from the latest external snapshot.");
+                return;
+            case ALREADY_CURRENT:
+                tell(player, "Latest external Journey snapshot already matches the current Journey list ("
+                    + result.entries() + " entries).");
+                return;
+            case NOT_FOUND:
+                tell(player, "No external Journey snapshot was found for this world and player.");
+                return;
+            case INVALID:
+                tell(player, "Latest external Journey snapshot is not safe to restore with the current registry.");
+                return;
+            default:
+                tell(player, "External Journey snapshot return failed safely; the current Journey list was kept.");
+        }
+    }
+
+    private static void deathInventory(EntityPlayerMP player, String[] args) throws CommandException {
         String sub = args.length > 2 ? args[2].toLowerCase(Locale.ROOT) : "status";
         if ("return".equals(sub)) {
             deathReturn(player);
@@ -192,8 +253,8 @@ public final class CommandJourney1124 extends CommandBase {
             return;
         }
         if (!"status".equals(sub)) {
-            tell(player, "/journey death inventory status|return|undo [n]|redo [n]");
-            return;
+            throw commandError(JourneyCommandErrorPolicy.invalid(
+                "death inventory", args.length > 2 ? args[2] : "", "status|return|undo|redo"));
         }
         DeathInventoryReturnService.Result status = GTNHJourney.DEATH_INVENTORY.status(player);
         tell(player, status.recoverable()
@@ -242,12 +303,31 @@ public final class CommandJourney1124 extends CommandBase {
             + onOff(GTNHJourney.MACHINE_EXPLOSIONS.isEnabled()) + ".");
     }
 
+    private static boolean isKnownRoot(String action) {
+        return "help".equals(action) || "count".equals(action) || "stats".equals(action) || "inspect".equals(action)
+            || "research".equals(action) || "rescan".equals(action) || "list".equals(action) || "newest".equals(action)
+            || "get".equals(action) || "forget".equals(action) || "undo".equals(action) || "redo".equals(action)
+            || "restore-deleted".equals(action) || "snapshot".equals(action) || "snapshots".equals(action)
+            || "restore".equals(action) || "backup".equals(action) || "explosions".equals(action) || "cleanse".equals(action)
+            || "speed".equals(action) || "botania".equals(action) || "debug".equals(action) || "trace".equals(action)
+            || "dump".equals(action) || "hotspots".equals(action) || "debugtool".equals(action)
+            || "prune-missing".equals(action) || "clear".equals(action) || "return".equals(action) || "death".equals(action);
+    }
+
     private static String onOff(boolean value) { return value ? "on" : "off"; }
-    private static String speedUsage() { return "/journey speed status|default|undo [n]|redo [n]|machines <1|2|4|8|16|32|64|128>|world <1|2|4|8|16|32|64|128>"; }
-    private static String explosionUsage() { return "/journey explosions status|on|off|default|undo [n]|redo [n]|machines <status|on|off>"; }
+    private static String speedUsage() {
+        return "/journey speed status|default|undo [n]|redo [n]|machines <1|2|4|8|16>|world <1|2|4|8|16|32|64|128>";
+    }
+    private static String speedChoices(JourneySpeedMode mode) {
+        return mode == JourneySpeedMode.MACHINES ? "1|2|4|8|16" : "1|2|4|8|16|32|64|128";
+    }
 
     private static int parseInt(String value, int fallback) {
         try { return Integer.parseInt(value); } catch (RuntimeException ignored) { return fallback; }
+    }
+
+    private static CommandException commandError(String text) {
+        return new CommandException(text, new Object[0]);
     }
 
     private static void syncResearch(EntityPlayerMP player) {
@@ -276,10 +356,16 @@ public final class CommandJourney1124 extends CommandBase {
         if ("undo".equals(first) || "redo".equals(first)) {
             if (args.length == 2) return getListOfStringsMatchingLastWord(args, "1", "5", "10");
         }
+        if ("snapshot".equals(first) && args.length >= 2 && "latest".equalsIgnoreCase(args[1])) {
+            if (args.length == 3) return getListOfStringsMatchingLastWord(args, "return");
+        }
         if ("speed".equals(first)) {
             if (args.length == 2) return getListOfStringsMatchingLastWord(
-                args, "status", "default", "undo", "redo", "machines", "world", "1", "2", "4", "8", "16", "32", "64", "128");
-            if (args.length == 3 && ("machines".equalsIgnoreCase(args[1]) || "world".equalsIgnoreCase(args[1]))) {
+                args, "status", "default", "undo", "redo", "machines", "world", "1", "2", "4", "8", "16");
+            if (args.length == 3 && "machines".equalsIgnoreCase(args[1])) {
+                return getListOfStringsMatchingLastWord(args, "1", "2", "4", "8", "16");
+            }
+            if (args.length == 3 && "world".equalsIgnoreCase(args[1])) {
                 return getListOfStringsMatchingLastWord(args, "1", "2", "4", "8", "16", "32", "64", "128");
             }
             if (args.length == 3 && ("undo".equalsIgnoreCase(args[1]) || "redo".equalsIgnoreCase(args[1]))) {
