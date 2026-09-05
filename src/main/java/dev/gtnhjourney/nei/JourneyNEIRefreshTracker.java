@@ -13,6 +13,7 @@ import dev.gtnhjourney.client.ClientStackMirror;
 public final class JourneyNEIRefreshTracker {
 
     private long seenResearchRevision = Long.MIN_VALUE;
+    private long seenStackRevision = Long.MIN_VALUE;
     private long seenActivityRevision = Long.MIN_VALUE;
     private long seenIssuedRevision = Long.MIN_VALUE;
     private long seenFavouriteRevision = Long.MIN_VALUE;
@@ -26,6 +27,7 @@ public final class JourneyNEIRefreshTracker {
         if (event.phase != TickEvent.Phase.END || ClientStackMirror.isSyncing()) return;
 
         long researchRevision = ClientResearchMirror.revision();
+        long stackRevision = ClientStackMirror.revision();
         long activityRevision = ClientActivityMirror.revision();
         long issuedRevision = ClientIssuedMirror.revision();
         long favouriteRevision = ClientFavouriteMirror.revision();
@@ -34,9 +36,9 @@ public final class JourneyNEIRefreshTracker {
         long filterRevision = JourneyNeiFilterRevision.revision();
         long sortRevision = JourneySortState.revision();
 
-        boolean contentChanged = researchRevision != seenResearchRevision || activityRevision != seenActivityRevision
-            || issuedRevision != seenIssuedRevision || favouriteRevision != seenFavouriteRevision
-            || presentationRevision != seenPresentationRevision;
+        boolean contentChanged = researchRevision != seenResearchRevision || stackRevision != seenStackRevision
+            || activityRevision != seenActivityRevision || issuedRevision != seenIssuedRevision
+            || favouriteRevision != seenFavouriteRevision || presentationRevision != seenPresentationRevision;
         boolean viewChanged = viewRevision != seenViewRevision;
         boolean filterChanged = filterRevision != seenFilterRevision;
         boolean sortChanged = sortRevision != seenSortRevision;
@@ -56,6 +58,7 @@ public final class JourneyNEIRefreshTracker {
         }
 
         seenResearchRevision = researchRevision;
+        seenStackRevision = stackRevision;
         seenActivityRevision = activityRevision;
         seenIssuedRevision = issuedRevision;
         seenFavouriteRevision = favouriteRevision;
