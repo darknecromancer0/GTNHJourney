@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidContainerItem;
 
@@ -21,10 +20,15 @@ public class JourneyEmptySearchPolicyTest {
     }
 
     @Test
-    public void emptyQueryRejectsFilledFluidContainerTooltipFalsePositive() {
-        ItemStack filled = filledContainer();
-        assertFalse(JourneyEmptySearchPolicy.resolveSearchMatch("empty", filled, true));
-        assertFalse(JourneyEmptySearchPolicy.resolveSearchMatch("\"empty\"", filled, true));
+    public void filledContainerHiddenEmptyFalsePositiveIsRejected() {
+        assertFalse(JourneyEmptySearchPolicy.resolveLiteralEmptyState(true, true, false, false));
+        assertFalse(JourneyEmptySearchPolicy.resolveLiteralEmptyState(false, true, false, false));
+    }
+
+    @Test
+    public void filledContainerVisibleEmptyNameStillRequiresNativeMatch() {
+        assertTrue(JourneyEmptySearchPolicy.resolveLiteralEmptyState(true, true, false, true));
+        assertFalse(JourneyEmptySearchPolicy.resolveLiteralEmptyState(false, true, false, true));
     }
 
     @Test
@@ -43,25 +47,18 @@ public class JourneyEmptySearchPolicyTest {
     }
 
     private static ItemStack emptyContainer() {
-        return new ItemStack(new TestFluidContainerItem(null));
-    }
-
-    private static ItemStack filledContainer() {
-        return new ItemStack(new TestFluidContainerItem(new FluidStack(new Fluid("journey_test_fluid"), 1000)));
+        return new ItemStack(new TestFluidContainerItem());
     }
 
     private static final class TestFluidContainerItem extends Item implements IFluidContainerItem {
 
-        private final FluidStack fluid;
-
-        private TestFluidContainerItem(FluidStack fluid) {
-            this.fluid = fluid;
-            setUnlocalizedName(fluid == null ? "journeyEmptyContainer" : "journeyFilledContainer");
+        private TestFluidContainerItem() {
+            setUnlocalizedName("journeyEmptyContainer");
         }
 
         @Override
         public FluidStack getFluid(ItemStack container) {
-            return fluid == null ? null : fluid.copy();
+            return null;
         }
 
         @Override
