@@ -44,12 +44,15 @@ public class Release1125ContractTest {
 
     @Test
     public void itemPanelRefreshRestoresPreviousNeiPageAfterNativeReset() throws IOException {
-        String panel = normalizeWhitespace(read("src/main/java/dev/gtnhjourney/nei/JourneyPanelController.java"));
-        assertTrue(panel.contains("getGrid().getPage() - 1"));
-        assertTrue(panel.contains("ItemPanel.updateItemList(visible)"));
-        assertTrue(panel.contains("setPage(previousPage)"));
-        assertTrue(panel.indexOf("getGrid().getPage() - 1") < panel.indexOf("ItemPanel.updateItemList(visible)"));
-        assertTrue(panel.indexOf("ItemPanel.updateItemList(visible)") < panel.lastIndexOf("setPage(previousPage)"));
+        String panel = compactWhitespace(read("src/main/java/dev/gtnhjourney/nei/JourneyPanelController.java"));
+        String capture = "getGrid().getPage()-1";
+        String publish = "ItemPanel.updateItemList(visible)";
+        String restore = "setPage(previousPage)";
+        assertTrue(panel.contains(capture));
+        assertTrue(panel.contains(publish));
+        assertTrue(panel.contains(restore));
+        assertTrue(panel.indexOf(capture) < panel.indexOf(publish));
+        assertTrue(panel.indexOf(publish) < panel.lastIndexOf(restore));
     }
 
     @Test
@@ -77,8 +80,8 @@ public class Release1125ContractTest {
         assertTrue(text.contains("ebf"));
     }
 
-    private static String normalizeWhitespace(String value) {
-        return value.replaceAll("\\s+", " ");
+    private static String compactWhitespace(String value) {
+        return value.replaceAll("\\s+", "");
     }
 
     private static String read(String path) throws IOException {
