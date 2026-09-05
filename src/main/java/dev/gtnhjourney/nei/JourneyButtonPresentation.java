@@ -30,19 +30,19 @@ public final class JourneyButtonPresentation {
 
     public static String newestTooltip(boolean active) {
         return active
-            ? "Newest view: all researched items ordered by recent Journey activity. Click N to show all NEI items."
-            : "Newest view: show all researched items ordered by recent Journey activity.";
+            ? "Newest view: all researched items ordered by recent Journey activity. Alt+LMB adds to F. Click N to show all NEI items."
+            : "Newest view: show all researched items ordered by recent Journey activity. Alt+LMB adds to F.";
     }
 
     public static String favouriteTooltip(boolean active) {
         return active
-            ? "Favourite view: exact starred Journey states. Alt+LMB toggles a favourite."
-            : "Favourite view: show starred researched states. Add/remove with Alt+LMB in J, N or F.";
+            ? "Favourite view: exact starred Journey states. Alt+RMB removes from F."
+            : "Favourite view: show starred researched states. Add with Alt+LMB from J/N; remove with Alt+RMB in F.";
     }
 
     public static String creativeTooltip(boolean active) {
         return active
-            ? "Creative debug view: native NEI items plus Journey-only exact variants. RMB gives a stack; Shift+RMB fills empty main slots."
+            ? "Creative debug view: native NEI items plus Journey-only exact variants. LMB gives one, RMB gives a stack; Shift+RMB fills empty main slots."
             : "Creative debug view: native NEI universe plus Journey exact variants missing from ordinary NEI.";
     }
 
@@ -51,13 +51,13 @@ public final class JourneyButtonPresentation {
         final String base;
         switch (effective) {
             case RESEARCHED:
-                base = "Journey view: researched only. Alt+LMB favourites; RMB gives a stack.";
+                base = "Journey view: researched only. Alt+LMB adds to F; LMB gives one; RMB gives a stack.";
                 break;
             case NEWEST:
-                base = "Newest view is active. Click J to switch to researched items.";
+                base = "Newest view is active. Alt+LMB adds to F. Click J to switch to researched items.";
                 break;
             case FAVOURITE:
-                base = "Favourite view is active. Click J to switch to researched items.";
+                base = "Favourite view is active. Alt+RMB removes from F. Click J to switch to researched items.";
                 break;
             case CREATIVE:
                 base = "Creative debug view is active. Click J to switch to researched items.";
