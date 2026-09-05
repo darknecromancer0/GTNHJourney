@@ -8,19 +8,23 @@ import codechicken.nei.ItemPanels;
 import codechicken.nei.NEIClientConfig;
 import codechicken.nei.NEIClientUtils;
 import codechicken.nei.guihook.IContainerInputHandler;
+import dev.gtnhjourney.client.ClientPresentationActivityMirror;
 import dev.gtnhjourney.client.ClientResearchMirror;
+import dev.gtnhjourney.minecraft.ItemStackKeyFactory;
 import dev.gtnhjourney.network.Journey1124Network;
 import dev.gtnhjourney.network.JourneyNetwork;
 import dev.gtnhjourney.research.ResearchFingerprint;
 import dev.gtnhjourney.research.ResearchKey;
 
-/** Journey-owned item views share LMB/RMB issuance; Alt gestures are directional F management. */
+/** Journey-owned item views share issuance semantics; the explicit NEI view always keeps native NEI click handling. */
 public final class JourneyNEIInputHandler implements IContainerInputHandler {
 
     @Override
     public boolean mouseClicked(GuiContainer gui, int mousex, int mousey, int button) {
-        if (JourneyViewState.isDelete()) return handleDeleteClick(mousex, mousey, button);
         JourneyViewState.Mode mode = JourneyViewState.mode();
+        if (mode == JourneyViewState.Mode.ALL) return false;
+        if (JourneyViewState.isDelete()) return handleDeleteClick(mousex, mousey, button);
+
         ItemStack hovered = ItemPanels.itemPanel.getStackMouseOver(mousex, mousey);
         if (hovered == null || hovered.getItem() == null) return false;
 
@@ -38,7 +42,7 @@ public final class JourneyNEIInputHandler implements IContainerInputHandler {
             return handleCreativeIssue(hovered, button, shiftDown());
         }
 
-        if (!JourneyRetrieveClickPolicy.shouldRetrieve(button, JourneyViewState.isEnabled(), controlDown())) return false;
+        if (!JourneyRetrieveClickPolicy.shouldRetrieve(button, true, controlDown())) return false;
         try {
             ResearchKey key = JourneyPresentationKeyResolver.keyOf(hovered);
             if (!ClientResearchMirror.contains(key)) return false;
@@ -63,6 +67,7 @@ public final class JourneyNEIInputHandler implements IContainerInputHandler {
     }
 
     private static boolean handleCreativeIssue(ItemStack hovered, int button, boolean shiftDown) {
+        ResearchKey presentationKey = safeKey(hovered);
         try {
             ResearchKey key = JourneyPresentationKeyResolver.keyOf(hovered);
             if (ClientResearchMirror.contains(key)) {
@@ -70,6 +75,7 @@ public final class JourneyNEIInputHandler implements IContainerInputHandler {
                 else JourneyNetwork.requestRetrieve(
                     key,
                     JourneyRetrieveClickPolicy.requestedAmount(button, shiftDown, hovered.getMaxStackSize()));
+                ClientPresentationActivityMirror.touch(key);
                 return true;
             }
         } catch (IllegalArgumentException ignored) {}
@@ -79,6 +85,7 @@ public final class JourneyNEIInputHandler implements IContainerInputHandler {
         give.stackSize = JourneyRetrieveClickPolicy.requestedAmount(button, shiftDown, hovered.getMaxStackSize());
         if (!JourneyRetrieveClickPolicy.shouldFillInventory(button, shiftDown)) {
             NEIClientUtils.giveStack(give);
+            ClientPresentationActivityMirror.touch(presentationKey);
             return true;
         }
         Minecraft minecraft = Minecraft.getMinecraft();
@@ -89,7 +96,15 @@ public final class JourneyNEIInputHandler implements IContainerInputHandler {
         ItemStack stack = hovered.copy();
         stack.stackSize = Math.max(1, hovered.getMaxStackSize());
         for (int i = 0; i < empty; i++) NEIClientUtils.giveStack(stack.copy());
+        ClientPresentationActivityMirror.touch(presentationKey);
         return true;
+    }
+
+    private static ResearchKey safeKey(ItemStack stack) {
+        try { return stack == null || stack.getItem() == null ? null : ItemStackKeyFactory.from(stack); }
+        catch (IllegalArgumentException ignored) { return null; }
+        catch (RuntimeException ignored) { return null; }
+        catch (LinkageError ignored) { return null; }
     }
 
     private static boolean handleDeleteClick(int mousex, int mousey, int button) {
