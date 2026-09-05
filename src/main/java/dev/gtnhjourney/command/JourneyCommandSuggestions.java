@@ -27,6 +27,11 @@ public final class JourneyCommandSuggestions {
         "snapshot",
         "snapshots",
         "restore",
+        "backup",
+        "explosions",
+        "cleanse",
+        "speed",
+        "botania",
         "debug",
         "trace",
         "dump",
@@ -34,8 +39,8 @@ public final class JourneyCommandSuggestions {
         "debugtool",
         "prune-missing",
         "clear",
-        "speed",
-        "botania"));
+        "return",
+        "death"));
 
     private JourneyCommandSuggestions() {}
 
@@ -54,16 +59,43 @@ public final class JourneyCommandSuggestions {
         if (args.length == 2) {
             String action = args[0] == null ? "" : args[0].toLowerCase(Locale.ROOT);
             if ("trace".equals(action)) return matching(args[1], Arrays.asList("on", "off"));
-            if ("speed".equals(action)) {
-                return matching(args[1], Arrays.asList("1", "2", "4", "8", "16", "32", "64", "128", "status"));
+            if ("snapshot".equals(action)) return matching(args[1], Collections.singletonList("latest"));
+            if ("backup".equals(action)) return matching(args[1], Arrays.asList("status", "now", "on", "off"));
+            if ("explosions".equals(action)) {
+                return matching(args[1], Arrays.asList("status", "on", "off", "default", "undo", "redo", "machines"));
             }
+            if ("speed".equals(action)) {
+                return matching(args[1], Arrays.asList("status", "default", "undo", "redo", "machines", "world", "1", "2", "4", "8", "16"));
+            }
+            if ("return".equals(action)) return matching(args[1], Collections.singletonList("death"));
+            if ("death".equals(action)) return matching(args[1], Collections.singletonList("inventory"));
             if ("botania".equals(action)) return matching(args[1], Collections.singletonList("debug"));
             if ("clear".equals(action) || "prune-missing".equals(action)) {
                 return matching(args[1], Collections.singletonList("confirm"));
             }
         }
-        if (args.length == 3 && "botania".equalsIgnoreCase(args[0]) && "debug".equalsIgnoreCase(args[1])) {
-            return matching(args[2], Collections.singletonList("tool"));
+        if (args.length == 3) {
+            if ("snapshot".equalsIgnoreCase(args[0]) && "latest".equalsIgnoreCase(args[1])) {
+                return matching(args[2], Collections.singletonList("return"));
+            }
+            if ("explosions".equalsIgnoreCase(args[0]) && "machines".equalsIgnoreCase(args[1])) {
+                return matching(args[2], Arrays.asList("status", "on", "off"));
+            }
+            if ("speed".equalsIgnoreCase(args[0]) && "machines".equalsIgnoreCase(args[1])) {
+                return matching(args[2], Arrays.asList("1", "2", "4", "8", "16"));
+            }
+            if ("speed".equalsIgnoreCase(args[0]) && "world".equalsIgnoreCase(args[1])) {
+                return matching(args[2], Arrays.asList("1", "2", "4", "8", "16", "32", "64", "128"));
+            }
+            if ("return".equalsIgnoreCase(args[0]) && "death".equalsIgnoreCase(args[1])) {
+                return matching(args[2], Collections.singletonList("inventory"));
+            }
+            if ("death".equalsIgnoreCase(args[0]) && "inventory".equalsIgnoreCase(args[1])) {
+                return matching(args[2], Arrays.asList("status", "return", "undo", "redo"));
+            }
+            if ("botania".equalsIgnoreCase(args[0]) && "debug".equalsIgnoreCase(args[1])) {
+                return matching(args[2], Collections.singletonList("tool"));
+            }
         }
         return Collections.emptyList();
     }
