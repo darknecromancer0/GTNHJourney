@@ -20,12 +20,12 @@ public class JourneyRefreshDecisionTest {
     }
 
     @Test
-    public void nativeNeiFilterChangeRefreshesJourneyPanel() {
+    public void completedNativeFilterUsesPreparedPublicationInsteadOfStructuralRefresh() {
         assertEquals(
-            JourneyRefreshDecision.Action.PANEL_REFRESH,
+            JourneyRefreshDecision.Action.PANEL_FILTER_PUBLISH,
             JourneyRefreshDecision.decide(JourneyViewState.Mode.RESEARCHED, false, false, true));
         assertEquals(
-            JourneyRefreshDecision.Action.PANEL_REFRESH,
+            JourneyRefreshDecision.Action.PANEL_FILTER_PUBLISH,
             JourneyRefreshDecision.decide(JourneyViewState.Mode.CREATIVE, false, false, true));
     }
 
