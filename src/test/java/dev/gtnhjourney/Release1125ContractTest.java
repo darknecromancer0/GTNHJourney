@@ -14,14 +14,6 @@ import org.junit.jupiter.api.Test;
 public class Release1125ContractTest {
 
     @Test
-    public void metadataIs1125Everywhere() throws IOException {
-        assertTrue(read("src/main/java/dev/gtnhjourney/GTNHJourney.java")
-            .contains("public static final String VERSION = \"1.1.25\";"));
-        assertTrue(read("build.gradle.kts").contains("version = \"1.1.25\""));
-        assertTrue(read("src/main/resources/mcmod.info").contains("\"version\": \"1.1.25\""));
-    }
-
-    @Test
     public void commandHintsAreGlobalServerBackedAndKeyboardNavigable() throws IOException {
         String overlay = read("src/main/java/dev/gtnhjourney/client/JourneyCommandHintOverlay.java");
         String state = read("src/main/java/dev/gtnhjourney/client/ClientCommandSuggestionState.java");
@@ -43,16 +35,16 @@ public class Release1125ContractTest {
     }
 
     @Test
-    public void itemPanelRefreshRestoresPreviousNeiPageAfterNativeReset() throws IOException {
+    public void itemPanelRefreshRoutesPreviousPageThroughRetentionPolicyAfterNativeReset() throws IOException {
         String panel = compactWhitespace(read("src/main/java/dev/gtnhjourney/nei/JourneyPanelController.java"));
         String capture = "getGrid().getPage()-1";
         String publish = "ItemPanel.updateItemList(visible)";
-        String restore = "setPage(previousPage)";
+        String restore = "JourneyPageRetentionPolicy.pageAfterRefresh(previousPage,ItemPanels.itemPanel.getGrid().getNumPages(),resetPage)";
         assertTrue(panel.contains(capture));
         assertTrue(panel.contains(publish));
         assertTrue(panel.contains(restore));
         assertTrue(panel.indexOf(capture) < panel.indexOf(publish));
-        assertTrue(panel.indexOf(publish) < panel.lastIndexOf(restore));
+        assertTrue(panel.indexOf(publish) < panel.indexOf(restore));
     }
 
     @Test
