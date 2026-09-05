@@ -1,11 +1,15 @@
 package dev.gtnhjourney.nei;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import net.minecraft.item.ItemStack;
 
+import codechicken.nei.ItemList;
+import dev.gtnhjourney.minecraft.ItemStackKeyFactory;
 import dev.gtnhjourney.research.ResearchKey;
 
 /**
@@ -43,43 +47,90 @@ final class JourneyPanelPrecache {
 
     static final class NativeCatalog {
         private final List<ItemStack> source;
-        private final JourneyNativeRepresentativeIndex representatives;
-        private final JourneyNativeFamilyIndex families;
+        private final Map<ResearchKey, ItemStack> exactRepresentatives = new HashMap<ResearchKey, ItemStack>();
+        private final Map<String, ItemStack> familyRepresentatives = new HashMap<String, ItemStack>();
+        private final Map<ResearchKey, Integer> exactIndexes = new HashMap<ResearchKey, Integer>();
+        private final Map<String, Integer> metaIndexes = new HashMap<String, Integer>();
+        private final Map<String, Integer> familyIndexes = new HashMap<String, Integer>();
         private final Map<ResearchKey, SemanticMetadata> semantics =
             new ConcurrentHashMap<ResearchKey, SemanticMetadata>();
 
         NativeCatalog(List<ItemStack> source) {
             this.source = source;
-            this.representatives = new JourneyNativeRepresentativeIndex(source);
-            this.families = new JourneyNativeFamilyIndex(source);
+            if (source == null) return;
+            for (int i = 0; i < source.size(); i++) {
+                ItemStack stack = source.get(i);
+                ResearchKey key = safeKey(stack);
+                if (key == null) continue;
+
+                if (!exactRepresentatives.containsKey(key)) exactRepresentatives.put(key, stack);
+                String representativeFamily = representativeFamilyKey(key);
+                if (!familyRepresentatives.containsKey(representativeFamily)) {
+                    familyRepresentatives.put(representativeFamily, stack);
+                }
+
+                if (!exactIndexes.containsKey(key)) exactIndexes.put(key, Integer.valueOf(i));
+                String meta = metaKey(key);
+                if (!metaIndexes.containsKey(meta)) metaIndexes.put(meta, Integer.valueOf(i));
+                if (!familyIndexes.containsKey(key.getItemId())) familyIndexes.put(key.getItemId(), Integer.valueOf(i));
+            }
         }
 
         boolean owns(List<ItemStack> items) { return source == items; }
-        JourneyNativeRepresentativeIndex representatives() { return representatives; }
-        JourneyNativeFamilyIndex families() { return families; }
+
+        ItemStack representative(ItemStack display) {
+            ResearchKey key = safeKey(display);
+            if (key != null) {
+                ItemStack exact = exactRepresentatives.get(key);
+                if (exact != null) return exact;
+                ItemStack family = familyRepresentatives.get(representativeFamilyKey(key));
+                if (family != null) return family;
+            }
+            return display;
+        }
+
+        int nativeIndex(ItemStack display, ResearchKey key) {
+            ResearchKey effective = key == null ? safeKey(display) : key;
+            if (effective == null) return Integer.MAX_VALUE;
+            Integer exact = exactIndexes.get(effective);
+            if (exact != null) return exact.intValue();
+            Integer meta = metaIndexes.get(metaKey(effective));
+            if (meta != null) return meta.intValue();
+            Integer family = familyIndexes.get(effective.getItemId());
+            return family == null ? Integer.MAX_VALUE : family.intValue();
+        }
+
+        String familyKey(ItemStack display, ResearchKey key) {
+            ResearchKey effective = key == null ? safeKey(display) : key;
+            return effective == null ? "<invalid>" : effective.getItemId();
+        }
     }
 
     private static final Object CATALOG_LOCK = new Object();
+    private static final List<ItemStack> EMPTY_ITEMS = Collections.emptyList();
     private static volatile NativeCatalog catalog;
 
     private JourneyPanelPrecache() {}
 
     static NativeCatalog nativeCatalog(List<ItemStack> nativeItems) {
+        List<ItemStack> effective = nativeItems == null ? EMPTY_ITEMS : nativeItems;
         NativeCatalog current = catalog;
-        if (current != null && current.owns(nativeItems)) return current;
+        if (current != null && current.owns(effective)) return current;
         synchronized (CATALOG_LOCK) {
             current = catalog;
-            if (current != null && current.owns(nativeItems)) return current;
-            NativeCatalog replacement = new NativeCatalog(nativeItems);
+            if (current != null && current.owns(effective)) return current;
+            NativeCatalog replacement = new NativeCatalog(effective);
             catalog = replacement;
             return replacement;
         }
     }
 
+    static SemanticMetadata semantic(ItemStack display, ResearchKey key, String displayName) {
+        return semantic(nativeCatalog(ItemList.items), display, key, displayName);
+    }
+
     static SemanticMetadata semantic(NativeCatalog nativeCatalog, ItemStack display, ResearchKey key, String displayName) {
-        if (nativeCatalog == null || key == null) {
-            return computeSemantic(display, key, displayName);
-        }
+        if (nativeCatalog == null || key == null) return computeSemantic(display, key, displayName);
         SemanticMetadata cached = nativeCatalog.semantics.get(key);
         if (cached != null && cached.matchesDisplayName(displayName)) return cached;
         synchronized (nativeCatalog.semantics) {
@@ -115,8 +166,22 @@ final class JourneyPanelPrecache {
         return new SemanticMetadata(
             displayName,
             JourneySemanticClassifier.modGroup(key),
-            JourneySemanticClassifier.typeGroup(display, key),
-            JourneySemanticClassifier.kindGroup(display, key));
+            JourneySemanticClassifier.uncachedTypeGroup(display, key),
+            JourneySemanticClassifier.uncachedKindGroup(display, key));
+    }
+
+    private static String representativeFamilyKey(ResearchKey key) {
+        return key.getItemId() + '\u0000' + key.getMeta();
+    }
+
+    private static String metaKey(ResearchKey key) {
+        return key.getItemId() + '\u0000' + key.getMeta();
+    }
+
+    private static ResearchKey safeKey(ItemStack stack) {
+        try { return stack == null || stack.getItem() == null ? null : ItemStackKeyFactory.from(stack); }
+        catch (RuntimeException ignored) { return null; }
+        catch (LinkageError ignored) { return null; }
     }
 
     private static String safe(String value, String fallback) {
