@@ -14,7 +14,7 @@ import dev.gtnhjourney.network.JourneyNetwork;
 import dev.gtnhjourney.research.ResearchFingerprint;
 import dev.gtnhjourney.research.ResearchKey;
 
-/** Journey-owned item views share LMB/RMB issuance; Alt+LMB is reserved only for favourite toggling. */
+/** Journey-owned item views share LMB/RMB issuance; Alt gestures are directional F management. */
 public final class JourneyNEIInputHandler implements IContainerInputHandler {
 
     @Override
@@ -24,8 +24,12 @@ public final class JourneyNEIInputHandler implements IContainerInputHandler {
         ItemStack hovered = ItemPanels.itemPanel.getStackMouseOver(mousex, mousey);
         if (hovered == null || hovered.getItem() == null) return false;
 
-        if (JourneyRetrieveClickPolicy.shouldToggleFavourite(mode, button, altDown())) {
-            toggleFavourite(hovered);
+        if (JourneyRetrieveClickPolicy.shouldAddFavourite(mode, button, altDown())) {
+            setFavourite(hovered, true);
+            return true;
+        }
+        if (JourneyRetrieveClickPolicy.shouldRemoveFavourite(mode, button, altDown())) {
+            setFavourite(hovered, false);
             return true;
         }
 
@@ -51,10 +55,10 @@ public final class JourneyNEIInputHandler implements IContainerInputHandler {
         }
     }
 
-    private static void toggleFavourite(ItemStack hovered) {
+    private static void setFavourite(ItemStack hovered, boolean favourite) {
         try {
             ResearchKey key = JourneyPresentationKeyResolver.keyOf(hovered);
-            if (ClientResearchMirror.contains(key)) Journey1124Network.requestToggle(ResearchFingerprint.of(key));
+            if (ClientResearchMirror.contains(key)) Journey1124Network.requestSet(ResearchFingerprint.of(key), favourite);
         } catch (IllegalArgumentException ignored) {}
     }
 
