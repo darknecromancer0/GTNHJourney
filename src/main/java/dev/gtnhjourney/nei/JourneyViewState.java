@@ -1,8 +1,8 @@
 package dev.gtnhjourney.nei;
 
-/** Client-side mode for the NEI item panel. */
+/** Client-side content mode for the NEI item panel. Sorting is owned separately by JourneySortState. */
 public final class JourneyViewState {
-    public enum Mode { ALL, RESEARCHED, NEWEST, FAVOURITE, CREATIVE, DELETE }
+    public enum Mode { ALL, RESEARCHED, FAVOURITE, CREATIVE, DELETE }
 
     private static volatile Mode mode = Mode.ALL;
     private static volatile long revision;
@@ -11,19 +11,31 @@ public final class JourneyViewState {
 
     public static Mode mode() { return mode; }
     public static boolean isEnabled() { return mode != Mode.ALL; }
-    public static boolean isNewest() { return mode == Mode.NEWEST; }
     public static boolean isFavourite() { return mode == Mode.FAVOURITE; }
     public static boolean isCreative() { return mode == Mode.CREATIVE; }
     public static boolean isDelete() { return mode == Mode.DELETE; }
+
+    /** Compatibility bridge for the removed N view: old Newest semantics are now J + L. */
+    @Deprecated
+    public static boolean isNewest() {
+        return mode == Mode.RESEARCHED && JourneySortState.latest(Mode.RESEARCHED)
+            && JourneySortState.group(Mode.RESEARCHED) == JourneyGroupMode.NONE
+            && JourneySortState.order(Mode.RESEARCHED) == JourneyOrderMode.NONE;
+    }
 
     public static synchronized boolean toggle() {
         setMode(mode == Mode.RESEARCHED ? Mode.ALL : Mode.RESEARCHED);
         return mode == Mode.RESEARCHED;
     }
 
+    /** Compatibility bridge for callers compiled around the old N control. */
+    @Deprecated
     public static synchronized boolean toggleNewest() {
-        setMode(mode == Mode.NEWEST ? Mode.ALL : Mode.NEWEST);
-        return mode == Mode.NEWEST;
+        setMode(Mode.RESEARCHED);
+        JourneySortState.setGroup(Mode.RESEARCHED, JourneyGroupMode.NONE);
+        JourneySortState.setOrder(Mode.RESEARCHED, JourneyOrderMode.NONE);
+        JourneySortState.toggleLatest(Mode.RESEARCHED);
+        return JourneySortState.latest(Mode.RESEARCHED);
     }
 
     public static synchronized boolean toggleFavourite() {
