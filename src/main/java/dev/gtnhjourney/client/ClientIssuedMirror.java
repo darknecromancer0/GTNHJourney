@@ -50,7 +50,7 @@ public final class ClientIssuedMirror {
         if (!isComplete(finishEpoch)) return;
         LinkedHashSet<ResearchFingerprint> next = new LinkedHashSet<ResearchFingerprint>();
         for (ResearchFingerprint fingerprint : staging) if (fingerprint != null) next.add(fingerprint);
-        if (!next.equals(oldestFirst)) {
+        if (!sameOrder(next, oldestFirst)) {
             oldestFirst.clear();
             oldestFirst.addAll(next);
             rebuildSequences();
@@ -102,5 +102,11 @@ public final class ClientIssuedMirror {
         for (ResearchFingerprint fingerprint : oldestFirst) {
             if (fingerprint != null) sequences.put(fingerprint, Long.valueOf(++sequenceCounter));
         }
+    }
+
+    private static boolean sameOrder(
+        LinkedHashSet<ResearchFingerprint> left,
+        LinkedHashSet<ResearchFingerprint> right) {
+        return new ArrayList<ResearchFingerprint>(left).equals(new ArrayList<ResearchFingerprint>(right));
     }
 }
