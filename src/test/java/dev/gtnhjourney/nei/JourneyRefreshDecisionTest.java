@@ -16,7 +16,7 @@ public class JourneyRefreshDecisionTest {
             JourneyRefreshDecision.decide(JourneyViewState.Mode.RESEARCHED, true, false, false));
         assertEquals(
             JourneyRefreshDecision.Action.PANEL_REFRESH,
-            JourneyRefreshDecision.decide(JourneyViewState.Mode.NEWEST, true, false, false));
+            JourneyRefreshDecision.decide(JourneyViewState.Mode.FAVOURITE, true, false, false));
     }
 
     @Test
@@ -26,7 +26,7 @@ public class JourneyRefreshDecisionTest {
             JourneyRefreshDecision.decide(JourneyViewState.Mode.RESEARCHED, false, false, true));
         assertEquals(
             JourneyRefreshDecision.Action.PANEL_REFRESH,
-            JourneyRefreshDecision.decide(JourneyViewState.Mode.NEWEST, false, false, true));
+            JourneyRefreshDecision.decide(JourneyViewState.Mode.CREATIVE, false, false, true));
     }
 
     @Test
@@ -36,7 +36,7 @@ public class JourneyRefreshDecisionTest {
             JourneyRefreshDecision.decide(JourneyViewState.Mode.RESEARCHED, false, true, false));
         assertEquals(
             JourneyRefreshDecision.Action.PANEL_ENSURE,
-            JourneyRefreshDecision.decide(JourneyViewState.Mode.NEWEST, false, false, false));
+            JourneyRefreshDecision.decide(JourneyViewState.Mode.FAVOURITE, false, false, false));
     }
 
     @Test
