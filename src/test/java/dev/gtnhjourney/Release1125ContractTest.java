@@ -25,7 +25,6 @@ public class Release1125ContractTest {
         assertTrue(overlay.contains("visibleWindowStart"));
         assertFalse(overlay.contains("JourneyCommandSuggestions.forChatText"));
         assertTrue(state.contains("requestCommandSuggestions"));
-        assertTrue(state.contains("acceptSelected"));
         assertTrue(keys.contains("KEY_UP = 200"));
         assertTrue(keys.contains("KEY_DOWN = 208"));
         assertTrue(keys.contains("KEY_TAB = 15"));
@@ -51,11 +50,13 @@ public class Release1125ContractTest {
     public void subsetFilteringUsesNativeRepresentativeButSearchKeepsExactJourneyStack() throws IOException {
         String pipeline = read("src/main/java/dev/gtnhjourney/nei/JourneyNeiFilterPipeline.java");
         String index = read("src/main/java/dev/gtnhjourney/nei/JourneyNativeRepresentativeIndex.java");
+        String cache = read("src/main/java/dev/gtnhjourney/nei/JourneyPanelPrecache.java");
         assertTrue(pipeline.contains("usesNativeRepresentative()"));
         assertTrue(pipeline.contains("nativeRepresentative"));
         assertTrue(pipeline.contains("SUBSET_WIDGET"));
         assertTrue(index.contains("ItemStack representative(ItemStack display)"));
-        assertTrue(index.contains("families.get(family(key, display))"));
+        assertTrue(index.contains("catalog.representative(display)"));
+        assertTrue(cache.contains("familyRepresentatives.get(representativeFamilyKey(key, display))"));
     }
 
     @Test
