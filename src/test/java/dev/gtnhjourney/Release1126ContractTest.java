@@ -102,7 +102,8 @@ public class Release1126ContractTest {
         assertTrue(text.contains("#"));
         assertTrue(text.contains("ctrl+backspace"));
         assertTrue(text.contains("shift+up"));
-        assertTrue(text.contains("s/t/g"));
+        assertTrue(text.contains("s/t disappear"));
+        assertTrue(text.contains("native g"));
     }
 
     private static String compactWhitespace(String value) {
