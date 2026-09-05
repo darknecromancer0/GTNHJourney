@@ -23,7 +23,8 @@ public final class NEIGTNHJourneyConfig implements IConfigureNEI {
         GuiContainerManager.addTooltipHandler(new JourneyNEITooltipHandler());
         JourneyNEIToggleWidget toggle = new JourneyNEIToggleWidget();
         GuiContainerManager.addDrawHandler(toggle);
-        GuiContainerManager.addInputHandler(toggle);
+        // Header hitboxes can geometrically overlap NEI item cells, so Journey must own those clicks first.
+        GuiContainerManager.inputHandlers.addFirst(toggle);
         GuiContainerManager.addTooltipHandler(toggle);
         FMLCommonHandler.instance()
             .bus()
