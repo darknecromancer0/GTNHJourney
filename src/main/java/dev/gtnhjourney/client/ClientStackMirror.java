@@ -94,9 +94,23 @@ public final class ClientStackMirror {
     }
 
     public static synchronized void addUnlock(ItemStack stack) {
+        if (stack == null || stack.getItem() == null) return;
+        ResearchKey key;
+        try {
+            key = ItemStackKeyFactory.from(stack);
+        } catch (IllegalArgumentException ignored) {
+            return;
+        }
+        addUnlock(key, stack);
+    }
+
+    /** Applies one authoritative exact template for a known identity. Package-private for deterministic mirror tests. */
+    static synchronized void addUnlock(ResearchKey key, ItemStack stack) {
+        if (key == null || stack == null || stack.getItem() == null) return;
         int before = stacks.size();
-        ResearchKey key = addInternal(stacks, stack);
-        if (key == null) return;
+        ItemStack copy = stack.copy();
+        copy.stackSize = 1;
+        stacks.put(key, copy);
 
         // The canonical research identity may remain unchanged while the server upgrades the exact retrievable template
         // behind it, e.g. CropsNH seed Resistance 5 -> 6. Signal every authoritative template delivery independently
