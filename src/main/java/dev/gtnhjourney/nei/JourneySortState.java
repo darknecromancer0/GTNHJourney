@@ -3,7 +3,7 @@ package dev.gtnhjourney.nei;
 import java.util.EnumMap;
 import java.util.Map;
 
-/** Session-local Group × Order × Latest state remembered independently for J/F/C/D. */
+/** Session-local Group × Order × Latest state remembered independently for NEI/J/F/C/D. */
 public final class JourneySortState {
 
     private static final Map<JourneyViewState.Mode, Settings> values =
@@ -26,6 +26,11 @@ public final class JourneySortState {
 
     public static synchronized boolean latest(JourneyViewState.Mode mode) {
         return settings(mode).latest;
+    }
+
+    public static synchronized boolean hasTransform(JourneyViewState.Mode mode) {
+        Settings settings = settings(mode);
+        return settings.group != JourneyGroupMode.NONE || settings.order != JourneyOrderMode.NONE || settings.latest;
     }
 
     public static synchronized void setGroup(JourneyViewState.Mode mode, JourneyGroupMode value) {
@@ -71,7 +76,7 @@ public final class JourneySortState {
     }
 
     private static Settings settings(JourneyViewState.Mode mode) {
-        JourneyViewState.Mode effective = owned(mode) ? mode : JourneyViewState.Mode.RESEARCHED;
+        JourneyViewState.Mode effective = mode == null ? JourneyViewState.Mode.ALL : mode;
         Settings settings = values.get(effective);
         if (settings == null) {
             settings = new Settings();
@@ -80,13 +85,9 @@ public final class JourneySortState {
         return settings;
     }
 
-    private static boolean owned(JourneyViewState.Mode mode) {
-        return mode == JourneyViewState.Mode.RESEARCHED || mode == JourneyViewState.Mode.FAVOURITE
-            || mode == JourneyViewState.Mode.CREATIVE || mode == JourneyViewState.Mode.DELETE;
-    }
-
     private static void resetInternal() {
         values.clear();
+        values.put(JourneyViewState.Mode.ALL, new Settings());
         values.put(JourneyViewState.Mode.RESEARCHED, new Settings());
         values.put(JourneyViewState.Mode.FAVOURITE, new Settings());
         values.put(JourneyViewState.Mode.CREATIVE, new Settings());
