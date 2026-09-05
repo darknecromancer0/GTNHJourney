@@ -60,15 +60,16 @@ final class JourneyPanelPrecache {
             if (source == null) return;
             for (int i = 0; i < source.size(); i++) {
                 ItemStack stack = source.get(i);
+                if (stack == null || stack.getItem() == null) continue;
                 ResearchKey key = safeKey(stack);
-                if (key == null) continue;
 
-                if (!exactRepresentatives.containsKey(key)) exactRepresentatives.put(key, stack);
-                String representativeFamily = representativeFamilyKey(key);
+                if (key != null && !exactRepresentatives.containsKey(key)) exactRepresentatives.put(key, stack);
+                String representativeFamily = representativeFamilyKey(key, stack);
                 if (!familyRepresentatives.containsKey(representativeFamily)) {
                     familyRepresentatives.put(representativeFamily, stack);
                 }
 
+                if (key == null) continue;
                 if (!exactIndexes.containsKey(key)) exactIndexes.put(key, Integer.valueOf(i));
                 String meta = metaKey(key);
                 if (!metaIndexes.containsKey(meta)) metaIndexes.put(meta, Integer.valueOf(i));
@@ -83,10 +84,9 @@ final class JourneyPanelPrecache {
             if (key != null) {
                 ItemStack exact = exactRepresentatives.get(key);
                 if (exact != null) return exact;
-                ItemStack family = familyRepresentatives.get(representativeFamilyKey(key));
-                if (family != null) return family;
             }
-            return display;
+            ItemStack family = familyRepresentatives.get(representativeFamilyKey(key, display));
+            return family == null ? display : family;
         }
 
         int nativeIndex(ItemStack display, ResearchKey key) {
@@ -170,8 +170,10 @@ final class JourneyPanelPrecache {
             JourneySemanticClassifier.uncachedKindGroup(display, key));
     }
 
-    private static String representativeFamilyKey(ResearchKey key) {
-        return key.getItemId() + '\u0000' + key.getMeta();
+    private static String representativeFamilyKey(ResearchKey key, ItemStack stack) {
+        if (key != null) return key.getItemId() + '\u0000' + key.getMeta();
+        if (stack == null || stack.getItem() == null) return "<invalid>";
+        return stack.getItem().getUnlocalizedName() + '\u0000' + stack.getItemDamage();
     }
 
     private static String metaKey(ResearchKey key) {
