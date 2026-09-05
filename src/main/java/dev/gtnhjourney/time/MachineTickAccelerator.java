@@ -14,6 +14,9 @@ import cpw.mods.fml.common.gameevent.TickEvent.ServerTickEvent;
 /**
  * Best-effort machine-only acceleration. It adds extra updates only for already-loaded tickable TileEntities while
  * MinecraftServer, world time, entities, weather and random block ticks remain at the normal 20 TPS cadence.
+ *
+ * <p>The work deadline is checked only between complete global passes. A pass is never cut in the middle because doing
+ * so can advance GT energy buffers/producers without advancing downstream consumers by the same number of extra ticks.</p>
  */
 public final class MachineTickAccelerator {
 
@@ -36,24 +39,44 @@ public final class MachineTickAccelerator {
         MinecraftServer server = MinecraftServer.getServer();
         if (server == null || server.worldServers == null) return;
 
+        List<WorldSnapshot> snapshots = snapshotWorlds(server.worldServers);
+        if (snapshots.isEmpty()) return;
+
         long deadline = System.nanoTime() + EXTRA_WORK_BUDGET_NANOS;
         int extraPasses = multiplier - 1;
-        for (WorldServer world : server.worldServers) {
-            if (world == null || System.nanoTime() >= deadline) break;
-            tickWorldTileEntities(world, extraPasses, deadline);
+        for (int pass = 0; pass < extraPasses; pass++) {
+            if (pass > 0 && System.nanoTime() >= deadline) return;
+            tickCompletePass(snapshots);
         }
     }
 
-    private static void tickWorldTileEntities(WorldServer world, int extraPasses, long deadline) {
-        @SuppressWarnings("unchecked")
-        List<TileEntity> snapshot = new ArrayList<TileEntity>(world.loadedTileEntityList);
-        for (int pass = 0; pass < extraPasses; pass++) {
-            if (System.nanoTime() >= deadline) return;
-            for (TileEntity tile : snapshot) {
+    private static List<WorldSnapshot> snapshotWorlds(WorldServer[] worlds) {
+        List<WorldSnapshot> snapshots = new ArrayList<WorldSnapshot>();
+        for (WorldServer world : worlds) {
+            if (world == null) continue;
+            @SuppressWarnings("unchecked")
+            List<TileEntity> tiles = new ArrayList<TileEntity>(world.loadedTileEntityList);
+            snapshots.add(new WorldSnapshot(world, tiles));
+        }
+        return snapshots;
+    }
+
+    private static void tickCompletePass(List<WorldSnapshot> snapshots) {
+        for (WorldSnapshot snapshot : snapshots) {
+            WorldServer world = snapshot.world;
+            for (TileEntity tile : snapshot.tiles) {
                 if (tile == null || tile.isInvalid() || !tile.canUpdate() || tile.getWorldObj() != world) continue;
                 tile.updateEntity();
-                if (System.nanoTime() >= deadline) return;
             }
+        }
+    }
+
+    private static final class WorldSnapshot {
+        final WorldServer world;
+        final List<TileEntity> tiles;
+        WorldSnapshot(WorldServer world, List<TileEntity> tiles) {
+            this.world = world;
+            this.tiles = tiles;
         }
     }
 }
