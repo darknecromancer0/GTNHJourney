@@ -302,6 +302,10 @@ public final class JourneyNEIToggleWidget
     @Override
     public List<String> handleTooltip(GuiContainer gui, int mousex, int mousey, List<String> currenttip) {
         if (!visible) return currenttip;
+        if (rightControlsVisible
+            && (groupDropdown.containsOpenPopup(mousex, mousey) || orderDropdown.containsOpenPopup(mousex, mousey))) {
+            currenttip.clear();
+        }
         neiButton.handleTooltip(mousex, mousey, currenttip);
         researchButton.handleTooltip(mousex, mousey, currenttip);
         favouriteButton.handleTooltip(mousex, mousey, currenttip);
