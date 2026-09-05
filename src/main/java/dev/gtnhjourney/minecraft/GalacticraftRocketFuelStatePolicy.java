@@ -2,7 +2,11 @@ package dev.gtnhjourney.minecraft;
 
 import java.lang.reflect.Field;
 
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+
+import cpw.mods.fml.common.registry.GameRegistry;
+import cpw.mods.fml.common.registry.GameRegistry.UniqueIdentifier;
 
 /**
  * Canonicalizes the verified Galacticraft rocket fuel payload to the two useful Journey endpoints.
@@ -16,6 +20,15 @@ public final class GalacticraftRocketFuelStatePolicy {
     private static final String FUEL_KEY = "RocketFuel";
 
     private GalacticraftRocketFuelStatePolicy() {}
+
+    public static void normalize(ItemStack stack, NBTTagCompound tag) {
+        if (stack == null || stack.getItem() == null || tag == null) return;
+        try {
+            UniqueIdentifier id = GameRegistry.findUniqueIdentifierFor(stack.getItem());
+            if (id != null && id.modId != null && id.name != null) normalize(id.modId + ":" + id.name, tag);
+        } catch (RuntimeException ignored) {
+        } catch (LinkageError ignored) {}
+    }
 
     public static void normalize(String itemId, NBTTagCompound tag) {
         normalizeForTests(itemId, tag, runtimeFuelFactor());
