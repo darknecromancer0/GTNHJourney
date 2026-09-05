@@ -21,6 +21,23 @@ public class JourneyRetrieveClickPolicyTest {
     }
 
     @Test
+    public void allJourneyIssueViewsAcceptLeftAndRightClick() {
+        assertTrue(JourneyRetrieveClickPolicy.shouldRetrieve(0, true, false));
+        assertTrue(JourneyRetrieveClickPolicy.shouldRetrieve(1, true, false));
+        assertFalse(JourneyRetrieveClickPolicy.shouldRetrieve(2, true, false));
+    }
+
+    @Test
+    public void altLeftClickInterceptsOnlyFavouriteToggleViews() {
+        assertTrue(JourneyRetrieveClickPolicy.shouldToggleFavourite(JourneyViewState.Mode.RESEARCHED, 0, true));
+        assertTrue(JourneyRetrieveClickPolicy.shouldToggleFavourite(JourneyViewState.Mode.NEWEST, 0, true));
+        assertTrue(JourneyRetrieveClickPolicy.shouldToggleFavourite(JourneyViewState.Mode.FAVOURITE, 0, true));
+        assertFalse(JourneyRetrieveClickPolicy.shouldToggleFavourite(JourneyViewState.Mode.CREATIVE, 0, true));
+        assertFalse(JourneyRetrieveClickPolicy.shouldToggleFavourite(JourneyViewState.Mode.RESEARCHED, 0, false));
+        assertFalse(JourneyRetrieveClickPolicy.shouldToggleFavourite(JourneyViewState.Mode.RESEARCHED, 1, true));
+    }
+
+    @Test
     public void fillInventoryGestureIsShiftRightClickOnly() {
         assertTrue(JourneyRetrieveClickPolicy.shouldFillInventory(1, true));
         assertFalse(JourneyRetrieveClickPolicy.shouldFillInventory(1, false));
