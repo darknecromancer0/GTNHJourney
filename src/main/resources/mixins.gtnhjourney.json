@@ -13,6 +13,7 @@
   "client": [
     "GuiChatCommandHintMixin",
     "GuiContainerSearchCtrlBackspaceMixin",
+    "GuiRecipeCtrlBackspaceMixin",
     "ItemPanelJourneyFilterMixin",
     "ItemsPanelGridJourneyMixin",
     "TessellatorStateAccessor",
