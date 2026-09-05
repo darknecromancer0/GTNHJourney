@@ -25,12 +25,12 @@ public final class Journey1124Network {
     private Journey1124Network() {}
 
     public static void init() {
-        CHANNEL.registerMessage(ToggleFavourite.Handler.class, ToggleFavourite.class, 0, Side.SERVER);
+        CHANNEL.registerMessage(SetFavourite.Handler.class, SetFavourite.class, 0, Side.SERVER);
         CHANNEL.registerMessage(FavouriteSync.Handler.class, FavouriteSync.class, 1, Side.CLIENT);
     }
 
-    public static void requestToggle(ResearchFingerprint fingerprint) {
-        if (fingerprint != null) CHANNEL.sendToServer(new ToggleFavourite(fingerprint));
+    public static void requestSet(ResearchFingerprint fingerprint, boolean favourite) {
+        if (fingerprint != null) CHANNEL.sendToServer(new SetFavourite(fingerprint, favourite));
     }
 
     public static void sendFavourites(EntityPlayerMP player, List<ResearchFingerprint> values) {
@@ -38,17 +38,27 @@ public final class Journey1124Network {
         CHANNEL.sendTo(new FavouriteSync(values), player);
     }
 
-    public static final class ToggleFavourite implements IMessage {
+    public static final class SetFavourite implements IMessage {
         private ResearchFingerprint fingerprint;
-        public ToggleFavourite() {}
-        ToggleFavourite(ResearchFingerprint fingerprint) { this.fingerprint = fingerprint; }
-        @Override public void fromBytes(ByteBuf buf) { fingerprint = ResearchFingerprintBuf.read(buf); }
-        @Override public void toBytes(ByteBuf buf) { ResearchFingerprintBuf.write(buf, fingerprint); }
+        private boolean favourite;
+        public SetFavourite() {}
+        SetFavourite(ResearchFingerprint fingerprint, boolean favourite) {
+            this.fingerprint = fingerprint;
+            this.favourite = favourite;
+        }
+        @Override public void fromBytes(ByteBuf buf) {
+            fingerprint = ResearchFingerprintBuf.read(buf);
+            favourite = buf.readBoolean();
+        }
+        @Override public void toBytes(ByteBuf buf) {
+            ResearchFingerprintBuf.write(buf, fingerprint);
+            buf.writeBoolean(favourite);
+        }
 
-        public static final class Handler implements IMessageHandler<ToggleFavourite, IMessage> {
-            @Override public IMessage onMessage(ToggleFavourite message, MessageContext ctx) {
+        public static final class Handler implements IMessageHandler<SetFavourite, IMessage> {
+            @Override public IMessage onMessage(SetFavourite message, MessageContext ctx) {
                 if (message != null && message.fingerprint != null && ctx.getServerHandler() != null) {
-                    FavouriteRequestQueue.enqueue(ctx.getServerHandler().playerEntity, message.fingerprint);
+                    FavouriteRequestQueue.enqueue(ctx.getServerHandler().playerEntity, message.fingerprint, message.favourite);
                 }
                 return null;
             }
