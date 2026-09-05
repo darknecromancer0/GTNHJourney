@@ -26,15 +26,17 @@ class NeiSearchCtrlBackspaceContractTest {
     }
 
     @Test
-    void recipeViewCannotTreatCtrlBackspaceAsPlainRecipeBack() throws IOException {
+    void recipeViewGuardsPhysicalBackStateInsteadOfOnlyCurrentBackspaceEvent() throws IOException {
         String mixin = read("src/main/java/dev/gtnhjourney/mixin/GuiRecipeCtrlBackspaceMixin.java");
         String config = read("src/main/resources/mixins.gtnhjourney.json");
 
         assertTrue(mixin.contains("GuiRecipe"));
         assertTrue(mixin.contains("method = \"keyTyped\""));
         assertTrue(mixin.contains("KeyManager;isKeyDown"));
-        assertTrue(mixin.contains("Keyboard.KEY_BACK"));
+        assertTrue(mixin.contains("KeyManager.isKeyDown(\"recipe.back\")"));
+        assertTrue(mixin.contains("LayoutManager.searchField.focused()"));
         assertTrue(mixin.contains("NEIClientUtils.controlKey()"));
+        assertTrue(mixin.contains("JourneyRecipeBackGuard.shouldSuppress"));
         assertTrue(mixin.contains("ci.cancel()"));
         assertTrue(config.contains("GuiRecipeCtrlBackspaceMixin"));
     }
