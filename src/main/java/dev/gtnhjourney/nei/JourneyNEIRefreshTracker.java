@@ -4,15 +4,17 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 import dev.gtnhjourney.client.ClientActivityMirror;
 import dev.gtnhjourney.client.ClientFavouriteMirror;
+import dev.gtnhjourney.client.ClientIssuedMirror;
 import dev.gtnhjourney.client.ClientPresentationActivityMirror;
 import dev.gtnhjourney.client.ClientResearchMirror;
 import dev.gtnhjourney.client.ClientStackMirror;
 
-/** Keeps Journey/NEI presentation synchronized with content, native filters, sort state and presentation activity. */
+/** Keeps Journey/NEI presentation synchronized without moving NEI search work onto the client UI thread. */
 public final class JourneyNEIRefreshTracker {
 
     private long seenResearchRevision = Long.MIN_VALUE;
     private long seenActivityRevision = Long.MIN_VALUE;
+    private long seenIssuedRevision = Long.MIN_VALUE;
     private long seenFavouriteRevision = Long.MIN_VALUE;
     private long seenPresentationRevision = Long.MIN_VALUE;
     private long seenViewRevision = Long.MIN_VALUE;
@@ -25,6 +27,7 @@ public final class JourneyNEIRefreshTracker {
 
         long researchRevision = ClientResearchMirror.revision();
         long activityRevision = ClientActivityMirror.revision();
+        long issuedRevision = ClientIssuedMirror.revision();
         long favouriteRevision = ClientFavouriteMirror.revision();
         long presentationRevision = ClientPresentationActivityMirror.revision();
         long viewRevision = JourneyViewState.revision();
@@ -32,16 +35,19 @@ public final class JourneyNEIRefreshTracker {
         long sortRevision = JourneySortState.revision();
 
         boolean contentChanged = researchRevision != seenResearchRevision || activityRevision != seenActivityRevision
-            || favouriteRevision != seenFavouriteRevision || presentationRevision != seenPresentationRevision;
+            || issuedRevision != seenIssuedRevision || favouriteRevision != seenFavouriteRevision
+            || presentationRevision != seenPresentationRevision;
         boolean viewChanged = viewRevision != seenViewRevision;
         boolean filterChanged = filterRevision != seenFilterRevision;
         boolean sortChanged = sortRevision != seenSortRevision;
         boolean panelWanted = JourneyPanelController.shouldOwnCurrentView();
 
         if (panelWanted) {
-            if (contentChanged || viewChanged || filterChanged || sortChanged) {
-                // Activity/content refreshes retain the current page. Deliberate view/filter/sort changes may reset.
+            if (contentChanged || viewChanged || sortChanged) {
                 JourneyPanelController.refresh(viewChanged || filterChanged || sortChanged);
+            } else if (filterChanged) {
+                // Heavy query/filter/sort work was already completed on NEI Item Filtering's worker thread.
+                if (!JourneyPanelController.publishCompletedFilter()) JourneyPanelController.ensureOwned();
             } else {
                 JourneyPanelController.ensureOwned();
             }
@@ -51,6 +57,7 @@ public final class JourneyNEIRefreshTracker {
 
         seenResearchRevision = researchRevision;
         seenActivityRevision = activityRevision;
+        seenIssuedRevision = issuedRevision;
         seenFavouriteRevision = favouriteRevision;
         seenPresentationRevision = presentationRevision;
         seenViewRevision = viewRevision;
