@@ -11,6 +11,7 @@
     "MinecraftServerSpeedMixin"
   ],
   "client": [
+    "GuiChatCommandHintMixin",
     "ItemsPanelGridJourneyMixin",
     "RestartableTaskJourneyFilterMixin",
     "TessellatorStateAccessor",
