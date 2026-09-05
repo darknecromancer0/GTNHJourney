@@ -14,7 +14,7 @@ import dev.gtnhjourney.network.JourneyNetwork;
 import dev.gtnhjourney.research.ResearchFingerprint;
 import dev.gtnhjourney.research.ResearchKey;
 
-/** Journey-owned views reserve LMB for favourites and use RMB/Shift+RMB for issuance. */
+/** Journey-owned item views share LMB/RMB issuance; Alt+LMB is reserved only for favourite toggling. */
 public final class JourneyNEIInputHandler implements IContainerInputHandler {
 
     @Override
@@ -22,20 +22,19 @@ public final class JourneyNEIInputHandler implements IContainerInputHandler {
         if (JourneyViewState.isDelete()) return handleDeleteClick(mousex, mousey, button);
         JourneyViewState.Mode mode = JourneyViewState.mode();
         ItemStack hovered = ItemPanels.itemPanel.getStackMouseOver(mousex, mousey);
+        if (hovered == null || hovered.getItem() == null) return false;
 
-        if (JourneyViewState.isEnabled() && button == 0) {
-            if (hovered == null || hovered.getItem() == null) return false;
-            if (JourneyRetrieveClickPolicy.shouldToggleFavourite(mode, button, altDown())) toggleFavourite(hovered);
+        if (JourneyRetrieveClickPolicy.shouldToggleFavourite(mode, button, altDown())) {
+            toggleFavourite(hovered);
             return true;
         }
 
         if (JourneyViewState.isCreative()) {
-            if (hovered == null || hovered.getItem() == null || button != 1) return false;
-            return handleCreativeIssue(hovered, shiftDown());
+            if (!JourneyRetrieveClickPolicy.shouldRetrieve(button, true, controlDown())) return false;
+            return handleCreativeIssue(hovered, button, shiftDown());
         }
 
         if (!JourneyRetrieveClickPolicy.shouldRetrieve(button, JourneyViewState.isEnabled(), controlDown())) return false;
-        if (hovered == null || hovered.getItem() == null) return false;
         try {
             ResearchKey key = JourneyPresentationKeyResolver.keyOf(hovered);
             if (!ClientResearchMirror.contains(key)) return false;
@@ -59,20 +58,22 @@ public final class JourneyNEIInputHandler implements IContainerInputHandler {
         } catch (IllegalArgumentException ignored) {}
     }
 
-    private static boolean handleCreativeIssue(ItemStack hovered, boolean fillInventory) {
+    private static boolean handleCreativeIssue(ItemStack hovered, int button, boolean shiftDown) {
         try {
             ResearchKey key = JourneyPresentationKeyResolver.keyOf(hovered);
             if (ClientResearchMirror.contains(key)) {
-                if (fillInventory) JourneyNetwork.requestFillInventory(key);
-                else JourneyNetwork.requestRetrieve(key, Math.max(1, hovered.getMaxStackSize()));
+                if (JourneyRetrieveClickPolicy.shouldFillInventory(button, shiftDown)) JourneyNetwork.requestFillInventory(key);
+                else JourneyNetwork.requestRetrieve(
+                    key,
+                    JourneyRetrieveClickPolicy.requestedAmount(button, shiftDown, hovered.getMaxStackSize()));
                 return true;
             }
         } catch (IllegalArgumentException ignored) {}
 
         if (!NEIClientConfig.canCheatItem(hovered)) return true;
         ItemStack give = hovered.copy();
-        give.stackSize = Math.max(1, hovered.getMaxStackSize());
-        if (!fillInventory) {
+        give.stackSize = JourneyRetrieveClickPolicy.requestedAmount(button, shiftDown, hovered.getMaxStackSize());
+        if (!JourneyRetrieveClickPolicy.shouldFillInventory(button, shiftDown)) {
             NEIClientUtils.giveStack(give);
             return true;
         }
@@ -81,7 +82,9 @@ public final class JourneyNEIInputHandler implements IContainerInputHandler {
         int empty = 0;
         ItemStack[] main = minecraft.thePlayer.inventory.mainInventory;
         for (int i = 0; i < main.length; i++) if (main[i] == null) empty++;
-        for (int i = 0; i < empty; i++) NEIClientUtils.giveStack(give.copy());
+        ItemStack stack = hovered.copy();
+        stack.stackSize = Math.max(1, hovered.getMaxStackSize());
+        for (int i = 0; i < empty; i++) NEIClientUtils.giveStack(stack.copy());
         return true;
     }
 
