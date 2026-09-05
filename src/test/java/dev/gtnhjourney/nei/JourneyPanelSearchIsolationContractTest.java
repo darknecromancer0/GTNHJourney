@@ -19,7 +19,8 @@ public class JourneyPanelSearchIsolationContractTest {
         String text = new String(Files.readAllBytes(source), StandardCharsets.UTF_8);
 
         assertTrue(text.contains("synchronizeSearchWidgetVisibility();"));
-        assertTrue(text.contains("Minecraft.getMinecraft().currentScreen"));
+        assertTrue(text.contains("Minecraft minecraft = Minecraft.getMinecraft();"));
+        assertTrue(text.contains("minecraft.currentScreen"));
         assertTrue(text.contains("LayoutManager.layout((GuiContainer) currentScreen);"));
         assertTrue(text.contains("JourneyNeiFilterPipeline.snapshotActiveFilters()"));
         assertTrue(text.indexOf("synchronizeSearchWidgetVisibility();")
