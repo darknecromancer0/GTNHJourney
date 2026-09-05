@@ -4,7 +4,7 @@ import net.minecraft.item.ItemStack;
 
 import codechicken.nei.api.ItemFilter;
 
-/** Keeps NEI's own async search rebuild constrained to the active Journey research set. */
+/** Keeps NEI's own async search rebuild constrained to researched/delete Journey views. */
 public final class JourneyItemFilterProvider implements ItemFilter.ItemFilterProvider {
 
     private final JourneySubsetFilter researched = new JourneySubsetFilter();
@@ -12,8 +12,7 @@ public final class JourneyItemFilterProvider implements ItemFilter.ItemFilterPro
     @Override
     public ItemFilter getFilter() {
         JourneyViewState.Mode mode = JourneyViewState.mode();
-        if (mode == JourneyViewState.Mode.RESEARCHED || mode == JourneyViewState.Mode.NEWEST
-            || mode == JourneyViewState.Mode.DELETE) return researched;
+        if (mode == JourneyViewState.Mode.RESEARCHED || mode == JourneyViewState.Mode.DELETE) return researched;
         return new ItemFilter() {
 
             @Override
