@@ -57,6 +57,7 @@ final class JourneySortDropdown {
         if (open) for (OptionButton option : options) option.handleTooltip(mousex, mousey, currenttip);
     }
     boolean isOpen() { return open; }
+    boolean containsOpenPopup(int mousex, int mousey) { return containsPopup(mousex, mousey); }
     void close() { open = false; options.clear(); }
     List<String> optionLabelsForTests() {
         rebuildOptions();
