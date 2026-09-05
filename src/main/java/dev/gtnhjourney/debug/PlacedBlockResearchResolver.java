@@ -1,9 +1,7 @@
 package dev.gtnhjourney.debug;
 
-import java.lang.reflect.Field;
-import java.util.Map;
-
 import net.minecraft.block.Block;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityList;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
@@ -17,9 +15,6 @@ import net.minecraft.world.World;
 
 /** Resolves a placed block into an item representation without breaking or mutating the world. */
 public final class PlacedBlockResearchResolver {
-
-    private static volatile Field entityNameToIdField;
-    private static volatile boolean entityNameToIdUnavailable;
 
     private PlacedBlockResearchResolver() {}
 
@@ -69,7 +64,9 @@ public final class PlacedBlockResearchResolver {
             TileEntity tile = world.getTileEntity(x, y, z);
             if (!(tile instanceof TileEntityMobSpawner)) return null;
             String entityName = ((TileEntityMobSpawner) tile).func_145881_a().getEntityNameToSpawn();
-            int entityMeta = resolveRegisteredEntityMeta(entityName);
+            Entity entity = EntityList.createEntityByName(entityName, world);
+            if (entity == null) return null;
+            int entityMeta = EntityList.getEntityID(entity);
             if (entityMeta <= 0) return null;
 
             Item item = Item.getItemFromBlock(Blocks.mob_spawner);
@@ -80,38 +77,6 @@ public final class PlacedBlockResearchResolver {
         } catch (LinkageError ignored) {
             return null;
         }
-    }
-
-    static int resolveRegisteredEntityMeta(String entityName) {
-        if (entityName == null || entityName.length() == 0) return -1;
-        Map<String, Integer> ids = entityNameToIdMapping();
-        return MobSpawnerResearchIdentity.resolveEntityMeta(entityName, ids);
-    }
-
-    @SuppressWarnings("unchecked")
-    private static Map<String, Integer> entityNameToIdMapping() {
-        if (entityNameToIdUnavailable) return java.util.Collections.emptyMap();
-        try {
-            Field field = entityNameToIdField;
-            if (field == null) {
-                field = findField(EntityList.class, "stringToIDMapping", "field_75624_e");
-                field.setAccessible(true);
-                entityNameToIdField = field;
-            }
-            Object value = field.get(null);
-            return value instanceof Map ? (Map<String, Integer>) value : java.util.Collections.<String, Integer>emptyMap();
-        } catch (Throwable ignored) {
-            entityNameToIdUnavailable = true;
-            return java.util.Collections.emptyMap();
-        }
-    }
-
-    private static Field findField(Class<?> type, String... names) throws NoSuchFieldException {
-        for (String name : names) {
-            try { return type.getDeclaredField(name); }
-            catch (NoSuchFieldException ignored) {}
-        }
-        throw new NoSuchFieldException(type.getName());
     }
 
     private static ItemStack safelyResolve(StackStrategy strategy) {
