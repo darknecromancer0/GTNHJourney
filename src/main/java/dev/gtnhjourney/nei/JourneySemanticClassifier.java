@@ -31,6 +31,14 @@ final class JourneySemanticClassifier {
     }
 
     static String typeGroup(ItemStack stack, ResearchKey key) {
+        return JourneyPanelPrecache.semantic(stack, key, currentDisplayName(stack, key)).typeGroup;
+    }
+
+    static String kindGroup(ItemStack stack, ResearchKey key) {
+        return JourneyPanelPrecache.semantic(stack, key, currentDisplayName(stack, key)).kindGroup;
+    }
+
+    static String uncachedTypeGroup(ItemStack stack, ResearchKey key) {
         Item item = stack == null ? null : stack.getItem();
         if (item instanceof ItemArmor) return "01-armor";
         if (item instanceof ItemSword || item instanceof ItemBow) return "02-weapons";
@@ -50,7 +58,7 @@ final class JourneySemanticClassifier {
         return "99-misc";
     }
 
-    static String kindGroup(ItemStack stack, ResearchKey key) {
+    static String uncachedKindGroup(ItemStack stack, ResearchKey key) {
         Item item = stack == null ? null : stack.getItem();
         if (item instanceof ItemArmor) {
             switch (((ItemArmor) item).armorType) {
@@ -79,7 +87,7 @@ final class JourneySemanticClassifier {
         String material = materialKind(evidence);
         if (material != null) return "material-" + material;
         if (containsAny(evidence, "fluid", "cell", "canister", "capsule")) return "fluid-cell-container";
-        return typeGroup(stack, key);
+        return uncachedTypeGroup(stack, key);
     }
 
     private static boolean hasToolClass(ItemStack stack) {
@@ -92,6 +100,14 @@ final class JourneySemanticClassifier {
         } catch (LinkageError ignored) {
             return false;
         }
+    }
+
+    private static String currentDisplayName(ItemStack stack, ResearchKey key) {
+        try {
+            String name = stack == null ? null : stack.getDisplayName();
+            if (name != null && !name.isEmpty()) return name;
+        } catch (RuntimeException ignored) {}
+        return key == null ? "" : key.getItemId();
     }
 
     private static String evidence(ItemStack stack, ResearchKey key) {
