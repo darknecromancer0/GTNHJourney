@@ -1,16 +1,12 @@
 package dev.gtnhjourney.nei;
 
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.item.ItemStack;
 
 import codechicken.nei.ItemPanels;
-import codechicken.nei.NEIClientConfig;
 import codechicken.nei.NEIClientUtils;
 import codechicken.nei.guihook.IContainerInputHandler;
-import dev.gtnhjourney.client.ClientPresentationActivityMirror;
 import dev.gtnhjourney.client.ClientResearchMirror;
-import dev.gtnhjourney.minecraft.ItemStackKeyFactory;
 import dev.gtnhjourney.network.Journey1124Network;
 import dev.gtnhjourney.network.JourneyNetwork;
 import dev.gtnhjourney.research.ResearchFingerprint;
@@ -67,7 +63,6 @@ public final class JourneyNEIInputHandler implements IContainerInputHandler {
     }
 
     private static boolean handleCreativeIssue(ItemStack hovered, int button, boolean shiftDown) {
-        ResearchKey presentationKey = safeKey(hovered);
         try {
             ResearchKey key = JourneyPresentationKeyResolver.keyOf(hovered);
             if (ClientResearchMirror.contains(key)) {
@@ -75,36 +70,14 @@ public final class JourneyNEIInputHandler implements IContainerInputHandler {
                 else JourneyNetwork.requestRetrieve(
                     key,
                     JourneyRetrieveClickPolicy.requestedAmount(button, shiftDown, hovered.getMaxStackSize()));
-                ClientPresentationActivityMirror.touch(key);
                 return true;
             }
         } catch (IllegalArgumentException ignored) {}
 
-        if (!NEIClientConfig.canCheatItem(hovered)) return true;
-        ItemStack give = hovered.copy();
-        give.stackSize = JourneyRetrieveClickPolicy.requestedAmount(button, shiftDown, hovered.getMaxStackSize());
-        if (!JourneyRetrieveClickPolicy.shouldFillInventory(button, shiftDown)) {
-            NEIClientUtils.giveStack(give);
-            ClientPresentationActivityMirror.touch(presentationKey);
-            return true;
-        }
-        Minecraft minecraft = Minecraft.getMinecraft();
-        if (minecraft == null || minecraft.thePlayer == null) return true;
-        int empty = 0;
-        ItemStack[] main = minecraft.thePlayer.inventory.mainInventory;
-        for (int i = 0; i < main.length; i++) if (main[i] == null) empty++;
-        ItemStack stack = hovered.copy();
-        stack.stackSize = Math.max(1, hovered.getMaxStackSize());
-        for (int i = 0; i < empty; i++) NEIClientUtils.giveStack(stack.copy());
-        ClientPresentationActivityMirror.touch(presentationKey);
+        boolean fillInventory = JourneyRetrieveClickPolicy.shouldFillInventory(button, shiftDown);
+        int amount = JourneyRetrieveClickPolicy.requestedAmount(button, shiftDown, hovered.getMaxStackSize());
+        JourneyNetwork.requestCreativeIssue(hovered, amount, fillInventory);
         return true;
-    }
-
-    private static ResearchKey safeKey(ItemStack stack) {
-        try { return stack == null || stack.getItem() == null ? null : ItemStackKeyFactory.from(stack); }
-        catch (IllegalArgumentException ignored) { return null; }
-        catch (RuntimeException ignored) { return null; }
-        catch (LinkageError ignored) { return null; }
     }
 
     private static boolean handleDeleteClick(int mousex, int mousey, int button) {
