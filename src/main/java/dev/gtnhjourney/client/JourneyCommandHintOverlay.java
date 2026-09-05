@@ -10,24 +10,26 @@ import net.minecraft.client.gui.GuiTextField;
 import net.minecraftforge.client.event.GuiScreenEvent;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
-import dev.gtnhjourney.command.JourneyCommandSuggestions;
 
-/** Draws lightweight modern-style command suggestions above the 1.7.10 chat input. */
+/** Draws server-authoritative slash-command suggestions above the 1.7.10 chat input. */
 public final class JourneyCommandHintOverlay {
 
     private static final int MAX_VISIBLE = 10;
 
     @SubscribeEvent
     public void onDraw(GuiScreenEvent.DrawScreenEvent.Post event) {
-        if (!(event.gui instanceof GuiChat)) return;
+        if (!(event.gui instanceof GuiChat)) {
+            ClientCommandSuggestionState.clear();
+            return;
+        }
         GuiTextField chatInput = ChatInputResolver.resolve((GuiChat) event.gui);
         if (chatInput == null) {
-            CommandHintDiagnostics.recordSuggestionCount(0);
+            ClientCommandSuggestionState.clear();
             return;
         }
 
-        List<String> suggestions = JourneyCommandSuggestions.forChatText(chatInput.getText());
-        CommandHintDiagnostics.recordSuggestionCount(suggestions.size());
+        ClientCommandSuggestionState.requestForInput(chatInput);
+        List<String> suggestions = ClientCommandSuggestionState.snapshot();
         if (suggestions.isEmpty()) return;
 
         Minecraft minecraft = Minecraft.getMinecraft();
@@ -45,9 +47,11 @@ public final class JourneyCommandHintOverlay {
         int bottom = event.gui.height - 17;
         int top = Math.max(3, bottom - lines * lineHeight - 4);
         Gui.drawRect(left - 2, top - 2, left + maxWidth + 5, bottom, 0xA0000000);
+        int selected = ClientCommandSuggestionState.selectedIndex();
         int y = top;
         for (int i = 0; i < shown; i++) {
-            font.drawStringWithShadow(suggestions.get(i), left, y, 0xFFE0E0E0);
+            if (i == selected) Gui.drawRect(left - 1, y - 1, left + maxWidth + 4, y + font.FONT_HEIGHT + 1, 0x80606060);
+            font.drawStringWithShadow(suggestions.get(i), left, y, i == selected ? 0xFFFFFFFF : 0xFFE0E0E0);
             y += lineHeight;
         }
         if (extra > 0) font.drawStringWithShadow("+" + extra + " more", left, y, 0xFF909090);
