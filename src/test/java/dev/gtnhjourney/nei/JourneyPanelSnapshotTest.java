@@ -25,15 +25,15 @@ public class JourneyPanelSnapshotTest {
     }
 
     @Test
-    public void fallbackNReturnsTheSameUniqueResearchSet() {
+    public void researchedMembershipIsUnchangedWhenLatestWillBeAppliedLater() {
         List<ResearchKey> input = Arrays.asList(oldest, middle, oldest, newest);
         assertEquals(
             Arrays.asList(newest, middle, oldest),
-            JourneyPanelSnapshot.keys(input, JourneyViewState.Mode.NEWEST, 64));
+            JourneyPanelSnapshot.keys(input, JourneyViewState.Mode.RESEARCHED, 64));
     }
 
     @Test
-    public void allHasNoJourneyOwnedSnapshot() {
+    public void allHasNoJourneyOwnedResearchSnapshot() {
         assertEquals(
             Collections.emptyList(),
             JourneyPanelSnapshot.keys(Arrays.asList(oldest, newest), JourneyViewState.Mode.ALL, 64));
