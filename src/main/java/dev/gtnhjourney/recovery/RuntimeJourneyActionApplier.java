@@ -10,8 +10,8 @@ import dev.gtnhjourney.config.JourneyConfig;
 import dev.gtnhjourney.network.Journey1124Network;
 import dev.gtnhjourney.persistence.JourneyFavouriteData;
 import dev.gtnhjourney.research.ResearchFingerprint;
-import dev.gtnhjourney.time.JourneySpeedMode;
 import dev.gtnhjourney.time.JourneySpeedController;
+import dev.gtnhjourney.time.JourneySpeedMode;
 
 /** Runtime replay adapter for the persistent non-research action journal. */
 public final class RuntimeJourneyActionApplier implements JourneyReversibleActionService.ActionApplier {
@@ -73,7 +73,7 @@ public final class RuntimeJourneyActionApplier implements JourneyReversibleActio
         JourneyFavouriteData data = JourneyFavouriteData.get(root == null ? player.worldObj : root);
         boolean current = data.contains(player.getUniqueID(), fingerprint);
         if (current != value) data.set(player.getUniqueID(), fingerprint, value);
-        Journey1124Network.sendFavourites(player, data.snapshot(player.getUniqueID()));
+        Journey1124Network.sendFavourites(player, data.snapshotEntries(player.getUniqueID()));
         return data.contains(player.getUniqueID(), fingerprint) == value;
     }
 
