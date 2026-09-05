@@ -49,6 +49,8 @@ public final class JourneyNetwork {
         CHANNEL.registerMessage(InventoryScanRequestMessage.Handler.class, InventoryScanRequestMessage.class, 11, Side.SERVER);
         CHANNEL.registerMessage(DebugToolRequestMessage.Handler.class, DebugToolRequestMessage.class, 12, Side.SERVER);
         CHANNEL.registerMessage(FillInventoryRequestMessage.Handler.class, FillInventoryRequestMessage.class, 13, Side.SERVER);
+        CHANNEL.registerMessage(CreativeIssueRequestMessage.Handler.class, CreativeIssueRequestMessage.class, 14, Side.SERVER);
+        CHANNEL.registerMessage(CreativeIssueSuccessMessage.Handler.class, CreativeIssueSuccessMessage.class, 15, Side.CLIENT);
     }
 
     public static void requestRetrieve(ResearchKey key, int amount) {
@@ -57,6 +59,11 @@ public final class JourneyNetwork {
 
     public static void requestFillInventory(ResearchKey key) {
         if (key != null) CHANNEL.sendToServer(new FillInventoryRequestMessage(ResearchFingerprint.of(key)));
+    }
+
+    public static void requestCreativeIssue(ItemStack stack, int amount, boolean fillInventory) {
+        if (stack == null || stack.getItem() == null || !ItemStackPayloadSizer.canSync(stack)) return;
+        CHANNEL.sendToServer(new CreativeIssueRequestMessage(stack, amount, fillInventory));
     }
 
     public static void requestDelete(ResearchKey key) {
@@ -105,6 +112,12 @@ public final class JourneyNetwork {
         if (key == null) return;
         if (ItemStackPayloadSizer.canSync(stack)) sendToConnected(new ResearchUnlockMessage(stack), player);
         else sendToConnected(new ResearchServerOnlyUnlockMessage(), player);
+    }
+
+    static void sendCreativeIssueSuccess(EntityPlayerMP player, ItemStack stack) {
+        if (player != null && stack != null && stack.getItem() != null && ItemStackPayloadSizer.canSync(stack)) {
+            sendToConnected(new CreativeIssueSuccessMessage(stack), player);
+        }
     }
 
     public static void sendActivityTouch(EntityPlayerMP player, ResearchFingerprint fingerprint) {
