@@ -35,7 +35,7 @@ final class JourneyNeiFilterPipeline {
                 try {
                     ItemFilter filter = provider.getFilter();
                     if (filter != null) {
-                        filters.add(new FilterBinding(providerClassName, filter));
+                        filters.add(new FilterBinding(providerClassName, filter, searchField));
                         providerNames.add(providerClassName);
                     }
                 } catch (Throwable ignored) {
@@ -49,13 +49,18 @@ final class JourneyNeiFilterPipeline {
 
     static boolean matchesAll(ItemStack display, ItemStack nativeRepresentative, List<FilterBinding> filters) {
         if (display == null || filters == null) return false;
+        String rawSearch = JourneyFilterDiagnostics.snapshot().searchText();
         for (FilterBinding binding : filters) {
             if (binding == null || binding.filter == null) continue;
             ItemStack candidate = binding.usesNativeRepresentative() && nativeRepresentative != null
                 ? nativeRepresentative
                 : display;
             try {
-                if (!binding.filter.matches(candidate)) return false;
+                boolean matched = binding.filter.matches(candidate);
+                if (binding.searchField) {
+                    matched = JourneyEmptySearchPolicy.resolveSearchMatch(rawSearch, display, matched);
+                }
+                if (!matched) return false;
             } catch (Throwable ignored) {
                 JourneyRuntimeCounters.presentationFailure();
                 return false;
@@ -67,10 +72,16 @@ final class JourneyNeiFilterPipeline {
     static final class FilterBinding {
         private final String providerClassName;
         private final ItemFilter filter;
+        private final boolean searchField;
 
         FilterBinding(String providerClassName, ItemFilter filter) {
+            this(providerClassName, filter, false);
+        }
+
+        FilterBinding(String providerClassName, ItemFilter filter, boolean searchField) {
             this.providerClassName = providerClassName == null ? "" : providerClassName;
             this.filter = filter;
+            this.searchField = searchField;
         }
 
         boolean usesNativeRepresentative() {
