@@ -54,7 +54,7 @@ public final class FavouriteRequestQueue {
                 beforeTag,
                 afterTag);
         }
-        Journey1124Network.sendFavourites(player, data.snapshot(player.getUniqueID()));
+        Journey1124Network.sendFavourites(player, data.snapshotEntries(player.getUniqueID()));
     }
 
     static NBTTagCompound favouriteState(ResearchFingerprint fingerprint, boolean value) {
