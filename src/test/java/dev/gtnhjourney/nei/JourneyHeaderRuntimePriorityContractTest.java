@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 class JourneyHeaderRuntimePriorityContractTest {
 
     @Test
-    void headerReassertsDrawLastAndInputFirstAfterNeiFinishesRegisteringHandlers() throws IOException {
+    void headerReassertsDrawLastInputFirstAndTooltipLastAfterNeiFinishesRegisteringHandlers() throws IOException {
         String widget = compact(read("src/main/java/dev/gtnhjourney/nei/JourneyNEIToggleWidget.java"));
         String priority = compact(read("src/main/java/dev/gtnhjourney/nei/JourneyNeiHandlerPriority.java"));
 
@@ -21,6 +21,11 @@ class JourneyHeaderRuntimePriorityContractTest {
         assertTrue(priority.contains("GuiContainerManager.drawHandlers.addLast(widget)"));
         assertTrue(priority.contains("GuiContainerManager.inputHandlers.remove(widget)"));
         assertTrue(priority.contains("GuiContainerManager.inputHandlers.addFirst(widget)"));
+        assertTrue(priority.contains("GuiContainerManager.tooltipHandlers.remove(widget)"));
+        assertTrue(priority.contains("GuiContainerManager.tooltipHandlers.addLast(widget)"));
+        assertTrue(widget.contains("groupDropdown.containsOpenPopup(mousex,mousey)"));
+        assertTrue(widget.contains("orderDropdown.containsOpenPopup(mousex,mousey)"));
+        assertTrue(widget.contains("currenttip.clear()"));
     }
 
     private static String compact(String value) {
