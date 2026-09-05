@@ -46,7 +46,7 @@ public class Release1125ContractTest {
     public void itemPanelRefreshRestoresPreviousNeiPageAfterNativeReset() throws IOException {
         String panel = read("src/main/java/dev/gtnhjourney/nei/JourneyPanelController.java");
         assertTrue(panel.contains("getGrid().getPage() - 1"));
-        assertTrue(panel.contains("ItemPanel.updateItemList(visible)"));
+        assertTrue(panel.contains("ItemPanels.itemPanel.updateItemList(visible)"));
         assertTrue(panel.contains("setPage(previousPage)"));
     }
 
