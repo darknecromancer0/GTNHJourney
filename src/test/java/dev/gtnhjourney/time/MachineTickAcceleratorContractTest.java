@@ -27,6 +27,18 @@ public class MachineTickAcceleratorContractTest {
         assertFalse(source.contains("setWorldTime"));
     }
 
+    @Test
+    public void workBudgetCanStopOnlyBetweenCompleteGlobalPasses() throws IOException {
+        String source = read("src/main/java/dev/gtnhjourney/time/MachineTickAccelerator.java");
+
+        assertTrue(source.contains("tickCompletePass(snapshots);"));
+        assertTrue(source.contains("if (pass > 0 && System.nanoTime() >= deadline) return;"));
+        int completePassMethod = source.indexOf("private static void tickCompletePass");
+        assertTrue(completePassMethod >= 0);
+        String passBody = source.substring(completePassMethod);
+        assertFalse(passBody.contains("System.nanoTime() >= deadline"));
+    }
+
     private static String read(String path) throws IOException {
         return new String(Files.readAllBytes(Paths.get(path)), StandardCharsets.UTF_8);
     }
