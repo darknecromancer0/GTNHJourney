@@ -129,6 +129,7 @@ public final class PersistedResearchEntryResolver {
             ThaumcraftWandStatePolicy.normalizePersisted(itemId, meta, out);
             KnownTransientItemStatePolicy.normalize(itemId, meta, out);
             EmbeddedInventoryPolicy.normalize(itemId, out);
+            GalacticraftRocketFuelStatePolicy.normalize(itemId, out);
             if (isForestry(itemId)) ForestryGeneticsNbtPolicy.normalizeGeneticsTag(out);
         } catch (IllegalArgumentException ignored) {
             return out;
