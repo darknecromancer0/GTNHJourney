@@ -8,7 +8,7 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.PlayerEvent.PlayerLoggedInEvent;
 import dev.gtnhjourney.persistence.JourneyFavouriteData;
 
-/** Sends the complete favourite fingerprint set when a player joins. */
+/** Sends complete favourite membership and added chronology when a player joins. */
 public final class FavouriteSyncTracker {
 
     @SubscribeEvent
@@ -17,6 +17,6 @@ public final class FavouriteSyncTracker {
         EntityPlayerMP player = (EntityPlayerMP) event.player;
         World root = DimensionManager.getWorld(0);
         JourneyFavouriteData data = JourneyFavouriteData.get(root == null ? player.worldObj : root);
-        Journey1124Network.sendFavourites(player, data.snapshot(player.getUniqueID()));
+        Journey1124Network.sendFavourites(player, data.snapshotEntries(player.getUniqueID()));
     }
 }
