@@ -45,12 +45,20 @@ final class JourneyPanelPrecache {
         }
     }
 
+    private static final class NativeEntry {
+        final ItemStack representative;
+        final int index;
+
+        NativeEntry(ItemStack representative, int index) {
+            this.representative = representative;
+            this.index = index;
+        }
+    }
+
     static final class NativeCatalog {
         private final List<ItemStack> source;
-        private final Map<ResearchKey, ItemStack> exactRepresentatives = new HashMap<ResearchKey, ItemStack>();
-        private final Map<String, ItemStack> familyRepresentatives = new HashMap<String, ItemStack>();
-        private final Map<ResearchKey, Integer> exactIndexes = new HashMap<ResearchKey, Integer>();
-        private final Map<String, Integer> metaIndexes = new HashMap<String, Integer>();
+        private final Map<ResearchKey, NativeEntry> exact = new HashMap<ResearchKey, NativeEntry>();
+        private final Map<String, NativeEntry> meta = new HashMap<String, NativeEntry>();
         private final Map<String, Integer> familyIndexes = new HashMap<String, Integer>();
         private final Map<ResearchKey, SemanticMetadata> semantics =
             new ConcurrentHashMap<ResearchKey, SemanticMetadata>();
@@ -63,17 +71,13 @@ final class JourneyPanelPrecache {
                 if (stack == null || stack.getItem() == null) continue;
                 ResearchKey key = safeKey(stack);
 
-                if (key != null && !exactRepresentatives.containsKey(key)) exactRepresentatives.put(key, stack);
+                if (key != null && !exact.containsKey(key)) exact.put(key, new NativeEntry(stack, i));
                 String representativeFamily = representativeFamilyKey(key, stack);
-                if (!familyRepresentatives.containsKey(representativeFamily)) {
-                    familyRepresentatives.put(representativeFamily, stack);
-                }
+                if (!meta.containsKey(representativeFamily)) meta.put(representativeFamily, new NativeEntry(stack, i));
 
-                if (key == null) continue;
-                if (!exactIndexes.containsKey(key)) exactIndexes.put(key, Integer.valueOf(i));
-                String meta = metaKey(key);
-                if (!metaIndexes.containsKey(meta)) metaIndexes.put(meta, Integer.valueOf(i));
-                if (!familyIndexes.containsKey(key.getItemId())) familyIndexes.put(key.getItemId(), Integer.valueOf(i));
+                if (key != null && !familyIndexes.containsKey(key.getItemId())) {
+                    familyIndexes.put(key.getItemId(), Integer.valueOf(i));
+                }
             }
         }
 
@@ -82,20 +86,20 @@ final class JourneyPanelPrecache {
         ItemStack representative(ItemStack display) {
             ResearchKey key = safeKey(display);
             if (key != null) {
-                ItemStack exact = exactRepresentatives.get(key);
-                if (exact != null) return exact;
+                NativeEntry exactEntry = exact.get(key);
+                if (exactEntry != null) return exactEntry.representative;
             }
-            ItemStack family = familyRepresentatives.get(representativeFamilyKey(key, display));
-            return family == null ? display : family;
+            NativeEntry metaEntry = meta.get(representativeFamilyKey(key, display));
+            return metaEntry == null ? display : metaEntry.representative;
         }
 
         int nativeIndex(ItemStack display, ResearchKey key) {
             ResearchKey effective = key == null ? safeKey(display) : key;
             if (effective == null) return Integer.MAX_VALUE;
-            Integer exact = exactIndexes.get(effective);
-            if (exact != null) return exact.intValue();
-            Integer meta = metaIndexes.get(metaKey(effective));
-            if (meta != null) return meta.intValue();
+            NativeEntry exactEntry = exact.get(effective);
+            if (exactEntry != null) return exactEntry.index;
+            NativeEntry metaEntry = meta.get(metaKey(effective));
+            if (metaEntry != null) return metaEntry.index;
             Integer family = familyIndexes.get(effective.getItemId());
             return family == null ? Integer.MAX_VALUE : family.intValue();
         }
@@ -171,7 +175,7 @@ final class JourneyPanelPrecache {
     }
 
     private static String representativeFamilyKey(ResearchKey key, ItemStack stack) {
-        if (key != null) return key.getItemId() + '\u0000' + key.getMeta();
+        if (key != null) return metaKey(key);
         if (stack == null || stack.getItem() == null) return "<invalid>";
         return stack.getItem().getUnlocalizedName() + '\u0000' + stack.getItemDamage();
     }
