@@ -8,8 +8,10 @@ import java.io.SyncFailedException;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.List;
 import java.util.UUID;
 
 import net.minecraft.nbt.CompressedStreamTools;
@@ -97,6 +99,30 @@ public final class ExternalJourneySnapshotArchive {
         }
     }
 
+    /**
+     * Returns the newest readable external recovery point for this world/player. Corrupt or incompatible newer files
+     * are skipped so one damaged write can never hide an older usable snapshot.
+     */
+    public static ArchivedSnapshot latest(File instanceRoot, String worldName, UUID playerId) {
+        if (instanceRoot == null || playerId == null) return null;
+        File directory = archiveDirectory(instanceRoot, worldName);
+        if (!directory.isDirectory()) return null;
+        File[] files = directory.listFiles(file -> file != null && file.isFile() && file.getName().endsWith(".dat"));
+        if (files == null || files.length == 0) return null;
+        Arrays.sort(files, Comparator.comparingLong(File::lastModified).thenComparing(File::getName).reversed());
+        for (File file : files) {
+            try {
+                ArchivedSnapshot snapshot = read(file);
+                if (snapshot != null && playerId.equals(snapshot.playerId())) return snapshot;
+            } catch (IOException ignored) {
+                // Keep scanning older recovery points. A corrupt newest file must not shadow healthy history.
+            } catch (RuntimeException ignored) {
+                // Malformed NBT is isolated to this file.
+            }
+        }
+        return null;
+    }
+
     static File archiveDirectory(File instanceRoot, String worldName) {
         String safeWorld = sanitize(worldName == null || worldName.trim().isEmpty() ? "world" : worldName);
         return new File(new File(new File(instanceRoot, "gtnhjourney-recovery"), safeWorld), "research-snapshots");
@@ -139,6 +165,43 @@ public final class ExternalJourneySnapshotArchive {
         try (FileInputStream input = new FileInputStream(file)) {
             NBTTagCompound root = CompressedStreamTools.readCompressed(input);
             return root.getInteger("EntryCount");
+        }
+    }
+
+    private static ArchivedSnapshot read(File file) throws IOException {
+        try (FileInputStream input = new FileInputStream(file)) {
+            NBTTagCompound root = CompressedStreamTools.readCompressed(input);
+            if (root == null) throw new IOException("Empty Journey snapshot");
+            int version = root.getInteger("Version");
+            if (version <= 0 || version > DATA_VERSION) throw new IOException("Unsupported Journey snapshot version " + version);
+            UUID playerId = new UUID(root.getLong("UuidMost"), root.getLong("UuidLeast"));
+            long createdAtMillis = root.getLong("CreatedAtMillis");
+            long worldTick = root.getLong("WorldTick");
+            NBTTagList tags = root.getTagList("Entries", 10);
+            int declaredCount = root.getInteger("EntryCount");
+            if (declaredCount < 0 || declaredCount != tags.tagCount()) {
+                throw new IOException("Journey snapshot entry count mismatch");
+            }
+            List<ResearchEntrySnapshot> entries = new ArrayList<ResearchEntrySnapshot>(tags.tagCount());
+            for (int i = 0; i < tags.tagCount(); i++) {
+                NBTTagCompound entry = tags.getCompoundTagAt(i);
+                ResearchKey key = new ResearchKey(
+                    entry.getString("ItemId"),
+                    entry.getInteger("Meta"),
+                    entry.getString("CanonicalNbt"));
+                int timelineIndex = entry.getInteger("TimelineIndex");
+                if (timelineIndex != i) throw new IOException("Journey snapshot timeline is not contiguous");
+                NBTTagCompound template = entry.hasKey("Tag", 10) ? entry.getCompoundTag("Tag") : null;
+                entries.add(new ResearchEntrySnapshot(key, template, timelineIndex));
+            }
+            NBTTagCompound playerState = root.hasKey("Player", 10) ? root.getCompoundTag("Player") : null;
+            return new ArchivedSnapshot(
+                file,
+                playerId,
+                createdAtMillis,
+                worldTick,
+                new ResearchStateSnapshot(entries),
+                playerState);
         }
     }
 
@@ -185,5 +248,39 @@ public final class ExternalJourneySnapshotArchive {
         String safe = value.replaceAll("[^A-Za-z0-9._-]+", "_");
         safe = safe.replaceAll("^_+|_+$", "");
         return safe.isEmpty() ? "world" : safe;
+    }
+
+    /** Immutable decoded external recovery point. */
+    public static final class ArchivedSnapshot {
+        private final File file;
+        private final UUID playerId;
+        private final long createdAtMillis;
+        private final long worldTick;
+        private final ResearchStateSnapshot state;
+        private final NBTTagCompound playerState;
+
+        ArchivedSnapshot(
+            File file,
+            UUID playerId,
+            long createdAtMillis,
+            long worldTick,
+            ResearchStateSnapshot state,
+            NBTTagCompound playerState) {
+            this.file = file;
+            this.playerId = playerId;
+            this.createdAtMillis = createdAtMillis;
+            this.worldTick = worldTick;
+            this.state = state;
+            this.playerState = playerState == null ? null : (NBTTagCompound) playerState.copy();
+        }
+
+        public File file() { return file; }
+        public UUID playerId() { return playerId; }
+        public long createdAtMillis() { return createdAtMillis; }
+        public long worldTick() { return worldTick; }
+        public ResearchStateSnapshot state() { return state; }
+        public NBTTagCompound playerState() {
+            return playerState == null ? null : (NBTTagCompound) playerState.copy();
+        }
     }
 }
