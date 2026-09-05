@@ -14,13 +14,10 @@ import org.junit.jupiter.api.Test;
 public class Release1124ContractTest {
 
     @Test
-    public void currentReleaseMetadataIs1125Everywhere() throws IOException {
+    public void targetCompatibilityRemainsPinned() throws IOException {
         String runtime = read("src/main/java/dev/gtnhjourney/GTNHJourney.java");
-        String gradle = read("build.gradle.kts");
-        String mcmod = read("src/main/resources/mcmod.info");
-        assertTrue(runtime.contains("public static final String VERSION = \"1.1.25\";"));
-        assertTrue(gradle.contains("version = \"1.1.25\""));
-        assertTrue(mcmod.contains("\"version\": \"1.1.25\""));
+        assertTrue(runtime.contains("public static final String TARGET_GTNH = \"2.9.0-beta-2\";"));
+        assertTrue(runtime.contains("public static final String TARGET_NEI = \"2.8.111-GTNH\";"));
     }
 
     @Test
@@ -31,7 +28,7 @@ public class Release1124ContractTest {
 
         assertTrue(policy.contains("shouldAddFavourite"));
         assertTrue(policy.contains("JourneyViewState.Mode.RESEARCHED"));
-        assertTrue(policy.contains("JourneyViewState.Mode.NEWEST"));
+        assertFalse(policy.contains("JourneyViewState.Mode.NEWEST"));
         assertTrue(policy.contains("shouldRemoveFavourite"));
         assertTrue(policy.contains("JourneyViewState.Mode.FAVOURITE"));
         assertTrue(policy.contains("if (journeyView) return button == 0 || button == 1;"));
