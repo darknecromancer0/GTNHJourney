@@ -77,6 +77,8 @@ public class Release1126ContractTest {
         assertTrue(network.contains("CreativeIssueRequestMessage"));
         assertTrue(queue.contains("JourneyAdminPermissionPolicy.mayMutate(player)"));
         assertTrue(queue.contains("caseCREATIVE_ISSUE:"));
+        assertTrue(queue.contains("observeCreativeIssue(player,template);"));
+        assertFalse(queue.contains("CreativeIssueResearchSuppressor.mark(player,template)"));
     }
 
     @Test
@@ -98,9 +100,11 @@ public class Release1126ContractTest {
         String header = compactWhitespace(read("src/main/java/dev/gtnhjourney/nei/JourneyHeaderLayout.java"));
         assertTrue(page.contains("return Math.min(previous, last);"));
         assertTrue(header.contains("intnativeGX=pageNextX-pageNextW-GAP;"));
-        assertTrue(header.contains("Slotdebug=slot(nativeG.x-GAP-SMALL"));
-        assertTrue(header.contains("Slotscan=slot(debug.x-GAP-SMALL"));
-        assertTrue(header.contains("if(!scanVisible&&leftEnd+GAP<=debug.x)"));
+        assertTrue(header.contains("RightClustercluster=rightCluster(nativeG,pagePrevY,2);"));
+        assertTrue(header.contains("if(!fits(leftEnd,cluster.latest))cluster=rightCluster(nativeG,pagePrevY,1);"));
+        assertTrue(header.contains("if(!fits(leftEnd,cluster.latest))cluster=rightCluster(nativeG,pagePrevY,0);"));
+        assertTrue(header.contains("Slotorder=slot(cursor-GAP-SMALL"));
+        assertTrue(header.contains("Slotlatest=slot(group.x-GAP-SMALL"));
     }
 
     @Test
@@ -109,6 +113,7 @@ public class Release1126ContractTest {
         assertTrue(Files.isRegularFile(checklist));
         String text = read(checklist.toString()).toLowerCase();
         assertTrue(text.contains("j + n + l"));
+        assertTrue(text.contains("c + n + l"));
         assertTrue(text.contains("page 2+"));
         assertTrue(text.contains("item subsets"));
         assertTrue(text.contains("@"));
@@ -118,6 +123,19 @@ public class Release1126ContractTest {
         assertTrue(text.contains("shift+up"));
         assertTrue(text.contains("s/t disappear"));
         assertTrue(text.contains("native g"));
+        assertTrue(text.contains("dropdowns render above nei item cells"));
+        assertTrue(text.contains("immediately researches"));
+    }
+
+    @Test
+    public void liveAddendumSupersedesOldGroupedLatestAndCreativeResearchRules() throws IOException {
+        Path addendum = Paths.get("docs/superpowers/specs/2026-09-05-v1.1.26-live-sorting-ui-addendum.md");
+        assertTrue(Files.isRegularFile(addendum));
+        String text = read(addendum.toString()).toLowerCase();
+        assertTrue(text.contains("highest activity sequence is promoted to the first position"));
+        assertTrue(text.contains("immediately through the normal authoritative research path"));
+        assertTrue(text.contains("postrenderobjects"));
+        assertTrue(text.contains("remember group/order/l independently"));
     }
 
     private static String compactWhitespace(String value) {
