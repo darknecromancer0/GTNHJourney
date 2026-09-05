@@ -5,6 +5,7 @@ final class JourneyRefreshDecision {
 
     enum Action {
         PANEL_REFRESH,
+        PANEL_FILTER_PUBLISH,
         PANEL_ENSURE,
         NEI_FILTER_REFRESH,
         NONE
@@ -23,7 +24,9 @@ final class JourneyRefreshDecision {
         boolean filterChanged) {
         JourneyViewState.Mode effective = mode == null ? JourneyViewState.Mode.ALL : mode;
         if (effective != JourneyViewState.Mode.ALL) {
-            return researchChanged || viewChanged || filterChanged ? Action.PANEL_REFRESH : Action.PANEL_ENSURE;
+            if (researchChanged || viewChanged) return Action.PANEL_REFRESH;
+            if (filterChanged) return Action.PANEL_FILTER_PUBLISH;
+            return Action.PANEL_ENSURE;
         }
         return viewChanged ? Action.NEI_FILTER_REFRESH : Action.NONE;
     }
