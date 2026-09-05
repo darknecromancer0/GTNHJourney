@@ -67,6 +67,7 @@ public final class JourneyNEIRefreshTracker {
 
     public static void resetJourneyPanel() {
         JourneyPanelController.clear();
+        JourneyPanelPrecache.clear();
         JourneyNeiFilterRevision.reset();
     }
 }
