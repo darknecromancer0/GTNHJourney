@@ -28,6 +28,7 @@ public final class ResearchNbtIdentity {
         if (canonicalItemId != null) {
             identityTag = CropsNhSeedStatePolicy.identityTag(canonicalItemId, identityTag);
             GalacticraftRocketFuelStatePolicy.normalize(canonicalItemId, identityTag);
+            MobSpawnerStatePolicy.normalizeIdentity(canonicalItemId, identityTag);
         }
         final boolean normalizeToolState = ResearchCompatibilityOptions.normalizeGtTransientIdentity()
             && GtToolStatePolicy.isVerifiedTool(stack);
