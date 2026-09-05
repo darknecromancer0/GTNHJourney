@@ -56,7 +56,7 @@ public class Release1125ContractTest {
         assertTrue(pipeline.contains("SUBSET_WIDGET"));
         assertTrue(index.contains("ItemStack representative(ItemStack display)"));
         assertTrue(index.contains("catalog.representative(display)"));
-        assertTrue(cache.contains("familyRepresentatives.get(representativeFamilyKey(key, display))"));
+        assertTrue(cache.contains("meta.get(representativeFamilyKey(key, display))"));
     }
 
     @Test
