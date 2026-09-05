@@ -32,9 +32,11 @@ public final class PlacedBlockResearchResolver {
         final int side) {
         if (world == null || player == null) return null;
         final Block block;
+        final int meta;
         try {
             if (world.isAirBlock(x, y, z)) return null;
             block = world.getBlock(x, y, z);
+            meta = world.getBlockMetadata(x, y, z);
         } catch (RuntimeException ignored) {
             return null;
         } catch (LinkageError ignored) {
@@ -44,17 +46,25 @@ public final class PlacedBlockResearchResolver {
 
         if (block == Blocks.mob_spawner) return resolveMobSpawner(world, x, y, z);
 
-        return resolve(new StackStrategy() {
+        // Prefer the mod's own pick representation whenever it exists. Thaumcraft aura nodes deliberately return air
+        // from their generic getItem path, so only after pick fails do we consult the narrow registry-known fallback.
+        ItemStack picked = safelyResolve(new StackStrategy() {
             @Override public ItemStack resolve() {
                 MovingObjectPosition target = new MovingObjectPosition(
                     x, y, z, side, Vec3.createVectorHelper(x + 0.5D, y + 0.5D, z + 0.5D));
                 return block.getPickBlock(target, world, x, y, z, player);
             }
-        }, new StackStrategy() {
+        });
+        if (picked != null) return picked;
+
+        ItemStack known = KnownPlacedBlockResearchFallback.resolve(block, meta);
+        if (known != null) return validCopy(known);
+
+        return safelyResolve(new StackStrategy() {
             @Override public ItemStack resolve() {
                 Item item = Item.getItemFromBlock(block);
                 if (item == null) return null;
-                return new ItemStack(item, 1, world.getBlockMetadata(x, y, z));
+                return new ItemStack(item, 1, meta);
             }
         });
     }
