@@ -24,6 +24,7 @@ import dev.gtnhjourney.command.CommandJourney1124;
 import dev.gtnhjourney.config.JourneyConfig;
 import dev.gtnhjourney.debug.ItemBotaniaManaDebugTool;
 import dev.gtnhjourney.debug.ItemDebugResearcherTool;
+import dev.gtnhjourney.network.CommandSuggestionRequestQueue;
 import dev.gtnhjourney.network.FavouriteRequestQueue;
 import dev.gtnhjourney.network.FavouriteSyncTracker;
 import dev.gtnhjourney.network.Journey1124Network;
@@ -103,50 +104,27 @@ public final class GTNHJourney {
         observations = new ResearchObservationService(RESEARCH, MUTATIONS);
         inventoryTracker = new InventoryResearchTracker(RESEARCH, observations);
         furnaceTracker = new FurnaceOwnershipTracker(observations);
-        FMLCommonHandler.instance()
-            .bus()
-            .register(inventoryTracker);
-        FMLCommonHandler.instance()
-            .bus()
-            .register(furnaceTracker);
-        FMLCommonHandler.instance()
-            .bus()
-            .register(MACHINE_TICK_ACCELERATOR);
-        FMLCommonHandler.instance()
-            .bus()
-            .register(new FavouriteRequestQueue());
-        FMLCommonHandler.instance()
-            .bus()
-            .register(new FavouriteSyncTracker());
-        FMLCommonHandler.instance()
-            .bus()
-            .register(DEATH_GUARD);
+        FMLCommonHandler.instance().bus().register(inventoryTracker);
+        FMLCommonHandler.instance().bus().register(furnaceTracker);
+        FMLCommonHandler.instance().bus().register(MACHINE_TICK_ACCELERATOR);
+        FMLCommonHandler.instance().bus().register(new FavouriteRequestQueue());
+        FMLCommonHandler.instance().bus().register(new FavouriteSyncTracker());
+        FMLCommonHandler.instance().bus().register(new CommandSuggestionRequestQueue());
+        FMLCommonHandler.instance().bus().register(DEATH_GUARD);
         MinecraftForge.EVENT_BUS.register(inventoryTracker);
         MinecraftForge.EVENT_BUS.register(furnaceTracker);
         MinecraftForge.EVENT_BUS.register(DEATH_GUARD);
-        FMLCommonHandler.instance()
-            .bus()
-            .register(new ServerRequestQueue(RESEARCH, MUTATIONS));
-        FMLCommonHandler.instance()
-            .bus()
-            .register(new ServerResearchSyncQueue());
-        FMLCommonHandler.instance()
-            .bus()
-            .register(SNAPSHOT_TICKER);
+        FMLCommonHandler.instance().bus().register(new ServerRequestQueue(RESEARCH, MUTATIONS));
+        FMLCommonHandler.instance().bus().register(new ServerResearchSyncQueue());
+        FMLCommonHandler.instance().bus().register(SNAPSHOT_TICKER);
         WorldSafetyRegistration.register(
             new WorldSafetyRegistration.Registrar() {
-
-                @Override
-                public void register(Object listener) {
-                    FMLCommonHandler.instance()
-                        .bus()
-                        .register(listener);
+                @Override public void register(Object listener) {
+                    FMLCommonHandler.instance().bus().register(listener);
                 }
             },
             new WorldSafetyRegistration.Registrar() {
-
-                @Override
-                public void register(Object listener) {
+                @Override public void register(Object listener) {
                     MinecraftForge.EVENT_BUS.register(listener);
                 }
             },
@@ -157,8 +135,6 @@ public final class GTNHJourney {
     @EventHandler
     public void serverStarting(FMLServerStartingEvent event) {
         SPEED.reset();
-        // A remote server may have overwritten the client-side static identity policy in the same JVM earlier.
-        // Every actual server start reasserts this instance's local authoritative config before touching a world.
         dev.gtnhjourney.minecraft.ResearchCompatibilityOptions.configure(
             JourneyConfig.normalizeGtTransientIdentity(),
             JourneyConfig.resetGtToolTemplateState(),
@@ -172,8 +148,6 @@ public final class GTNHJourney {
 
     @EventHandler
     public void serverStarted(FMLServerStartedEvent event) {
-        // Persist semantic migrations that were applied while WorldSavedData was being reconstructed. This also covers
-        // migrations whose only visible change is a registry-id alias, such as IC2:itemBatREDischarged -> itemBatRE.
         World rootWorld = DimensionManager.getWorld(0);
         if (rootWorld != null) JourneyResearchData.get(rootWorld).markDirty();
         WORLD_BACKUPS.markWorldLoaded();
@@ -190,6 +164,7 @@ public final class GTNHJourney {
         ServerRequestQueue.clearPending();
         ServerResearchSyncQueue.clear();
         FavouriteRequestQueue.clear();
+        CommandSuggestionRequestQueue.clear();
         if (DEATH_GUARD != null) DEATH_GUARD.clear();
         if (inventoryTracker != null) inventoryTracker.clearCaches();
         if (furnaceTracker != null) furnaceTracker.clear();
