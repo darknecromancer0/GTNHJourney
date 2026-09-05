@@ -10,7 +10,7 @@ final class JourneyHeaderLayout {
 
     private JourneyHeaderLayout() {}
 
-    static Layout layout(int pagePrevX, int pagePrevY, int pagePrevW, int pageNextX, int pageNextW) {
+    static LeftLayout left(int pagePrevX, int pagePrevY, int pagePrevW) {
         int x = pagePrevX + pagePrevW + GAP;
         Slot nei = slot(x, pagePrevY, NEI_WIDTH);
         x = nei.right() + GAP;
@@ -21,7 +21,12 @@ final class JourneyHeaderLayout {
         Slot creative = slot(x, pagePrevY, SMALL);
         x = creative.right() + GAP;
         Slot delete = slot(x, pagePrevY, SMALL);
-        int leftEnd = delete.right();
+        return new LeftLayout(nei, researched, favourite, creative, delete);
+    }
+
+    static Layout layout(int pagePrevX, int pagePrevY, int pagePrevW, int pageNextX, int pageNextW) {
+        LeftLayout left = left(pagePrevX, pagePrevY, pagePrevW);
+        int leftEnd = left.delete.right();
 
         // ItemPanel.resizeHeader places native G immediately left of pageNext with a 2 px gap.
         int nativeGX = pageNextX - pageNextW - GAP;
@@ -32,11 +37,11 @@ final class JourneyHeaderLayout {
         if (!fits(leftEnd, cluster.latest)) cluster = rightCluster(nativeG, pagePrevY, 0);
 
         return new Layout(
-            nei,
-            researched,
-            favourite,
-            creative,
-            delete,
+            left.nei,
+            left.researched,
+            left.favourite,
+            left.creative,
+            left.delete,
             cluster.latest,
             cluster.group,
             cluster.order,
@@ -92,6 +97,22 @@ final class JourneyHeaderLayout {
             this.scan = scan;
             this.debug = debug;
             this.serviceCount = serviceCount;
+        }
+    }
+
+    static final class LeftLayout {
+        final Slot nei;
+        final Slot researched;
+        final Slot favourite;
+        final Slot creative;
+        final Slot delete;
+
+        LeftLayout(Slot nei, Slot researched, Slot favourite, Slot creative, Slot delete) {
+            this.nei = nei;
+            this.researched = researched;
+            this.favourite = favourite;
+            this.creative = creative;
+            this.delete = delete;
         }
     }
 
