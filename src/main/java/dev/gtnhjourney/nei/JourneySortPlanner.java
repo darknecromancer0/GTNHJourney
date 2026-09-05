@@ -27,9 +27,26 @@ public final class JourneySortPlanner {
         List<JourneySortEntry> out = new ArrayList<JourneySortEntry>(source.size());
         for (Bucket bucket : buckets) {
             Collections.sort(bucket.entries, memberComparator(group, order));
+            if (latest && group != JourneyGroupMode.NONE) promoteLatestMember(bucket.entries);
             out.addAll(bucket.entries);
         }
         return Collections.unmodifiableList(out);
+    }
+
+    private static void promoteLatestMember(List<JourneySortEntry> entries) {
+        if (entries == null || entries.size() < 2) return;
+        int latestIndex = 0;
+        long latestSequence = entries.get(0).activitySequence();
+        for (int i = 1; i < entries.size(); i++) {
+            long sequence = entries.get(i).activitySequence();
+            if (sequence > latestSequence) {
+                latestIndex = i;
+                latestSequence = sequence;
+            }
+        }
+        if (latestIndex <= 0) return;
+        JourneySortEntry latestEntry = entries.remove(latestIndex);
+        entries.add(0, latestEntry);
     }
 
     private static List<Bucket> buckets(List<JourneySortEntry> source, JourneyGroupMode group) {
@@ -108,7 +125,7 @@ public final class JourneySortPlanner {
         return new Comparator<JourneySortEntry>() {
             @Override
             public int compare(JourneySortEntry left, JourneySortEntry right) {
-                // N is the one strict family mode: subtype/state order must remain exactly native NEI.
+                // N without L is the strict family mode: subtype/state order remains exactly native NEI.
                 if (group == JourneyGroupMode.NATIVE) return stableNative(left, right);
 
                 if (group != JourneyGroupMode.NONE) {
@@ -166,7 +183,9 @@ public final class JourneySortPlanner {
         int minCanonicalIndex = Integer.MAX_VALUE;
         String minName = "\uffff";
 
-        Bucket(String key) { this.key = key; }
+        Bucket(String key) {
+            this.key = key;
+        }
 
         void add(JourneySortEntry entry) {
             entries.add(entry);
