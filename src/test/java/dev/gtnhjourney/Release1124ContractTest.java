@@ -14,13 +14,13 @@ import org.junit.jupiter.api.Test;
 public class Release1124ContractTest {
 
     @Test
-    public void releaseMetadataIs1124Everywhere() throws IOException {
+    public void currentReleaseMetadataIs1125Everywhere() throws IOException {
         String runtime = read("src/main/java/dev/gtnhjourney/GTNHJourney.java");
         String gradle = read("build.gradle.kts");
         String mcmod = read("src/main/resources/mcmod.info");
-        assertTrue(runtime.contains("public static final String VERSION = \"1.1.24\";"));
-        assertTrue(gradle.contains("version = \"1.1.24\""));
-        assertTrue(mcmod.contains("\"version\": \"1.1.24\""));
+        assertTrue(runtime.contains("public static final String VERSION = \"1.1.25\";"));
+        assertTrue(gradle.contains("version = \"1.1.25\""));
+        assertTrue(mcmod.contains("\"version\": \"1.1.25\""));
     }
 
     @Test
