@@ -62,14 +62,14 @@ public class Release1123ContractTest {
     }
 
     @Test
-    public void currentReleaseMetadataIs1124WithoutDropping1123RegressionCoverage() throws IOException {
+    public void currentReleaseMetadataIs1125WithoutDropping1123RegressionCoverage() throws IOException {
         String source = read("src/main/java/dev/gtnhjourney/GTNHJourney.java");
         String gradle = read("build.gradle.kts");
         String mcmod = read("src/main/resources/mcmod.info");
 
-        assertTrue(source.contains("public static final String VERSION = \"1.1.24\";"));
-        assertTrue(gradle.contains("version = \"1.1.24\""));
-        assertTrue(mcmod.contains("\"version\": \"1.1.24\""));
+        assertTrue(source.contains("public static final String VERSION = \"1.1.25\";"));
+        assertTrue(gradle.contains("version = \"1.1.25\""));
+        assertTrue(mcmod.contains("\"version\": \"1.1.25\""));
     }
 
     private static String read(String path) throws IOException {
