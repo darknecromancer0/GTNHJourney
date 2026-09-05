@@ -4,6 +4,7 @@ import java.util.List;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.item.EnumAction;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ChatComponentText;
@@ -18,6 +19,7 @@ import dev.gtnhjourney.network.JourneyNetwork;
 public final class ItemDebugResearcherTool extends Item {
 
     private static final DebugResearchCooldown EXECUTION_COOLDOWN = new DebugResearchCooldown();
+    private static final int MODE_PRESS_USE_TICKS = 72000;
 
     public ItemDebugResearcherTool() {
         setMaxStackSize(1);
@@ -25,40 +27,75 @@ public final class ItemDebugResearcherTool extends Item {
         setTextureName("minecraft:stick");
     }
 
-    @Override
-    public String getItemStackDisplayName(ItemStack stack) { return "Debug Researcher Tool"; }
-    @Override
-    public boolean hasEffect(ItemStack stack, int pass) { return true; }
+    @Override public String getItemStackDisplayName(ItemStack stack) { return "Debug Researcher Tool"; }
+    @Override public boolean hasEffect(ItemStack stack, int pass) { return true; }
+    @Override public int getMaxItemUseDuration(ItemStack stack) { return MODE_PRESS_USE_TICKS; }
+    @Override public EnumAction getItemUseAction(ItemStack stack) { return EnumAction.none; }
 
     @Override
     public boolean onItemUseFirst(ItemStack stack, EntityPlayer player, World world, int x, int y, int z, int side,
         float hitX, float hitY, float hitZ) {
         DebugResearchMode mode = DebugResearchToolState.read(stack);
-        InteractionDecision decision = route(mode, player != null && player.isSneaking(), true);
+        boolean sneaking = player != null && player.isSneaking();
+        InteractionDecision decision = route(mode, sneaking, true);
         if (world == null) return false;
-        if (world.isRemote) return consumeClientBlockUse();
+        // Forge calls onItemUseFirst before the client sends C08. Returning true here would swallow the server packet,
+        // so arm vanilla's held-use state as a physical-press latch but deliberately return false on the client.
+        if (world.isRemote) {
+            if (sneaking) beginModePress(player, stack);
+            return consumeClientBlockUse();
+        }
         if (!(player instanceof EntityPlayerMP)) return false;
         EntityPlayerMP serverPlayer = (EntityPlayerMP) player;
-        if (decision.action() == InteractionAction.CYCLE_MODE) { cycleMode(serverPlayer, stack, mode); return true; }
+        if (decision.action() == InteractionAction.CYCLE_MODE) {
+            if (!serverPlayer.isUsingItem()) {
+                cycleMode(serverPlayer, stack, mode);
+                beginModePress(serverPlayer, stack);
+            }
+            return true;
+        }
         if (decision.action() == InteractionAction.EXECUTE) {
-            if (mode == DebugResearchMode.AREA_16) execute(serverPlayer, stack, mode, playerX(serverPlayer), playerY(serverPlayer), playerZ(serverPlayer), side);
-            else execute(serverPlayer, stack, mode, x, y, z, side);
+            if (mode == DebugResearchMode.AREA_16) {
+                execute(serverPlayer, stack, mode, playerX(serverPlayer), playerY(serverPlayer), playerZ(serverPlayer), side);
+            } else {
+                execute(serverPlayer, stack, mode, x, y, z, side);
+            }
         }
         return true;
     }
 
+    /** Must remain false so Forge sends the targeted-use packet after the client-side first-use hook. */
     public static boolean consumeClientBlockUse() { return false; }
 
     @Override
     public ItemStack onItemRightClick(ItemStack stack, World world, EntityPlayer player) {
-        if (world == null || world.isRemote || !(player instanceof EntityPlayerMP)) return stack;
+        if (world == null || player == null) return stack;
+        if (world.isRemote) {
+            if (player.isSneaking()) beginModePress(player, stack);
+            return stack;
+        }
+        if (!(player instanceof EntityPlayerMP)) return stack;
         EntityPlayerMP serverPlayer = (EntityPlayerMP) player;
         DebugResearchMode mode = DebugResearchToolState.read(stack);
         InteractionDecision decision = route(mode, player.isSneaking(), false);
-        if (decision.action() == InteractionAction.CYCLE_MODE) { cycleMode(serverPlayer, stack, mode); return stack; }
-        if (decision.action() == InteractionAction.NO_TARGET) { tell(serverPlayer, "Debug Researcher Tool: no target."); return stack; }
+        if (decision.action() == InteractionAction.CYCLE_MODE) {
+            if (!serverPlayer.isUsingItem()) {
+                cycleMode(serverPlayer, stack, mode);
+                beginModePress(serverPlayer, stack);
+            }
+            return stack;
+        }
+        if (decision.action() == InteractionAction.NO_TARGET) {
+            tell(serverPlayer, "Debug Researcher Tool: no target.");
+            return stack;
+        }
         execute(serverPlayer, stack, mode, playerX(serverPlayer), playerY(serverPlayer), playerZ(serverPlayer), 1);
         return stack;
+    }
+
+    private static void beginModePress(EntityPlayer player, ItemStack stack) {
+        if (player == null || stack == null || player.isUsingItem()) return;
+        player.setItemInUse(stack, MODE_PRESS_USE_TICKS);
     }
 
     public static InteractionDecision route(DebugResearchMode mode, boolean sneaking, boolean hasTarget) {
