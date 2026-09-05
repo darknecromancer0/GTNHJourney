@@ -20,14 +20,20 @@ final class JourneyEmptySearchPolicy {
         }
 
         FluidState fluidState = fluidState(display);
-        if (fluidState == FluidState.FILLED) {
-            return visibleNameContainsEmpty(display) && nativeSearchMatched;
-        }
-        if (fluidState == FluidState.EMPTY_CONTAINER) {
-            // Hidden alias: mechanically empty fluid containers are searchable by `empty` even if their display name
-            // is just "Steel Fluid Cell", "Titanium Fluid Cell", etc.
-            return true;
-        }
+        return resolveLiteralEmptyState(
+            nativeSearchMatched,
+            fluidState == FluidState.FILLED,
+            fluidState == FluidState.EMPTY_CONTAINER,
+            visibleNameContainsEmpty(display));
+    }
+
+    static boolean resolveLiteralEmptyState(
+        boolean nativeSearchMatched,
+        boolean filled,
+        boolean emptyContainer,
+        boolean visibleNameContainsEmpty) {
+        if (filled) return visibleNameContainsEmpty && nativeSearchMatched;
+        if (emptyContainer) return true;
         return nativeSearchMatched;
     }
 
