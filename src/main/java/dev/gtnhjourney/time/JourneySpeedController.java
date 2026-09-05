@@ -17,6 +17,9 @@ public final class JourneySpeedController {
         if (mode == null || !JourneySpeedState.isAllowedMultiplier(multiplier)) {
             return result(Status.INVALID);
         }
+        if (!JourneySpeedSafetyPolicy.isSafe(mode, multiplier)) {
+            return result(Status.UNSAFE);
+        }
 
         if (mode == JourneySpeedMode.MACHINES) {
             // Machine-only acceleration must never change the MinecraftServer cadence.
@@ -88,6 +91,7 @@ public final class JourneySpeedController {
 
     public enum Status {
         APPLIED,
+        UNSAFE,
         UNSUPPORTED,
         FAILED,
         INVALID
