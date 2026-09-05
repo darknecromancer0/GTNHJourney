@@ -66,6 +66,20 @@ public class Release1126ContractTest {
     }
 
     @Test
+    public void creativeViewUsesJourneyServerAuthorityInsteadOfNativeNeiCheatToggle() throws IOException {
+        String input = compactWhitespace(read("src/main/java/dev/gtnhjourney/nei/JourneyNEIInputHandler.java"));
+        String network = read("src/main/java/dev/gtnhjourney/network/JourneyNetwork.java");
+        String queue = compactWhitespace(read("src/main/java/dev/gtnhjourney/network/ServerRequestQueue.java"));
+
+        assertTrue(input.contains("JourneyNetwork.requestCreativeIssue("));
+        assertFalse(input.contains("NEIClientConfig.canCheatItem"));
+        assertFalse(input.contains("ClientPresentationActivityMirror.touch("));
+        assertTrue(network.contains("CreativeIssueRequestMessage"));
+        assertTrue(queue.contains("JourneyAdminPermissionPolicy.mayMutate(player)"));
+        assertTrue(queue.contains("caseCREATIVE_ISSUE:"));
+    }
+
+    @Test
     public void nativeNeiMembershipFiltersAreAppliedBeforeJourneySorting() throws IOException {
         String panel = compactWhitespace(read("src/main/java/dev/gtnhjourney/nei/JourneyPanelController.java"));
         String pipeline = read("src/main/java/dev/gtnhjourney/nei/JourneyNeiFilterPipeline.java");
