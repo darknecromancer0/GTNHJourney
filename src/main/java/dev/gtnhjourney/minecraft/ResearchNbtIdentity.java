@@ -25,7 +25,10 @@ public final class ResearchNbtIdentity {
         KnownTransientItemStatePolicy.normalize(stack, identityTag);
         EmbeddedInventoryPolicy.normalize(stack, identityTag);
         ForestryGeneticsNbtPolicy.normalize(stack, identityTag);
-        if (canonicalItemId != null) identityTag = CropsNhSeedStatePolicy.identityTag(canonicalItemId, identityTag);
+        if (canonicalItemId != null) {
+            identityTag = CropsNhSeedStatePolicy.identityTag(canonicalItemId, identityTag);
+            GalacticraftRocketFuelStatePolicy.normalize(canonicalItemId, identityTag);
+        }
         final boolean normalizeToolState = ResearchCompatibilityOptions.normalizeGtTransientIdentity()
             && GtToolStatePolicy.isVerifiedTool(stack);
         final boolean normalizeTconWear = ResearchCompatibilityOptions.normalizeTconToolWear()
