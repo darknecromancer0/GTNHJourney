@@ -26,7 +26,7 @@ public final class JourneySortPlanner {
         Collections.sort(buckets, bucketComparator(group, order, latest));
         List<JourneySortEntry> out = new ArrayList<JourneySortEntry>(source.size());
         for (Bucket bucket : buckets) {
-            Collections.sort(bucket.entries, memberComparator(group));
+            Collections.sort(bucket.entries, memberComparator(group, order));
             out.addAll(bucket.entries);
         }
         return Collections.unmodifiableList(out);
@@ -102,23 +102,54 @@ public final class JourneySortPlanner {
         }
     }
 
-    private static Comparator<JourneySortEntry> memberComparator(final JourneyGroupMode group) {
+    private static Comparator<JourneySortEntry> memberComparator(
+        final JourneyGroupMode group,
+        final JourneyOrderMode order) {
         return new Comparator<JourneySortEntry>() {
             @Override
             public int compare(JourneySortEntry left, JourneySortEntry right) {
+                // N is the one strict family mode: subtype/state order must remain exactly native NEI.
+                if (group == JourneyGroupMode.NATIVE) return stableNative(left, right);
+
                 if (group != JourneyGroupMode.NONE) {
-                    int nativeOrder = Integer.compare(left.nativeIndex(), right.nativeIndex());
-                    if (nativeOrder != 0) return nativeOrder;
+                    int ordered = compareMembersByOrder(left, right, order);
+                    if (ordered != 0) return ordered;
                 }
-                int canonical = Integer.compare(left.canonicalIndex(), right.canonicalIndex());
-                if (canonical != 0) return canonical;
-                int item = left.key().getItemId().compareTo(right.key().getItemId());
-                if (item != 0) return item;
-                int meta = Integer.compare(left.key().getMeta(), right.key().getMeta());
-                if (meta != 0) return meta;
-                return left.key().getCanonicalNbt().compareTo(right.key().getCanonicalNbt());
+                return stableNative(left, right);
             }
         };
+    }
+
+    private static int compareMembersByOrder(
+        JourneySortEntry left,
+        JourneySortEntry right,
+        JourneyOrderMode order) {
+        switch (order) {
+            case UNLOCK:
+                return compareLongDesc(left.unlockSequence(), right.unlockSequence());
+            case FAVOURITE_ADDED:
+                return compareLongDesc(left.favouriteSequence(), right.favouriteSequence());
+            case ALPHABETICAL:
+                int name = left.displayName().toLowerCase(Locale.ROOT)
+                    .compareTo(right.displayName().toLowerCase(Locale.ROOT));
+                if (name != 0) return name;
+                return 0;
+            case NONE:
+            default:
+                return 0;
+        }
+    }
+
+    private static int stableNative(JourneySortEntry left, JourneySortEntry right) {
+        int nativeOrder = Integer.compare(left.nativeIndex(), right.nativeIndex());
+        if (nativeOrder != 0) return nativeOrder;
+        int canonical = Integer.compare(left.canonicalIndex(), right.canonicalIndex());
+        if (canonical != 0) return canonical;
+        int item = left.key().getItemId().compareTo(right.key().getItemId());
+        if (item != 0) return item;
+        int meta = Integer.compare(left.key().getMeta(), right.key().getMeta());
+        if (meta != 0) return meta;
+        return left.key().getCanonicalNbt().compareTo(right.key().getCanonicalNbt());
     }
 
     private static int compareLongDesc(long left, long right) {
