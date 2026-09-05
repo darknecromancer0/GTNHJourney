@@ -11,6 +11,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 import dev.gtnhjourney.minecraft.ResearchTemplateNormalizer;
+import dev.gtnhjourney.nei.JourneySortState;
 import dev.gtnhjourney.nei.JourneyViewState;
 import dev.gtnhjourney.research.ResearchKey;
 import net.minecraft.nbt.NBTTagCompound;
@@ -19,7 +20,7 @@ class Pre6RegressionContractTest {
 
     @SuppressWarnings("unchecked")
     @Test
-    void journeyPanelOrderKeepsFullResearchSetForBothJourneyModesWithoutActivityOverlay() throws Exception {
+    void journeyPanelOrderKeepsFullResearchSetAndLegacyNewestBridgeMapsToJPlusL() throws Exception {
         Class<?> planner = Class.forName("dev.gtnhjourney.nei.JourneyPanelOrder");
         Method keysForMode = planner.getDeclaredMethod(
             "keysForMode",
@@ -36,9 +37,12 @@ class Pre6RegressionContractTest {
         assertEquals(
             Arrays.asList(newest, middle, oldest),
             (List<ResearchKey>) keysForMode.invoke(null, unlockOrder, JourneyViewState.Mode.RESEARCHED, 2));
-        assertEquals(
-            Arrays.asList(newest, middle, oldest),
-            (List<ResearchKey>) keysForMode.invoke(null, unlockOrder, JourneyViewState.Mode.NEWEST, 2));
+
+        JourneySortState.reset();
+        JourneyViewState.setMode(JourneyViewState.Mode.ALL);
+        assertTrue(JourneyViewState.toggleNewest());
+        assertEquals(JourneyViewState.Mode.RESEARCHED, JourneyViewState.mode());
+        assertTrue(JourneyViewState.isNewest());
     }
 
     @Test
