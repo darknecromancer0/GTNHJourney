@@ -2,7 +2,7 @@ plugins {
     id("com.gtnewhorizons.gtnhconvention")
 }
 
-version = "1.1.24"
+version = "1.1.25"
 
 tasks.test.configure {
     useJUnitPlatform()
