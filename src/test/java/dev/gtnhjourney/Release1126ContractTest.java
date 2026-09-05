@@ -1,0 +1,115 @@
+package dev.gtnhjourney;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+
+import dev.gtnhjourney.client.CommandHintKeyHandler;
+import dev.gtnhjourney.nei.JourneyGroupMode;
+import dev.gtnhjourney.nei.JourneyOrderMode;
+import dev.gtnhjourney.nei.JourneySortState;
+import dev.gtnhjourney.nei.JourneyViewState;
+
+public class Release1126ContractTest {
+
+    @AfterEach
+    public void resetPresentationState() {
+        JourneySortState.reset();
+        JourneyViewState.setMode(JourneyViewState.Mode.ALL);
+    }
+
+    @Test
+    public void metadataIs1126Everywhere() throws IOException {
+        assertTrue(read("src/main/java/dev/gtnhjourney/GTNHJourney.java")
+            .contains("public static final String VERSION = \"1.1.26\";"));
+        assertTrue(read("build.gradle.kts").contains("version = \"1.1.26\""));
+        assertTrue(read("src/main/resources/mcmod.info").contains("\"version\": \"1.1.26\""));
+    }
+
+    @Test
+    public void newestIsNotAContentModeAndSortDimensionsRemainIndependent() {
+        assertFalse(Arrays.stream(JourneyViewState.Mode.values()).anyMatch(mode -> "NEWEST".equals(mode.name())));
+
+        JourneySortState.setGroup(JourneyViewState.Mode.RESEARCHED, JourneyGroupMode.NATIVE);
+        JourneySortState.setOrder(JourneyViewState.Mode.RESEARCHED, JourneyOrderMode.UNLOCK);
+        JourneySortState.setLatest(JourneyViewState.Mode.RESEARCHED, true);
+        JourneySortState.setOrder(JourneyViewState.Mode.FAVOURITE, JourneyOrderMode.FAVOURITE_ADDED);
+
+        assertEquals(JourneyGroupMode.NATIVE, JourneySortState.group(JourneyViewState.Mode.RESEARCHED));
+        assertEquals(JourneyOrderMode.UNLOCK, JourneySortState.order(JourneyViewState.Mode.RESEARCHED));
+        assertTrue(JourneySortState.latest(JourneyViewState.Mode.RESEARCHED));
+        assertEquals(JourneyOrderMode.FAVOURITE_ADDED, JourneySortState.order(JourneyViewState.Mode.FAVOURITE));
+    }
+
+    @Test
+    public void plainArrowsRemainVanillaHistoryWhileShiftArrowsNavigateSuggestions() {
+        assertFalse(CommandHintKeyHandler.shouldMoveSelection(200, false));
+        assertFalse(CommandHintKeyHandler.shouldMoveSelection(208, false));
+        assertTrue(CommandHintKeyHandler.shouldMoveSelection(200, true));
+        assertTrue(CommandHintKeyHandler.shouldMoveSelection(208, true));
+    }
+
+    @Test
+    public void explicitNeiViewKeepsNativeItemClickHandling() throws IOException {
+        String input = compactWhitespace(read("src/main/java/dev/gtnhjourney/nei/JourneyNEIInputHandler.java"));
+        assertTrue(input.contains("if(mode==JourneyViewState.Mode.ALL)returnfalse;"));
+    }
+
+    @Test
+    public void nativeNeiMembershipFiltersAreAppliedBeforeJourneySorting() throws IOException {
+        String panel = compactWhitespace(read("src/main/java/dev/gtnhjourney/nei/JourneyPanelController.java"));
+        String pipeline = read("src/main/java/dev/gtnhjourney/nei/JourneyNeiFilterPipeline.java");
+        int filter = panel.indexOf("JourneyNeiFilterPipeline.matchesAll");
+        int sort = panel.indexOf("returnstacks(sort(survivors");
+        assertTrue(filter >= 0);
+        assertTrue(sort > filter);
+        assertTrue(pipeline.contains("SUBSET_WIDGET"));
+        assertTrue(pipeline.contains("nativeRepresentative"));
+        assertTrue(pipeline.contains("binding.searchField"));
+    }
+
+    @Test
+    public void pageRetentionAndRightServiceClusterAreExplicitPolicies() throws IOException {
+        String page = read("src/main/java/dev/gtnhjourney/nei/JourneyPageRetentionPolicy.java");
+        String header = compactWhitespace(read("src/main/java/dev/gtnhjourney/nei/JourneyHeaderLayout.java"));
+        assertTrue(page.contains("return Math.min(previous, last);"));
+        assertTrue(header.contains("intnativeGX=pageNextX-pageNextW-GAP;"));
+        assertTrue(header.contains("Slotdebug=slot(nativeG.x-GAP-SMALL"));
+        assertTrue(header.contains("Slotscan=slot(debug.x-GAP-SMALL"));
+        assertTrue(header.contains("if(!scanVisible&&leftEnd+GAP<=debug.x)"));
+    }
+
+    @Test
+    public void liveChecklistCoversReleaseBlockingSortingAndInputRegressions() throws IOException {
+        Path checklist = Paths.get("docs/v1.1.26-live-test.md");
+        assertTrue(Files.isRegularFile(checklist));
+        String text = read(checklist.toString()).toLowerCase();
+        assertTrue(text.contains("j + n + l"));
+        assertTrue(text.contains("page 2+"));
+        assertTrue(text.contains("item subsets"));
+        assertTrue(text.contains("@"));
+        assertTrue(text.contains("%"));
+        assertTrue(text.contains("#"));
+        assertTrue(text.contains("ctrl+backspace"));
+        assertTrue(text.contains("shift+up"));
+        assertTrue(text.contains("s/t/g"));
+    }
+
+    private static String compactWhitespace(String value) {
+        return value.replaceAll("\\s+", "");
+    }
+
+    private static String read(String path) throws IOException {
+        return new String(Files.readAllBytes(Paths.get(path)), StandardCharsets.UTF_8);
+    }
+}
