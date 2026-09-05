@@ -39,6 +39,23 @@ class NeiSearchCtrlBackspaceContractTest {
         assertTrue(config.contains("GuiRecipeCtrlBackspaceMixin"));
     }
 
+    @Test
+    void recipeViewRemapsVanillaOverrideButNotNeiCallsiteAndTargetsRecipeBack() throws IOException {
+        String mixin = compactWhitespace(
+            read("src/main/java/dev/gtnhjourney/mixin/GuiRecipeCtrlBackspaceMixin.java"));
+
+        // GuiRecipe.keyTyped overrides a vanilla GuiScreen method and therefore changes name in the production reobf jar.
+        assertTrue(mixin.contains("method=\"keyTyped\""));
+        assertTrue(mixin.contains("cancellable=true,remap=true"));
+
+        // KeyManager is NEI-owned, so its invocation descriptor must remain literal while the enclosing method is remapped.
+        assertTrue(mixin.contains("target=\"Lcodechicken/nei/KeyManager;isKeyDown(Ljava/lang/String;)Z\",ordinal=2,remap=false"));
+    }
+
+    private static String compactWhitespace(String value) {
+        return value.replaceAll("\\s+", "");
+    }
+
     private static String read(String path) throws IOException {
         return new String(Files.readAllBytes(Paths.get(path)), StandardCharsets.UTF_8);
     }
