@@ -87,7 +87,9 @@ public final class ClientStackMirror {
         previousServerAvailableTotal = serverAvailableTotal;
         previousExpectedSyncedTotal = expectedSyncedTotal;
         revision++;
+        long researchRevision = ClientResearchMirror.revision();
         ClientResearchMirror.replace(stacks.keySet());
+        if (ClientResearchMirror.revision() == researchRevision) ClientResearchMirror.invalidateTemplate();
         return true;
     }
 
@@ -105,6 +107,8 @@ public final class ClientStackMirror {
             ClientActivityMirror.recordUnlock(key);
             serverAvailableTotal++;
             expectedSyncedTotal++;
+        } else {
+            ClientResearchMirror.invalidateTemplate();
         }
     }
 
