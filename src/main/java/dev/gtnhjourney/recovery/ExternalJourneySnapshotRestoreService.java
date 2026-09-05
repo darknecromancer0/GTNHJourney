@@ -47,12 +47,12 @@ public final class ExternalJourneySnapshotRestoreService {
             root.getTotalWorldTime(),
             before);
 
-        int applied = new ResearchMutationEngine(research, recovery, playerId, RuntimeRecoveryRestorePolicy.INSTANCE)
+        new ResearchMutationEngine(research, recovery, playerId, RuntimeRecoveryRestorePolicy.INSTANCE)
             .replaceState(target, "Return latest external Journey snapshot", deletionChanges);
-        if (applied <= 0 || !ResearchMutationEngine.sameState(research.captureState(playerId), target)) {
+        if (!ResearchMutationEngine.sameState(research.captureState(playerId), target)) {
             return new Result(Status.FAILED, archived, 0);
         }
-        return new Result(Status.RESTORED, archived, applied);
+        return new Result(Status.RESTORED, archived, target.size());
     }
 
     private static World rootWorld(EntityPlayerMP player) {
