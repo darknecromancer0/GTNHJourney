@@ -17,15 +17,20 @@ public class Release1123ContractTest {
     public void release1123UsesNativeNeiFilteringAndPreservesPageOnResearchRefresh() throws IOException {
         String policy = read("src/main/java/dev/gtnhjourney/nei/JourneyNeiFilterProviderPolicy.java");
         String pipeline = read("src/main/java/dev/gtnhjourney/nei/JourneyNeiFilterPipeline.java");
-        String bridge = read("src/main/java/dev/gtnhjourney/mixin/RestartableTaskJourneyFilterMixin.java");
+        String completionBridge = read("src/main/java/dev/gtnhjourney/mixin/ItemPanelJourneyFilterMixin.java");
+        String legacyRestartBridge = read("src/main/java/dev/gtnhjourney/mixin/RestartableTaskJourneyFilterMixin.java");
         String decision = read("src/main/java/dev/gtnhjourney/nei/JourneyRefreshDecision.java");
 
         assertFalse(policy.contains("SUBSET_WIDGET"), "Journey must not special-case Item Subsets out of NEI filtering");
         assertTrue(pipeline.contains("LayoutManager.searchField"));
         assertTrue(pipeline.contains("provider.getFilter()"));
-        assertTrue(bridge.contains("ItemList.updateFilter"));
-        assertTrue(bridge.contains("JourneyNeiFilterRevision.invalidate()"));
-        assertTrue(bridge.contains("method = \"restart\""));
+        assertTrue(completionBridge.contains("ItemPanel.class"));
+        assertTrue(completionBridge.contains("updateItemList"));
+        assertTrue(completionBridge.contains("captureCompletedNativeFilter"));
+        assertFalse(legacyRestartBridge.contains("JourneyNeiFilterRevision.invalidate()"),
+            "Journey must not run a client-thread rebuild directly from every NEI filter restart");
+        assertFalse(legacyRestartBridge.contains("method = \"restart\""));
+        assertTrue(decision.contains("if (filterChanged) return Action.PANEL_FILTER_PUBLISH;"));
         assertTrue(decision.contains("return viewChanged || filterChanged;"));
     }
 
