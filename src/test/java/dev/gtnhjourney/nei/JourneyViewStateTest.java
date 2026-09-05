@@ -11,11 +11,12 @@ public class JourneyViewStateTest {
 
     @AfterEach
     public void resetMode() {
+        JourneySortState.reset();
         JourneyViewState.setMode(JourneyViewState.Mode.ALL);
     }
 
     @Test
-    public void researchedButtonTogglesBackToAllOnSecondActivation() {
+    public void researchedCompatibilityToggleStillTogglesBackToAll() {
         assertTrue(JourneyViewState.toggle());
         assertEquals(JourneyViewState.Mode.RESEARCHED, JourneyViewState.mode());
 
@@ -24,21 +25,26 @@ public class JourneyViewStateTest {
     }
 
     @Test
-    public void newestButtonTogglesBackToAllOnSecondActivation() {
+    public void legacyNewestToggleMapsToResearchedPlusLatestInsteadOfAContentMode() {
         assertTrue(JourneyViewState.toggleNewest());
-        assertEquals(JourneyViewState.Mode.NEWEST, JourneyViewState.mode());
+        assertEquals(JourneyViewState.Mode.RESEARCHED, JourneyViewState.mode());
+        assertTrue(JourneySortState.latest(JourneyViewState.Mode.RESEARCHED));
+        assertTrue(JourneyViewState.isNewest());
 
         assertFalse(JourneyViewState.toggleNewest());
-        assertEquals(JourneyViewState.Mode.ALL, JourneyViewState.mode());
+        assertEquals(JourneyViewState.Mode.RESEARCHED, JourneyViewState.mode());
+        assertFalse(JourneySortState.latest(JourneyViewState.Mode.RESEARCHED));
+        assertFalse(JourneyViewState.isNewest());
     }
 
     @Test
-    public void switchingBetweenJourneyModesStillSelectsTheRequestedMode() {
-        JourneyViewState.setMode(JourneyViewState.Mode.NEWEST);
-        assertTrue(JourneyViewState.toggle());
-        assertEquals(JourneyViewState.Mode.RESEARCHED, JourneyViewState.mode());
+    public void changingContentViewDoesNotEraseThatViewsRememberedSortSettings() {
+        JourneySortState.setGroup(JourneyViewState.Mode.RESEARCHED, JourneyGroupMode.NATIVE);
+        JourneySortState.setLatest(JourneyViewState.Mode.RESEARCHED, true);
+        JourneyViewState.setMode(JourneyViewState.Mode.FAVOURITE);
+        JourneyViewState.setMode(JourneyViewState.Mode.RESEARCHED);
 
-        assertTrue(JourneyViewState.toggleNewest());
-        assertEquals(JourneyViewState.Mode.NEWEST, JourneyViewState.mode());
+        assertEquals(JourneyGroupMode.NATIVE, JourneySortState.group(JourneyViewState.Mode.RESEARCHED));
+        assertTrue(JourneySortState.latest(JourneyViewState.Mode.RESEARCHED));
     }
 }
