@@ -11,20 +11,21 @@ import codechicken.nei.api.ItemFilter;
 import codechicken.nei.api.ItemFilter.ItemFilterProvider;
 import dev.gtnhjourney.diagnostics.JourneyRuntimeCounters;
 
-/** Applies Journey-compatible NEI query filters to Journey's already ordered item list. */
+/** Applies native NEI query filters while keeping Journey-only presentation variants renderable. */
 final class JourneyNeiFilterPipeline {
+
+    private static final String SUBSET_WIDGET = "codechicken.nei.SubsetWidget";
 
     private JourneyNeiFilterPipeline() {}
 
-    static List<ItemFilter> snapshotActiveFilters() {
-        List<ItemFilter> filters = new ArrayList<ItemFilter>();
+    static List<FilterBinding> snapshotActiveFilters() {
+        List<FilterBinding> filters = new ArrayList<FilterBinding>();
         List<String> providerNames = new ArrayList<String>();
         synchronized (ItemList.itemFilterers) {
             for (ItemFilterProvider provider : ItemList.itemFilterers) {
                 if (provider == null || provider instanceof JourneyItemFilterProvider) continue;
                 boolean searchField = provider == LayoutManager.searchField;
-                String providerClassName = provider.getClass()
-                    .getName();
+                String providerClassName = provider.getClass().getName();
                 if (!JourneyNeiFilterProviderPolicy.shouldApply(
                     providerClassName,
                     searchField,
@@ -34,7 +35,7 @@ final class JourneyNeiFilterPipeline {
                 try {
                     ItemFilter filter = provider.getFilter();
                     if (filter != null) {
-                        filters.add(filter);
+                        filters.add(new FilterBinding(providerClassName, filter));
                         providerNames.add(providerClassName);
                     }
                 } catch (Throwable ignored) {
@@ -46,16 +47,34 @@ final class JourneyNeiFilterPipeline {
         return filters;
     }
 
-    static boolean matchesAll(ItemStack stack, List<ItemFilter> filters) {
-        if (stack == null || filters == null) return false;
-        for (ItemFilter filter : filters) {
-            if (filter == null) continue;
+    static boolean matchesAll(ItemStack display, ItemStack nativeRepresentative, List<FilterBinding> filters) {
+        if (display == null || filters == null) return false;
+        for (FilterBinding binding : filters) {
+            if (binding == null || binding.filter == null) continue;
+            ItemStack candidate = binding.usesNativeRepresentative() && nativeRepresentative != null
+                ? nativeRepresentative
+                : display;
             try {
-                if (!filter.matches(stack)) return false;
+                if (!binding.filter.matches(candidate)) return false;
             } catch (Throwable ignored) {
                 JourneyRuntimeCounters.presentationFailure();
+                return false;
             }
         }
         return true;
+    }
+
+    static final class FilterBinding {
+        private final String providerClassName;
+        private final ItemFilter filter;
+
+        FilterBinding(String providerClassName, ItemFilter filter) {
+            this.providerClassName = providerClassName == null ? "" : providerClassName;
+            this.filter = filter;
+        }
+
+        boolean usesNativeRepresentative() {
+            return SUBSET_WIDGET.equals(providerClassName) || providerClassName.endsWith(".SubsetWidget");
+        }
     }
 }
