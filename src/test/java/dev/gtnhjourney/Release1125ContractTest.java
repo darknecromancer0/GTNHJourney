@@ -44,10 +44,12 @@ public class Release1125ContractTest {
 
     @Test
     public void itemPanelRefreshRestoresPreviousNeiPageAfterNativeReset() throws IOException {
-        String panel = read("src/main/java/dev/gtnhjourney/nei/JourneyPanelController.java");
+        String panel = normalizeWhitespace(read("src/main/java/dev/gtnhjourney/nei/JourneyPanelController.java"));
         assertTrue(panel.contains("getGrid().getPage() - 1"));
-        assertTrue(panel.contains("ItemPanels.itemPanel.updateItemList(visible)"));
+        assertTrue(panel.contains("ItemPanel.updateItemList(visible)"));
         assertTrue(panel.contains("setPage(previousPage)"));
+        assertTrue(panel.indexOf("getGrid().getPage() - 1") < panel.indexOf("ItemPanel.updateItemList(visible)"));
+        assertTrue(panel.indexOf("ItemPanel.updateItemList(visible)") < panel.lastIndexOf("setPage(previousPage)"));
     }
 
     @Test
@@ -73,6 +75,10 @@ public class Release1125ContractTest {
         assertTrue(text.contains("keepinventory"));
         assertTrue(text.contains("snapshot latest return"));
         assertTrue(text.contains("ebf"));
+    }
+
+    private static String normalizeWhitespace(String value) {
+        return value.replaceAll("\\s+", " ");
     }
 
     private static String read(String path) throws IOException {
