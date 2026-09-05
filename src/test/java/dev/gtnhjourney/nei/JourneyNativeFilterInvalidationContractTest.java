@@ -1,5 +1,6 @@
 package dev.gtnhjourney.nei;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -12,15 +13,18 @@ import org.junit.jupiter.api.Test;
 public class JourneyNativeFilterInvalidationContractTest {
 
     @Test
-    public void journeyObservesOnlyNeisCanonicalUpdateFilterTask() throws IOException {
-        String mixin = read("src/main/java/dev/gtnhjourney/mixin/RestartableTaskJourneyFilterMixin.java");
+    public void journeyObservesCompletedNativeFilterPublicationRatherThanEveryRestart() throws IOException {
+        String legacy = read("src/main/java/dev/gtnhjourney/mixin/RestartableTaskJourneyFilterMixin.java");
+        String completion = read("src/main/java/dev/gtnhjourney/mixin/ItemPanelJourneyFilterMixin.java");
         String config = read("src/main/resources/mixins.gtnhjourney.json");
 
-        assertTrue(mixin.contains("@Mixin(value = RestartableTask.class"));
-        assertTrue(mixin.contains("@Inject(method = \"restart\""));
-        assertTrue(mixin.contains("(Object) this == ItemList.updateFilter"));
-        assertTrue(mixin.contains("JourneyNeiFilterRevision.invalidate()"));
-        assertTrue(config.contains("\"RestartableTaskJourneyFilterMixin\""));
+        assertFalse(config.contains("\"RestartableTaskJourneyFilterMixin\""));
+        assertFalse(legacy.contains("@Inject(method = \"restart\""));
+        assertFalse(legacy.contains("JourneyNeiFilterRevision.invalidate()"));
+        assertTrue(completion.contains("@Mixin(value = ItemPanel.class"));
+        assertTrue(completion.contains("@Inject(method = \"updateItemList\""));
+        assertTrue(completion.contains("JourneyPanelController.captureCompletedNativeFilter"));
+        assertTrue(config.contains("\"ItemPanelJourneyFilterMixin\""));
     }
 
     private static String read(String path) throws IOException {
