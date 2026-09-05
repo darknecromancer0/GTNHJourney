@@ -2,7 +2,6 @@ package dev.gtnhjourney.nei;
 
 import java.util.Locale;
 
-import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fluids.FluidContainerRegistry;
 import net.minecraftforge.fluids.FluidStack;
@@ -42,12 +41,6 @@ final class JourneyEmptySearchPolicy {
     }
 
     private static FluidState fluidState(ItemStack stack) {
-        // Vanilla bucket state must not depend on Forge registry bootstrap. This also keeps headless/unit behavior
-        // identical to a live client where those registrations are present.
-        if (stack.getItem() == Items.bucket) return FluidState.EMPTY_CONTAINER;
-        if (stack.getItem() == Items.water_bucket || stack.getItem() == Items.lava_bucket
-            || stack.getItem() == Items.milk_bucket) return FluidState.FILLED;
-
         try {
             FluidStack fluid = StackInfo.getFluid(stack);
             if (fluid != null && fluid.getFluid() != null && fluid.amount > 0) return FluidState.FILLED;
