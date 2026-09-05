@@ -1,6 +1,7 @@
 package dev.gtnhjourney.nei;
 
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,7 +17,9 @@ import codechicken.nei.ItemPanels;
 import codechicken.nei.LayoutManager;
 import dev.gtnhjourney.client.ClientActivityMirror;
 import dev.gtnhjourney.client.ClientFavouriteMirror;
+import dev.gtnhjourney.client.ClientIssuedMirror;
 import dev.gtnhjourney.client.ClientPresentationActivityMirror;
+import dev.gtnhjourney.client.ClientResearchMirror;
 import dev.gtnhjourney.client.ClientStackMirror;
 import dev.gtnhjourney.diagnostics.JourneyRuntimeCounters;
 import dev.gtnhjourney.minecraft.ItemStackKeyFactory;
@@ -32,8 +35,9 @@ public final class JourneyPanelController {
         @Override public ItemStack present(ItemStack stack) { return JourneyPresentationSafety.forNei(stack); }
     };
 
-    private static boolean owned;
-    private static ArrayList<ItemStack> lastPublishedList;
+    private static volatile boolean owned;
+    private static volatile ArrayList<ItemStack> lastPublishedList;
+    private static volatile StagedFilterResult stagedFilterResult;
 
     private JourneyPanelController() {}
 
@@ -45,40 +49,88 @@ public final class JourneyPanelController {
             JourneyFilterDiagnostics.safeSearchText(LayoutManager.searchField));
     }
 
+    /** Structural refresh used for view/content/sort changes. Search-only changes use the async completion path below. */
     public static void refresh(boolean resetPage) {
-        JourneyViewState.Mode mode = JourneyViewState.mode();
+        stagedFilterResult = null;
         if (!shouldOwnCurrentView()) {
             releaseToNei();
             return;
         }
+        BuiltPanel built = buildPanel(true);
+        if (built != null) publishBuiltPanel(built, resetPage);
+    }
+
+    /**
+     * Called from NEI Item Filtering's worker thread at its final ItemPanel publication point. Heavy Journey filtering,
+     * semantic metadata and sorting stay on that worker. Returning true cancels NEI's temporary native-panel overwrite.
+     */
+    public static boolean captureCompletedNativeFilter(ArrayList<ItemStack> nativeFiltered) {
+        if (nativeFiltered == null || !ItemList.updateFilter.name.equals(Thread.currentThread().getName())) return false;
+        if (!owned || !shouldOwnCurrentView()) return false;
+
+        StateStamp stamp = StateStamp.capture();
+        BuiltPanel built;
+        try {
+            built = buildPanel(false);
+        } catch (Throwable failure) {
+            JourneyRuntimeCounters.presentationFailure();
+            return false;
+        }
+
+        // A new keypress sets RestartableTask.restart while this worker build is running. Never publish that stale query.
+        if (ItemList.updateFilter.interrupted() || !stamp.isCurrent()) return true;
+        if (built == null) return false;
+
+        stagedFilterResult = new StagedFilterResult(stamp, built);
+        JourneyNeiFilterRevision.invalidate();
+        return true;
+    }
+
+    /** Client-thread hot path: atomically publishes an already-built worker result and performs no filtering/sorting. */
+    public static boolean publishCompletedFilter() {
+        StagedFilterResult staged = stagedFilterResult;
+        stagedFilterResult = null;
+        if (staged == null || !staged.stamp.isCurrent() || !shouldOwnCurrentView()) return false;
+        publishBuiltPanel(staged.panel, true);
+        return true;
+    }
+
+    private static BuiltPanel buildPanel(boolean synchronizeLayout) {
+        JourneyViewState.Mode mode = JourneyViewState.mode();
+        if (!shouldOwnCurrentView()) return null;
 
         List<ItemStack> authoritative = ClientStackMirror.snapshot();
         Map<ResearchKey, ItemStack> byKey = index(authoritative);
-        synchronizeSearchWidgetVisibility();
+        if (synchronizeLayout) synchronizeSearchWidgetVisibility();
         List<JourneyNeiFilterPipeline.FilterBinding> activeFilters = JourneyNeiFilterPipeline.snapshotActiveFilters();
         JourneyNativeRepresentativeIndex representatives = new JourneyNativeRepresentativeIndex(ItemList.items);
         JourneyNativeFamilyIndex nativeFamilies = new JourneyNativeFamilyIndex(ItemList.items);
-        JourneyPresentationKeyResolver.clear();
+        IdentityHashMap<ItemStack, ResearchKey> presentationKeys = new IdentityHashMap<ItemStack, ResearchKey>();
 
         final ArrayList<ItemStack> visible;
         if (mode == JourneyViewState.Mode.ALL) {
             visible = nativeVisible(activeFilters, representatives, nativeFamilies);
         } else if (mode == JourneyViewState.Mode.CREATIVE) {
-            visible = creativeVisible(authoritative, byKey, activeFilters, representatives, nativeFamilies);
+            visible = creativeVisible(authoritative, byKey, activeFilters, representatives, nativeFamilies, presentationKeys);
         } else {
-            visible = researchVisible(mode, byKey, activeFilters, representatives, nativeFamilies);
+            visible = researchVisible(mode, byKey, activeFilters, representatives, nativeFamilies, presentationKeys);
         }
+        return new BuiltPanel(visible, presentationKeys, authoritative.size(), byKey.size());
+    }
 
+    private static void publishBuiltPanel(BuiltPanel built, boolean resetPage) {
+        if (built == null) return;
         int previousPage = Math.max(0, ItemPanels.itemPanel.getGrid().getPage() - 1);
-        JourneyRuntimeCounters.panelPublication(authoritative.size(), byKey.size(), visible.size());
-        ItemPanel.updateItemList(visible);
+        JourneyPresentationKeyResolver.replace(built.presentationKeys);
+        JourneyRuntimeCounters.panelPublication(built.authoritativeCount, built.indexedCount, built.visible.size());
+        ItemPanel.updateItemList(built.visible);
         JourneyRuntimeCounters.panelIncrementalUpdate();
         ItemPanels.itemPanel.getGrid().setPage(JourneyPageRetentionPolicy.pageAfterRefresh(
             previousPage,
             ItemPanels.itemPanel.getGrid().getNumPages(),
             resetPage));
         owned = true;
-        lastPublishedList = visible;
+        lastPublishedList = built.visible;
     }
 
     private static ArrayList<ItemStack> researchVisible(
@@ -86,7 +138,8 @@ public final class JourneyPanelController {
         Map<ResearchKey, ItemStack> byKey,
         List<JourneyNeiFilterPipeline.FilterBinding> activeFilters,
         JourneyNativeRepresentativeIndex representatives,
-        JourneyNativeFamilyIndex nativeFamilies) {
+        JourneyNativeFamilyIndex nativeFamilies,
+        Map<ItemStack, ResearchKey> presentationKeys) {
         List<ResearchKey> researchOldestFirst = ClientStackMirror.snapshotKeysInResearchOrder();
         List<ResearchKey> canonical = JourneyPanelSnapshot.keys(
             researchOldestFirst,
@@ -113,7 +166,7 @@ public final class JourneyPanelController {
                     canonicalIndex++;
                     continue;
                 }
-                JourneyPresentationKeyResolver.register(display, key);
+                presentationKeys.put(display, key);
                 ItemStack nativeRepresentative = representatives.representative(display);
                 if (!JourneyNeiFilterPipeline.matchesAll(display, nativeRepresentative, activeFilters)) {
                     canonicalIndex++;
@@ -140,7 +193,8 @@ public final class JourneyPanelController {
         Map<ResearchKey, ItemStack> byKey,
         List<JourneyNeiFilterPipeline.FilterBinding> activeFilters,
         JourneyNativeRepresentativeIndex representatives,
-        JourneyNativeFamilyIndex nativeFamilies) {
+        JourneyNativeFamilyIndex nativeFamilies,
+        Map<ItemStack, ResearchKey> presentationKeys) {
         ArrayList<ItemStack> union = JourneyCreativeUnion.merge(ItemList.items, authoritative);
         Map<ResearchKey, Long> unlockSequence = sequenceMap(ClientStackMirror.snapshotKeysInResearchOrder());
         Map<ResearchKey, Long> activitySequence = sequenceMap(ClientActivityMirror.snapshotOldestFirst());
@@ -157,7 +211,7 @@ public final class JourneyPanelController {
                     canonicalIndex++;
                     continue;
                 }
-                if (byKey.containsKey(key)) JourneyPresentationKeyResolver.register(display, key);
+                if (byKey.containsKey(key)) presentationKeys.put(display, key);
                 ItemStack nativeRepresentative = representatives.representative(display);
                 if (!JourneyNeiFilterPipeline.matchesAll(display, nativeRepresentative, activeFilters)) {
                     canonicalIndex++;
@@ -330,6 +384,7 @@ public final class JourneyPanelController {
         boolean wasOwned = owned;
         owned = false;
         lastPublishedList = null;
+        stagedFilterResult = null;
         JourneyPresentationKeyResolver.clear();
         if (wasOwned) ItemList.updateFilter.restart();
     }
@@ -337,8 +392,86 @@ public final class JourneyPanelController {
     public static void clear() {
         owned = false;
         lastPublishedList = null;
+        stagedFilterResult = null;
         JourneyPresentationKeyResolver.clear();
     }
 
     static boolean isOwned() { return owned; }
+
+    private static final class BuiltPanel {
+        final ArrayList<ItemStack> visible;
+        final Map<ItemStack, ResearchKey> presentationKeys;
+        final int authoritativeCount;
+        final int indexedCount;
+
+        BuiltPanel(
+            ArrayList<ItemStack> visible,
+            Map<ItemStack, ResearchKey> presentationKeys,
+            int authoritativeCount,
+            int indexedCount) {
+            this.visible = visible == null ? new ArrayList<ItemStack>() : visible;
+            this.presentationKeys = presentationKeys;
+            this.authoritativeCount = authoritativeCount;
+            this.indexedCount = indexedCount;
+        }
+    }
+
+    private static final class StagedFilterResult {
+        final StateStamp stamp;
+        final BuiltPanel panel;
+
+        StagedFilterResult(StateStamp stamp, BuiltPanel panel) {
+            this.stamp = stamp;
+            this.panel = panel;
+        }
+    }
+
+    /** Rejects worker results if research/view/sort/chronology changed while the expensive filter build was running. */
+    private static final class StateStamp {
+        final long research;
+        final long activity;
+        final long issued;
+        final long favourite;
+        final long presentation;
+        final long view;
+        final long sort;
+
+        private StateStamp(
+            long research,
+            long activity,
+            long issued,
+            long favourite,
+            long presentation,
+            long view,
+            long sort) {
+            this.research = research;
+            this.activity = activity;
+            this.issued = issued;
+            this.favourite = favourite;
+            this.presentation = presentation;
+            this.view = view;
+            this.sort = sort;
+        }
+
+        static StateStamp capture() {
+            return new StateStamp(
+                ClientResearchMirror.revision(),
+                ClientActivityMirror.revision(),
+                ClientIssuedMirror.revision(),
+                ClientFavouriteMirror.revision(),
+                ClientPresentationActivityMirror.revision(),
+                JourneyViewState.revision(),
+                JourneySortState.revision());
+        }
+
+        boolean isCurrent() {
+            return research == ClientResearchMirror.revision()
+                && activity == ClientActivityMirror.revision()
+                && issued == ClientIssuedMirror.revision()
+                && favourite == ClientFavouriteMirror.revision()
+                && presentation == ClientPresentationActivityMirror.revision()
+                && view == JourneyViewState.revision()
+                && sort == JourneySortState.revision();
+        }
+    }
 }
