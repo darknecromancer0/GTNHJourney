@@ -19,5 +19,10 @@ final class JourneyNeiHandlerPriority {
             GuiContainerManager.inputHandlers.remove(widget);
             GuiContainerManager.inputHandlers.addFirst(widget);
         }
+
+        if (GuiContainerManager.tooltipHandlers.peekLast() != widget) {
+            GuiContainerManager.tooltipHandlers.remove(widget);
+            GuiContainerManager.tooltipHandlers.addLast(widget);
+        }
     }
 }
