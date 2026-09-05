@@ -10,6 +10,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -22,6 +24,9 @@ import dev.gtnhjourney.nei.JourneyViewState;
 
 public class Release1126ContractTest {
 
+    private static final Pattern RUNTIME_VERSION = Pattern.compile(
+        "public static final String VERSION = \\\"([^\\\"]+)\\\";");
+
     @AfterEach
     public void resetPresentationState() {
         JourneySortState.reset();
@@ -29,11 +34,16 @@ public class Release1126ContractTest {
     }
 
     @Test
-    public void metadataIs1126Everywhere() throws IOException {
-        assertTrue(read("src/main/java/dev/gtnhjourney/GTNHJourney.java")
-            .contains("public static final String VERSION = \"1.1.26\";"));
-        assertTrue(read("build.gradle.kts").contains("version = \"1.1.26\""));
-        assertTrue(read("src/main/resources/mcmod.info").contains("\"version\": \"1.1.26\""));
+    public void releaseMetadataAgreesEverywhere() throws IOException {
+        String source = read("src/main/java/dev/gtnhjourney/GTNHJourney.java");
+        String build = read("build.gradle.kts");
+        String mcmod = read("src/main/resources/mcmod.info");
+
+        Matcher matcher = RUNTIME_VERSION.matcher(source);
+        assertTrue(matcher.find(), "runtime version constant missing");
+        String version = matcher.group(1);
+        assertTrue(build.contains("version = \"" + version + "\""));
+        assertTrue(mcmod.contains("\"version\": \"" + version + "\""));
     }
 
     @Test
