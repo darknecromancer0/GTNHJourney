@@ -22,6 +22,7 @@ public final class ResearchTemplateNormalizer {
         TransientToolFluidPolicy.normalize(stack, out);
         KnownTransientItemStatePolicy.normalize(stack, out);
         EmbeddedInventoryPolicy.normalize(stack, out);
+        GalacticraftRocketFuelStatePolicy.normalize(stack, out);
         if (ResearchCompatibilityOptions.resetGtToolTemplateState() && GtToolStatePolicy.isVerifiedTool(stack)) {
             NBTBase rawToolStats = out.getTag("GT.ToolStats");
             if (rawToolStats instanceof NBTTagCompound) {
