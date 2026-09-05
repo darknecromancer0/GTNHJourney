@@ -22,6 +22,19 @@ class JourneyHeaderLayoutTest {
     }
 
     @Test
+    void sortingControlsAreRightAnchoredAwayFromNativePageLabel() {
+        JourneyHeaderLayout.Layout layout = JourneyHeaderLayout.layout(10, 4, 16, 300, 16);
+        int pageLabelCenter = (10 + 300 + 16) / 2;
+
+        assertTrue(layout.delete.right() <= pageLabelCenter - 18,
+            "left Journey view controls must leave the native page label clear");
+        assertTrue(layout.latest.x >= pageLabelCenter + 18,
+            "L/Group/Order must sit to the right of the native page label instead of following D");
+        assertTrue(layout.latest.x < layout.group.x);
+        assertTrue(layout.group.x < layout.order.x);
+    }
+
+    @Test
     void narrowHeaderHidesServiceButtonsBeforeOverlappingCoreSortControls() {
         JourneyHeaderLayout.Layout layout = JourneyHeaderLayout.layout(10, 4, 16, 205, 16);
 
