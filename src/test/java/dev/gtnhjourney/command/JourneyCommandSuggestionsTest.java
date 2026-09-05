@@ -13,7 +13,7 @@ public class JourneyCommandSuggestionsTest {
     @Test
     public void suggestsJourneySubcommandsWhileTyping() {
         assertEquals(Arrays.asList("trace"), JourneyCommandSuggestions.forChatText("/journey tr"));
-        assertEquals(Arrays.asList("research", "rescan", "redo", "restore-deleted", "restore"),
+        assertEquals(Arrays.asList("research", "rescan", "redo", "restore-deleted", "restore", "return"),
             JourneyCommandSuggestions.forChatText("/journey re"));
         assertEquals(Arrays.asList("botania"), JourneyCommandSuggestions.forChatText("/journey bo"));
     }
@@ -24,6 +24,8 @@ public class JourneyCommandSuggestionsTest {
         assertEquals(Arrays.asList("confirm"), JourneyCommandSuggestions.forChatText("/journey clear c"));
         assertEquals(Arrays.asList("debug"), JourneyCommandSuggestions.forChatText("/journey botania "));
         assertEquals(Arrays.asList("tool"), JourneyCommandSuggestions.forChatText("/journey botania debug "));
+        assertEquals(Arrays.asList("latest"), JourneyCommandSuggestions.forChatText("/journey snapshot l"));
+        assertEquals(Arrays.asList("return"), JourneyCommandSuggestions.forChatText("/journey snapshot latest r"));
     }
 
     @Test
@@ -34,6 +36,9 @@ public class JourneyCommandSuggestionsTest {
         assertTrue(suggestions.contains("debugtool"));
         assertTrue(suggestions.contains("restore-deleted"));
         assertTrue(suggestions.contains("botania"));
+        assertTrue(suggestions.contains("return"));
+        assertTrue(suggestions.contains("death"));
+        assertTrue(suggestions.contains("explosions"));
     }
 
     @Test
