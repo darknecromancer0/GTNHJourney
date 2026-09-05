@@ -11,11 +11,15 @@ public final class JourneyRetrieveClickPolicy {
         return (button == 0 || button == 1) && controlDown;
     }
 
-    /** Alt+LMB is the one deliberate exception: it toggles F instead of issuing an item on that click. */
-    public static boolean shouldToggleFavourite(JourneyViewState.Mode mode, int button, boolean altDown) {
+    /** Alt+LMB only adds from J (researched) or N (newest). */
+    public static boolean shouldAddFavourite(JourneyViewState.Mode mode, int button, boolean altDown) {
         if (button != 0 || !altDown || mode == null) return false;
-        return mode == JourneyViewState.Mode.RESEARCHED || mode == JourneyViewState.Mode.NEWEST
-            || mode == JourneyViewState.Mode.FAVOURITE;
+        return mode == JourneyViewState.Mode.RESEARCHED || mode == JourneyViewState.Mode.NEWEST;
+    }
+
+    /** Alt+RMB only removes from F (favourites). */
+    public static boolean shouldRemoveFavourite(JourneyViewState.Mode mode, int button, boolean altDown) {
+        return button == 1 && altDown && mode == JourneyViewState.Mode.FAVOURITE;
     }
 
     public static boolean shouldFillInventory(int button, boolean shiftDown) { return button == 1 && shiftDown; }
