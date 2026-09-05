@@ -9,7 +9,7 @@ import dev.gtnhjourney.minecraft.ResearchCompatibilityOptions;
 import dev.gtnhjourney.nei.JourneyNEIRefreshTracker;
 import dev.gtnhjourney.nei.JourneyViewState;
 
-/** Prevents research and remote-server identity rules from leaking into the next client world/server. */
+/** Prevents research, command hints and remote-server identity rules from leaking into the next client session. */
 public final class ClientConnectionTracker {
 
     @SubscribeEvent
@@ -29,6 +29,7 @@ public final class ClientConnectionTracker {
     private static void resetClientSessionState() {
         ClientStackMirror.clear();
         ClientFavouriteMirror.clear();
+        ClientCommandSuggestionState.clear();
         JourneyRuntimeCounters.reset();
         JourneyViewState.setMode(JourneyViewState.Mode.ALL);
         JourneyNEIRefreshTracker.resetJourneyPanel();
