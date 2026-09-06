@@ -175,7 +175,7 @@ public final class JourneyNEIToggleWidget
 
     @Override
     public void onPreDraw(GuiContainer gui) {
-        JourneyNeiHandlerPriority.ensure(this);
+        JourneyNeiHandlerPriority.ensure(gui, this);
         visible = ItemPanels.itemPanel.pagePrev != null;
         rightControlsVisible = false;
         scanVisible = false;
@@ -213,8 +213,8 @@ public final class JourneyNEIToggleWidget
             ItemPanels.itemPanel.pageNext.w);
         rightControlsVisible = true;
         place(latestButton, layout.latest);
-        groupDropdown.place(layout.group);
-        orderDropdown.place(layout.order);
+        groupDropdown.place(layout.group, gui.width);
+        orderDropdown.place(layout.order, gui.width);
 
         scanVisible = layout.scanVisible;
         debugToolVisible = layout.debugVisible;
@@ -299,13 +299,26 @@ public final class JourneyNEIToggleWidget
         return true;
     }
 
+    private boolean ownsTooltip(int mousex, int mousey) {
+        if (!visible) return false;
+        if (neiButton.contains(mousex, mousey) || researchButton.contains(mousex, mousey)
+            || favouriteButton.contains(mousex, mousey) || creativeButton.contains(mousex, mousey)
+            || deleteButton.contains(mousex, mousey)) {
+            return true;
+        }
+        if (!rightControlsVisible) return false;
+        if (latestButton.contains(mousex, mousey) || groupDropdown.containsAny(mousex, mousey)
+            || orderDropdown.containsAny(mousex, mousey)) {
+            return true;
+        }
+        if (scanVisible && scanButton.contains(mousex, mousey)) return true;
+        return debugToolVisible && debugToolButton.contains(mousex, mousey);
+    }
+
     @Override
     public List<String> handleTooltip(GuiContainer gui, int mousex, int mousey, List<String> currenttip) {
         if (!visible) return currenttip;
-        if (rightControlsVisible
-            && (groupDropdown.containsOpenPopup(mousex, mousey) || orderDropdown.containsOpenPopup(mousex, mousey))) {
-            currenttip.clear();
-        }
+        if (ownsTooltip(mousex, mousey)) currenttip.clear();
         neiButton.handleTooltip(mousex, mousey, currenttip);
         researchButton.handleTooltip(mousex, mousey, currenttip);
         favouriteButton.handleTooltip(mousex, mousey, currenttip);
