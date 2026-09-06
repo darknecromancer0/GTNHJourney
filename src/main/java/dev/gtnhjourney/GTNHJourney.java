@@ -59,7 +59,7 @@ public final class GTNHJourney {
 
     public static final String MODID = "gtnhjourney";
     public static final String NAME = "GTNH Journey";
-    public static final String VERSION = "1.1.32";
+    public static final String VERSION = "1.1.33";
     public static final String TARGET_GTNH = "2.9.0-beta-2";
     public static final String TARGET_NEI = "2.8.111-GTNH";
     public static final PlayerResearchService RESEARCH = new PlayerResearchService();
@@ -122,12 +122,14 @@ public final class GTNHJourney {
         FMLCommonHandler.instance().bus().register(SNAPSHOT_TICKER);
         WorldSafetyRegistration.register(
             new WorldSafetyRegistration.Registrar() {
-                @Override public void register(Object listener) {
+                @Override
+                public void register(Object listener) {
                     FMLCommonHandler.instance().bus().register(listener);
                 }
             },
             new WorldSafetyRegistration.Registrar() {
-                @Override public void register(Object listener) {
+                @Override
+                public void register(Object listener) {
                     MinecraftForge.EVENT_BUS.register(listener);
                 }
             },
