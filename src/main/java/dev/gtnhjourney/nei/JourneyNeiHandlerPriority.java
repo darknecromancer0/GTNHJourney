@@ -1,13 +1,18 @@
 package dev.gtnhjourney.nei;
 
+import java.util.List;
+
+import net.minecraft.client.gui.inventory.GuiContainer;
+
 import codechicken.nei.guihook.GuiContainerManager;
+import codechicken.nei.guihook.IContainerTooltipHandler;
 
 /** Keeps Journey's floating header above NEI regardless of plugin/load registration order. */
 final class JourneyNeiHandlerPriority {
 
     private JourneyNeiHandlerPriority() {}
 
-    static void ensure(JourneyNEIToggleWidget widget) {
+    static void ensure(GuiContainer gui, JourneyNEIToggleWidget widget) {
         if (widget == null) return;
 
         if (GuiContainerManager.drawHandlers.peekLast() != widget) {
@@ -20,9 +25,19 @@ final class JourneyNeiHandlerPriority {
             GuiContainerManager.inputHandlers.addFirst(widget);
         }
 
-        if (GuiContainerManager.tooltipHandlers.peekLast() != widget) {
-            GuiContainerManager.tooltipHandlers.remove(widget);
-            GuiContainerManager.tooltipHandlers.addLast(widget);
+        ensureTooltipLast(GuiContainerManager.tooltipHandlers, widget);
+
+        GuiContainerManager manager = gui == null ? null : GuiContainerManager.getManager(gui);
+        if (manager != null) ensureTooltipLast(manager.instanceTooltipHandlers, widget);
+    }
+
+    static void ensureTooltipLast(List<IContainerTooltipHandler> handlers, JourneyNEIToggleWidget widget) {
+        if (handlers == null || widget == null) return;
+        synchronized (handlers) {
+            int size = handlers.size();
+            if (size > 0 && handlers.get(size - 1) == widget) return;
+            handlers.remove(widget);
+            handlers.add(widget);
         }
     }
 }
