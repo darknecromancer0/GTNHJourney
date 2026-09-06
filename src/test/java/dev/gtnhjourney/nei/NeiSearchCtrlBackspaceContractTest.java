@@ -42,7 +42,7 @@ class NeiSearchCtrlBackspaceContractTest {
     }
 
     @Test
-    void recipeViewRemapsVanillaOverrideButNotNeiCallsiteAndTargetsRecipeBack() throws IOException {
+    void recipeViewRemapsVanillaOverrideButNotNeiCallsiteAndGuardsBeforeRecipeBack() throws IOException {
         String mixin = compactWhitespace(
             read("src/main/java/dev/gtnhjourney/mixin/GuiRecipeCtrlBackspaceMixin.java"));
 
@@ -50,8 +50,9 @@ class NeiSearchCtrlBackspaceContractTest {
         assertTrue(mixin.contains("method=\"keyTyped\""));
         assertTrue(mixin.contains("cancellable=true,remap=true"));
 
-        // KeyManager is NEI-owned, so its invocation descriptor must remain literal while the enclosing method is remapped.
-        assertTrue(mixin.contains("target=\"Lcodechicken/nei/KeyManager;isKeyDown(Ljava/lang/String;)Z\",ordinal=2,remap=false"));
+        // KeyManager is NEI-owned, so its invocation descriptor stays literal. The first invocation in GuiRecipe.keyTyped
+        // is recipe.back, so the guard must inject at ordinal 0 before navigation can change the active screen.
+        assertTrue(mixin.contains("target=\"Lcodechicken/nei/KeyManager;isKeyDown(Ljava/lang/String;)Z\",ordinal=0,remap=false"));
     }
 
     private static String compactWhitespace(String value) {
