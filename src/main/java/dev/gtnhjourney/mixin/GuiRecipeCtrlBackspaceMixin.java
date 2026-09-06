@@ -25,7 +25,7 @@ public abstract class GuiRecipeCtrlBackspaceMixin {
         at = @At(
             value = "INVOKE",
             target = "Lcodechicken/nei/KeyManager;isKeyDown(Ljava/lang/String;)Z",
-            ordinal = 2,
+            ordinal = 0,
             remap = false),
         cancellable = true,
         remap = true)
