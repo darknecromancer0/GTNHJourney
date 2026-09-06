@@ -16,16 +16,17 @@ class JourneyHeaderRuntimePriorityContractTest {
         String widget = compact(read("src/main/java/dev/gtnhjourney/nei/JourneyNEIToggleWidget.java"));
         String priority = compact(read("src/main/java/dev/gtnhjourney/nei/JourneyNeiHandlerPriority.java"));
 
-        assertTrue(widget.contains("JourneyNeiHandlerPriority.ensure(this)"));
+        assertTrue(widget.contains("JourneyNeiHandlerPriority.ensure(gui,this)"));
         assertTrue(priority.contains("GuiContainerManager.drawHandlers.remove(widget)"));
         assertTrue(priority.contains("GuiContainerManager.drawHandlers.addLast(widget)"));
         assertTrue(priority.contains("GuiContainerManager.inputHandlers.remove(widget)"));
         assertTrue(priority.contains("GuiContainerManager.inputHandlers.addFirst(widget)"));
-        assertTrue(priority.contains("GuiContainerManager.tooltipHandlers.remove(widget)"));
-        assertTrue(priority.contains("GuiContainerManager.tooltipHandlers.addLast(widget)"));
-        assertTrue(widget.contains("groupDropdown.containsOpenPopup(mousex,mousey)"));
-        assertTrue(widget.contains("orderDropdown.containsOpenPopup(mousex,mousey)"));
-        assertTrue(widget.contains("currenttip.clear()"));
+        assertTrue(priority.contains("ensureTooltipLast(GuiContainerManager.tooltipHandlers,widget)"));
+        assertTrue(priority.contains("GuiContainerManager.getManager(gui)"));
+        assertTrue(priority.contains("manager.instanceTooltipHandlers"));
+        assertTrue(widget.contains("groupDropdown.containsAny(mousex,mousey)"));
+        assertTrue(widget.contains("orderDropdown.containsAny(mousex,mousey)"));
+        assertTrue(widget.contains("if(ownsTooltip(mousex,mousey))currenttip.clear()"));
     }
 
     private static String compact(String value) {
