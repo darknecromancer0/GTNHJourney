@@ -19,6 +19,7 @@ import dev.gtnhjourney.acquisition.FurnaceOwnershipTracker;
 import dev.gtnhjourney.acquisition.InventoryResearchTracker;
 import dev.gtnhjourney.acquisition.MobSpawnerPlacementHandler;
 import dev.gtnhjourney.acquisition.ResearchObservationService;
+import dev.gtnhjourney.backup.ServerUtilitiesBackupSaveSafety;
 import dev.gtnhjourney.backup.WorldBackupCoordinator;
 import dev.gtnhjourney.backup.WorldBackupTicker;
 import dev.gtnhjourney.command.CommandJourney1124;
@@ -160,6 +161,7 @@ public final class GTNHJourney {
 
     @EventHandler
     public void serverStopping(FMLServerStoppingEvent event) {
+        ServerUtilitiesBackupSaveSafety.prepareForServerStopping();
         WORLD_BACKUPS.finishForShutdown();
     }
 
