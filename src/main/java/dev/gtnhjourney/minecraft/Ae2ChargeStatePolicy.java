@@ -11,11 +11,12 @@ import net.minecraft.nbt.NBTTagCompound;
 /**
  * AE2 powered tools use a continuously changing double-valued NBT field for charge. Journey treats that value as
  * runtime state: an empty item is the 0% endpoint and any verified positive charge proves ownership of the same item's
- * real 100% endpoint. Terminal search text is also transient UI state and must not create research variants.
+ * real 100% endpoint. Terminal search text and redundant cached max power are transient state too.
  */
 public final class Ae2ChargeStatePolicy {
 
     static final String CHARGE_KEY = "internalCurrentPower";
+    static final String MAX_CHARGE_KEY = "internalMaxPower";
     static final String SEARCH_STRING_KEY = "searchString";
     private static final String AE2_PACKAGE_PREFIX = "appeng.";
     private static final String AE2_POWER_INTERFACE = "appeng.api.implementations.items.IAEItemPowerStorage";
@@ -74,8 +75,7 @@ public final class Ae2ChargeStatePolicy {
         ItemStack copy = stack.copy();
         if (!copy.hasTagCompound()) return copy;
         NBTTagCompound tag = (NBTTagCompound) copy.getTagCompound().copy();
-        tag.removeTag(CHARGE_KEY);
-        tag.removeTag(SEARCH_STRING_KEY);
+        stripTransientRuntimeState(tag);
         if (tag.func_150296_c().isEmpty()) copy.setTagCompound(null);
         else copy.setTagCompound(tag);
         return copy;
@@ -88,10 +88,16 @@ public final class Ae2ChargeStatePolicy {
 
         ItemStack copy = stack.copy();
         NBTTagCompound tag = copy.hasTagCompound() ? (NBTTagCompound) copy.getTagCompound().copy() : new NBTTagCompound();
+        stripTransientRuntimeState(tag);
         tag.setDouble(CHARGE_KEY, max);
-        tag.removeTag(SEARCH_STRING_KEY);
         copy.setTagCompound(tag);
         return copy;
+    }
+
+    private static void stripTransientRuntimeState(NBTTagCompound tag) {
+        tag.removeTag(CHARGE_KEY);
+        tag.removeTag(MAX_CHARGE_KEY);
+        tag.removeTag(SEARCH_STRING_KEY);
     }
 
     private static boolean isVerifiedAe2PoweredItem(Object item) {
