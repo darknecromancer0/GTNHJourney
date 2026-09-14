@@ -7,13 +7,21 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.WorldServer;
 
+import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 import cpw.mods.fml.common.gameevent.TickEvent.ServerTickEvent;
+import cpw.mods.fml.common.gameevent.TickEvent.WorldTickEvent;
+import cpw.mods.fml.relauncher.Side;
 
 /**
  * Best-effort machine-only acceleration. It adds extra updates only for already-loaded tickable TileEntities while
  * MinecraftServer, world time, entities, weather and random block ticks remain at the normal 20 TPS cadence.
+ *
+ * <p>Each synthetic world pass is wrapped in the normal Forge/FML world-tick START/END context. A number of GTNH mods
+ * coordinate pumps, fluid transfer, passive generators and caches from those events rather than exclusively from
+ * TileEntity#updateEntity(). Without the matching event context, consumers can advance on every Journey pass while
+ * their suppliers advance only on real server ticks.</p>
  *
  * <p>The work deadline is checked only between complete global passes. A pass is never cut in the middle because doing
  * so can advance GT energy buffers/producers without advancing downstream consumers by the same number of extra ticks.</p>
@@ -63,17 +71,31 @@ public final class MachineTickAccelerator {
 
     private static void tickCompletePass(List<WorldSnapshot> snapshots) {
         for (WorldSnapshot snapshot : snapshots) {
-            WorldServer world = snapshot.world;
+            tickWorldPass(snapshot);
+        }
+    }
+
+    private static void tickWorldPass(WorldSnapshot snapshot) {
+        WorldServer world = snapshot.world;
+        postWorldTick(world, TickEvent.Phase.START);
+        try {
             for (TileEntity tile : snapshot.tiles) {
                 if (tile == null || tile.isInvalid() || !tile.canUpdate() || tile.getWorldObj() != world) continue;
                 tile.updateEntity();
             }
+        } finally {
+            postWorldTick(world, TickEvent.Phase.END);
         }
+    }
+
+    private static void postWorldTick(WorldServer world, TickEvent.Phase phase) {
+        FMLCommonHandler.instance().bus().post(new WorldTickEvent(world, Side.SERVER, phase));
     }
 
     private static final class WorldSnapshot {
         final WorldServer world;
         final List<TileEntity> tiles;
+
         WorldSnapshot(WorldServer world, List<TileEntity> tiles) {
             this.world = world;
             this.tiles = tiles;
