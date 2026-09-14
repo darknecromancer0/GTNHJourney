@@ -39,6 +39,10 @@ public final class ResearchStateExpander {
             endpoints.add(full);
             return Collections.unmodifiableList(endpoints);
         }
+
+        Ae2ChargeStatePolicy.State ae2State = Ae2ChargeStatePolicy.classify(exact);
+        if (ae2State != Ae2ChargeStatePolicy.State.EXACT) return Ae2ChargeStatePolicy.expand(exact);
+
         OpenComputersChargeStatePolicy.State ocState = OpenComputersChargeStatePolicy.classify(exact);
         if (ocState != OpenComputersChargeStatePolicy.State.EXACT) return OpenComputersChargeStatePolicy.expand(exact);
         if (ResearchCompatibilityOptions.normalizeIc2ChargeEndpoints()) {
