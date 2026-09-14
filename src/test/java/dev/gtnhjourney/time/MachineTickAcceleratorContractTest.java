@@ -28,6 +28,18 @@ public class MachineTickAcceleratorContractTest {
     }
 
     @Test
+    public void syntheticMachinePassPreservesWorldTickEventContext() throws IOException {
+        String source = read("src/main/java/dev/gtnhjourney/time/MachineTickAccelerator.java");
+
+        assertTrue(source.contains("WorldTickEvent"));
+        assertTrue(source.contains("TickEvent.Phase.START"));
+        assertTrue(source.contains("TickEvent.Phase.END"));
+        assertTrue(source.contains("FMLCommonHandler.instance().bus().post"));
+        assertTrue(source.indexOf("TickEvent.Phase.START") < source.indexOf("tile.updateEntity()"));
+        assertTrue(source.lastIndexOf("TickEvent.Phase.END") > source.indexOf("tile.updateEntity()"));
+    }
+
+    @Test
     public void workBudgetCanStopOnlyBetweenCompleteGlobalPasses() throws IOException {
         String source = read("src/main/java/dev/gtnhjourney/time/MachineTickAccelerator.java");
 
