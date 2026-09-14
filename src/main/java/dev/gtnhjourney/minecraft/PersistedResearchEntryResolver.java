@@ -90,7 +90,9 @@ public final class PersistedResearchEntryResolver {
 
             ItemStack semantic = GtChargeStatePolicy.identityStack(reconstructed);
             if (GtChargeStatePolicy.classify(reconstructed) == GtChargeStatePolicy.State.EXACT) {
-                if (OpenComputersChargeStatePolicy.classify(semantic) != OpenComputersChargeStatePolicy.State.EXACT) {
+                if (Ae2ChargeStatePolicy.classify(semantic) != Ae2ChargeStatePolicy.State.EXACT) {
+                    semantic = Ae2ChargeStatePolicy.identityStack(semantic);
+                } else if (OpenComputersChargeStatePolicy.classify(semantic) != OpenComputersChargeStatePolicy.State.EXACT) {
                     semantic = OpenComputersChargeStatePolicy.identityStack(semantic);
                 } else if (Ic2ChargeStatePolicy.classify(semantic) != Ic2ChargeStatePolicy.State.EXACT) {
                     semantic = Ic2ChargeStatePolicy.identityStack(semantic);
