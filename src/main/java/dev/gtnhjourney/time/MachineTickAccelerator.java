@@ -89,7 +89,7 @@ public final class MachineTickAccelerator {
     }
 
     private static void postWorldTick(WorldServer world, TickEvent.Phase phase) {
-        FMLCommonHandler.instance().bus().post(new WorldTickEvent(world, Side.SERVER, phase));
+        FMLCommonHandler.instance().bus().post(new WorldTickEvent(Side.SERVER, phase, world));
     }
 
     private static final class WorldSnapshot {
