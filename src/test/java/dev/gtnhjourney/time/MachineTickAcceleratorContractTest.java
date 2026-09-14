@@ -28,6 +28,19 @@ public class MachineTickAcceleratorContractTest {
     }
 
     @Test
+    public void syntheticMachinePassPreservesWorldTickEventContext() throws IOException {
+        String source = compact(read("src/main/java/dev/gtnhjourney/time/MachineTickAccelerator.java"));
+
+        assertTrue(source.contains("WorldTickEvent"));
+        assertTrue(source.contains("TickEvent.Phase.START"));
+        assertTrue(source.contains("TickEvent.Phase.END"));
+        assertTrue(source.contains("FMLCommonHandler.instance().bus().post"));
+        assertTrue(source.contains("newWorldTickEvent(Side.SERVER,phase,world)"));
+        assertTrue(source.indexOf("TickEvent.Phase.START") < source.indexOf("tile.updateEntity()"));
+        assertTrue(source.lastIndexOf("TickEvent.Phase.END") > source.indexOf("tile.updateEntity()"));
+    }
+
+    @Test
     public void workBudgetCanStopOnlyBetweenCompleteGlobalPasses() throws IOException {
         String source = read("src/main/java/dev/gtnhjourney/time/MachineTickAccelerator.java");
 
@@ -37,6 +50,10 @@ public class MachineTickAcceleratorContractTest {
         assertTrue(completePassMethod >= 0);
         String passBody = source.substring(completePassMethod);
         assertFalse(passBody.contains("System.nanoTime() >= deadline"));
+    }
+
+    private static String compact(String value) {
+        return value.replaceAll("\\s+", "");
     }
 
     private static String read(String path) throws IOException {
