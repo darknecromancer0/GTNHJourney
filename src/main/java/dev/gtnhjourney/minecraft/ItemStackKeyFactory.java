@@ -39,15 +39,21 @@ public final class ItemStackKeyFactory {
         if (gtChargeState != GtChargeStatePolicy.State.EXACT) {
             identityStack = GtChargeStatePolicy.identityStack(canonicalInput);
         } else {
-            OpenComputersChargeStatePolicy.State ocChargeState = OpenComputersChargeStatePolicy.classify(canonicalInput);
-            if (ocChargeState != OpenComputersChargeStatePolicy.State.EXACT) {
-                identityStack = OpenComputersChargeStatePolicy.identityStack(canonicalInput);
+            Ae2ChargeStatePolicy.State ae2ChargeState = Ae2ChargeStatePolicy.classify(canonicalInput);
+            if (ae2ChargeState != Ae2ChargeStatePolicy.State.EXACT) {
+                identityStack = Ae2ChargeStatePolicy.identityStack(canonicalInput);
             } else {
-                Ic2ChargeStatePolicy.State ic2ChargeState = ResearchCompatibilityOptions.normalizeIc2ChargeEndpoints()
-                    ? Ic2ChargeStatePolicy.classify(canonicalInput) : Ic2ChargeStatePolicy.State.EXACT;
-                identityStack = ic2ChargeState != Ic2ChargeStatePolicy.State.EXACT
-                    ? Ic2ChargeStatePolicy.identityStack(canonicalInput)
-                    : CofhChargeStatePolicy.identityStack(canonicalInput);
+                OpenComputersChargeStatePolicy.State ocChargeState = OpenComputersChargeStatePolicy
+                    .classify(canonicalInput);
+                if (ocChargeState != OpenComputersChargeStatePolicy.State.EXACT) {
+                    identityStack = OpenComputersChargeStatePolicy.identityStack(canonicalInput);
+                } else {
+                    Ic2ChargeStatePolicy.State ic2ChargeState = ResearchCompatibilityOptions.normalizeIc2ChargeEndpoints()
+                        ? Ic2ChargeStatePolicy.classify(canonicalInput) : Ic2ChargeStatePolicy.State.EXACT;
+                    identityStack = ic2ChargeState != Ic2ChargeStatePolicy.State.EXACT
+                        ? Ic2ChargeStatePolicy.identityStack(canonicalInput)
+                        : CofhChargeStatePolicy.identityStack(canonicalInput);
+                }
             }
         }
         if (identityStack == null || identityStack.getItem() == null) {
