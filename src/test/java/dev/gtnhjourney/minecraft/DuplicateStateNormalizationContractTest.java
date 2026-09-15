@@ -21,12 +21,15 @@ public class DuplicateStateNormalizationContractTest {
     }
 
     @Test
-    public void knownTransientPolicyDropsUltraTerminalCraftingCacheAndClipboardWorkState() throws Exception {
+    public void knownTransientPolicyDropsUltraTerminalClipboardAndGraviRuntimeState() throws Exception {
         String source = read("src/main/java/dev/gtnhjourney/minecraft/KnownTransientItemStatePolicy.java");
         assertTrue(source.contains("wireless_ultra_terminal") && source.contains("crafting"),
             "AE2FC Ultra Terminal crafting-grid cache must not create research variants");
         assertTrue(source.contains("BiblioClipboard") && source.contains("currentPage"),
             "BiblioCraft clipboard page/work state must not create research variants");
+        assertTrue(source.contains("GraviSuite:advJetpack") && source.contains("isFlyActive")
+            && source.contains("isHoverActive") && source.contains("toggleTimer"),
+            "GraviSuite flight-mode runtime flags must not create research variants");
     }
 
     @Test
@@ -38,13 +41,32 @@ public class DuplicateStateNormalizationContractTest {
     }
 
     @Test
-    public void researchNormalizerAppliesJarPolicyForRuntimeAndPersistedEntries() throws Exception {
+    public void galaxySpaceJetplateUsesOnlyEmptyAndFullChargeEndpoints() throws Exception {
+        String source = read("src/main/java/dev/gtnhjourney/minecraft/GalaxySpaceChargeStatePolicy.java");
+        assertTrue(source.contains("item.spacesuit_jetplate"), "GalaxySpace jetplate needs a verified endpoint policy");
+        assertTrue(source.contains("electricity") && source.contains("100000"),
+            "jetplate charge identity must collapse to the verified 0/100% endpoints");
+        String expander = read("src/main/java/dev/gtnhjourney/minecraft/ResearchStateExpander.java");
+        String keys = read("src/main/java/dev/gtnhjourney/minecraft/ItemStackKeyFactory.java");
+        assertTrue(expander.contains("GalaxySpaceChargeStatePolicy.expand"),
+            "positive jetplate charge must prove both endpoint states");
+        assertTrue(keys.contains("GalaxySpaceChargeStatePolicy.identityStack"),
+            "jetplate research keys must never retain intermediate electricity");
+    }
+
+    @Test
+    public void runtimeAndPersistedIdentityApplyNewSemanticPolicies() throws Exception {
         String runtime = read("src/main/java/dev/gtnhjourney/minecraft/ResearchTemplateNormalizer.java");
+        String identity = read("src/main/java/dev/gtnhjourney/minecraft/ResearchNbtIdentity.java");
         String persisted = read("src/main/java/dev/gtnhjourney/minecraft/PersistedResearchEntryResolver.java");
         assertTrue(runtime.contains("ThaumcraftJarStatePolicy.normalize"),
             "new observations must normalize Thaumcraft jar amounts");
+        assertTrue(identity.contains("ThaumcraftJarStatePolicy.normalize"),
+            "research identity must normalize Thaumcraft jar amounts");
         assertTrue(persisted.contains("ThaumcraftJarStatePolicy.normalize"),
             "old persisted jar amount variants must collapse on load");
+        assertTrue(persisted.contains("GalaxySpaceChargeStatePolicy"),
+            "old jetplate charge variants must recanonicalize on load");
     }
 
     private static String read(String path) throws Exception {
