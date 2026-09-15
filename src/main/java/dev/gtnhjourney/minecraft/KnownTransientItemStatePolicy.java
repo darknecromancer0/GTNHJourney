@@ -1,5 +1,8 @@
 package dev.gtnhjourney.minecraft;
 
+import java.util.ArrayList;
+import java.util.Set;
+
 import cpw.mods.fml.common.registry.GameRegistry;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTBase;
@@ -22,6 +25,10 @@ public final class KnownTransientItemStatePolicy {
     private static final String RAILCRAFT_MACHINE_ZETA = "Railcraft:machine.zeta";
     private static final int RAILCRAFT_DEFAULT_WHITE = 15;
     private static final String AE2_NETWORK_VISUALISER = "appliedenergistics2:item.ToolNetworkVisualiser";
+    private static final String AE2FC_WIRELESS_ULTRA_TERMINAL = "ae2fc:wireless_ultra_terminal";
+    private static final String BIBLIO_CLIPBOARD = "BiblioCraft:item.BiblioClipboard";
+    private static final String GRAVI_ADV_JETPACK = "GraviSuite:advJetpack";
+    private static final String GRAVI_ADV_NANO_CHEST = "GraviSuite:advNanoChestPlate";
     private static final String BETTER_P2P_ADVANCED_MEMORY_CARD = "betterp2p:advanced_memory_card";
     private static final String VANILLA_WATER = "minecraft:water";
 
@@ -54,6 +61,11 @@ public final class KnownTransientItemStatePolicy {
         }
         if (isRailcraftTankStructure(registryId, meta)) normalizeRailcraftTankStructure(tag);
         if (AE2_NETWORK_VISUALISER.equals(registryId)) normalizeAe2NetworkVisualiser(tag);
+        if (AE2FC_WIRELESS_ULTRA_TERMINAL.equals(registryId)) normalizeAe2fcUltraTerminal(tag);
+        if (BIBLIO_CLIPBOARD.equals(registryId)) normalizeBiblioClipboard(tag);
+        if (GRAVI_ADV_JETPACK.equals(registryId) || GRAVI_ADV_NANO_CHEST.equals(registryId)) {
+            normalizeGraviFlightRuntime(tag);
+        }
         if (BETTER_P2P_ADVANCED_MEMORY_CARD.equals(registryId)) normalizeBetterP2pAdvancedMemoryCard(tag);
         if (VANILLA_WATER.equals(registryId)) normalizeGeneratedWaterAmountName(tag);
     }
@@ -97,6 +109,38 @@ public final class KnownTransientItemStatePolicy {
 
     private static void normalizeAe2NetworkVisualiser(NBTTagCompound tag) {
         remove(tag, "NETWORK_VISUALISER", "dim", "x", "y", "z");
+    }
+
+    private static void normalizeAe2fcUltraTerminal(NBTTagCompound tag) {
+        // The 3x3 crafting grid is a cached work surface. Copying it would duplicate ingredients and every recipe or
+        // tool-damage change would otherwise become a separate Journey state. Binding/profile NBT is intentionally kept.
+        tag.removeTag("crafting");
+        tag.removeTag("searchString");
+        if (tag.hasKey("MagnetMode", 99) && tag.getInteger("MagnetMode") == 0) tag.removeTag("MagnetMode");
+        if (tag.hasKey("name", 8) && tag.getString("name").isEmpty()) tag.removeTag("name");
+    }
+
+    private static void normalizeBiblioClipboard(NBTTagCompound tag) {
+        tag.removeTag("currentPage");
+        tag.removeTag("totalPages");
+        Set<String> keys = tag.func_150296_c();
+        if (keys == null) return;
+        for (String key : new ArrayList<String>(keys)) {
+            if (isClipboardPageKey(key)) tag.removeTag(key);
+        }
+    }
+
+    private static boolean isClipboardPageKey(String key) {
+        if (key == null || !key.startsWith("page") || key.length() <= 4) return false;
+        for (int i = 4; i < key.length(); i++) {
+            char c = key.charAt(i);
+            if (c < '0' || c > '9') return false;
+        }
+        return true;
+    }
+
+    private static void normalizeGraviFlightRuntime(NBTTagCompound tag) {
+        remove(tag, "isFlyActive", "isHoverActive", "toggleTimer");
     }
 
     private static void normalizeBetterP2pAdvancedMemoryCard(NBTTagCompound tag) {
