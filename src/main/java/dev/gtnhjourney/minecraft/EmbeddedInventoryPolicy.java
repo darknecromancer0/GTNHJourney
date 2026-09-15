@@ -26,6 +26,8 @@ public final class EmbeddedInventoryPolicy {
     private static final String IC2_TOOLBOX = "IC2:itemToolbox";
     private static final String BACKPACK = "Backpack:backpack";
     private static final String WORKBENCH_BACKPACK = "Backpack:workbenchbackpack";
+    private static final String AE2_BASIC_STORAGE_CELL_PREFIX = "appliedenergistics2:item.ItemBasicStorageCell.";
+    private static final String AE2FC_FLUID_STORAGE_PREFIX = "ae2fc:fluid_storage";
     private static final int NORMALIZE_MAX_DEPTH = 8;
 
     private EmbeddedInventoryPolicy() {}
@@ -49,7 +51,42 @@ public final class EmbeddedInventoryPolicy {
             // retain that pointer, otherwise a copied backpack could address the original backpack's external save.
             tag.removeTag("backpack-UID");
         }
+        normalizeAeStorageCellContents(registryId, tag);
         stripSerializedItemLists(tag, 0);
+    }
+
+    /** AE2 serializes cell contents as #N/@N pairs plus item/fluid type and total-count counters. */
+    static void normalizeAeStorageCellContents(String registryId, NBTTagCompound tag) {
+        if (!isAeStorageCell(registryId) || tag == null) return;
+        Set<String> keys = tag.func_150296_c();
+        if (keys != null) {
+            for (String key : new ArrayList<String>(keys)) {
+                if (isAeCellPayloadSlot(key)) tag.removeTag(key);
+            }
+        }
+        // ItemCellInventory uses it/ic; FluidCellInventory uses ft/fc. Configuration, upgrades, fuzzy mode and
+        // restrictions use separate keys and intentionally survive this cleanup.
+        tag.removeTag("it");
+        tag.removeTag("ic");
+        tag.removeTag("ft");
+        tag.removeTag("fc");
+    }
+
+    private static boolean isAeStorageCell(String registryId) {
+        if (registryId == null) return false;
+        if (registryId.startsWith(AE2_BASIC_STORAGE_CELL_PREFIX)) return true;
+        return registryId.startsWith(AE2FC_FLUID_STORAGE_PREFIX) && !registryId.endsWith("_housing");
+    }
+
+    private static boolean isAeCellPayloadSlot(String key) {
+        if (key == null || key.length() < 2) return false;
+        char prefix = key.charAt(0);
+        if (prefix != '#' && prefix != '@') return false;
+        for (int i = 1; i < key.length(); i++) {
+            char c = key.charAt(i);
+            if (c < '0' || c > '9') return false;
+        }
+        return true;
     }
 
     /** Returns defensive copies of embedded serialized ItemStack compounds, bounded against hostile/deep NBT. */
