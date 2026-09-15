@@ -43,16 +43,23 @@ public final class ItemStackKeyFactory {
             if (ae2ChargeState != Ae2ChargeStatePolicy.State.EXACT) {
                 identityStack = Ae2ChargeStatePolicy.identityStack(canonicalInput);
             } else {
-                OpenComputersChargeStatePolicy.State ocChargeState = OpenComputersChargeStatePolicy
+                GalaxySpaceChargeStatePolicy.State galaxyChargeState = GalaxySpaceChargeStatePolicy
                     .classify(canonicalInput);
-                if (ocChargeState != OpenComputersChargeStatePolicy.State.EXACT) {
-                    identityStack = OpenComputersChargeStatePolicy.identityStack(canonicalInput);
+                if (galaxyChargeState != GalaxySpaceChargeStatePolicy.State.EXACT) {
+                    identityStack = GalaxySpaceChargeStatePolicy.identityStack(canonicalInput);
                 } else {
-                    Ic2ChargeStatePolicy.State ic2ChargeState = ResearchCompatibilityOptions.normalizeIc2ChargeEndpoints()
-                        ? Ic2ChargeStatePolicy.classify(canonicalInput) : Ic2ChargeStatePolicy.State.EXACT;
-                    identityStack = ic2ChargeState != Ic2ChargeStatePolicy.State.EXACT
-                        ? Ic2ChargeStatePolicy.identityStack(canonicalInput)
-                        : CofhChargeStatePolicy.identityStack(canonicalInput);
+                    OpenComputersChargeStatePolicy.State ocChargeState = OpenComputersChargeStatePolicy
+                        .classify(canonicalInput);
+                    if (ocChargeState != OpenComputersChargeStatePolicy.State.EXACT) {
+                        identityStack = OpenComputersChargeStatePolicy.identityStack(canonicalInput);
+                    } else {
+                        Ic2ChargeStatePolicy.State ic2ChargeState = ResearchCompatibilityOptions
+                            .normalizeIc2ChargeEndpoints() ? Ic2ChargeStatePolicy.classify(canonicalInput)
+                                : Ic2ChargeStatePolicy.State.EXACT;
+                        identityStack = ic2ChargeState != Ic2ChargeStatePolicy.State.EXACT
+                            ? Ic2ChargeStatePolicy.identityStack(canonicalInput)
+                            : CofhChargeStatePolicy.identityStack(canonicalInput);
+                    }
                 }
             }
         }

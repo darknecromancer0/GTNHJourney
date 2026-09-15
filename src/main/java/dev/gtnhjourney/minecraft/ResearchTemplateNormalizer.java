@@ -16,6 +16,7 @@ public final class ResearchTemplateNormalizer {
         NBTTagCompound out = stack.hasTagCompound() ? (NBTTagCompound) stack.getTagCompound()
             .copy() : new NBTTagCompound();
         if (thaumcraftWand) ThaumcraftWandStatePolicy.normalize(stack, out);
+        ThaumcraftJarStatePolicy.normalize(stack, out);
         BotaniaTransientStatePolicy.normalize(stack, out);
         DraconicTransientStatePolicy.normalize(stack, out);
         WearableTransientStatePolicy.normalize(stack, out);

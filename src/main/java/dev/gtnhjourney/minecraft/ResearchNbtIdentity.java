@@ -17,6 +17,7 @@ public final class ResearchNbtIdentity {
     public static String canonicalize(ItemStack stack, String canonicalItemId) {
         if (stack == null || !stack.hasTagCompound()) return "";
         NBTTagCompound identityTag = (NBTTagCompound) stack.getTagCompound().copy();
+        ThaumcraftJarStatePolicy.normalize(stack, identityTag);
         BotaniaTransientStatePolicy.normalize(stack, identityTag);
         DraconicTransientStatePolicy.normalize(stack, identityTag);
         WearableTransientStatePolicy.normalize(stack, identityTag);

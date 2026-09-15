@@ -92,6 +92,8 @@ public final class PersistedResearchEntryResolver {
             if (GtChargeStatePolicy.classify(reconstructed) == GtChargeStatePolicy.State.EXACT) {
                 if (Ae2ChargeStatePolicy.classify(semantic) != Ae2ChargeStatePolicy.State.EXACT) {
                     semantic = Ae2ChargeStatePolicy.identityStack(semantic);
+                } else if (GalaxySpaceChargeStatePolicy.classify(semantic) != GalaxySpaceChargeStatePolicy.State.EXACT) {
+                    semantic = GalaxySpaceChargeStatePolicy.identityStack(semantic);
                 } else if (OpenComputersChargeStatePolicy.classify(semantic) != OpenComputersChargeStatePolicy.State.EXACT) {
                     semantic = OpenComputersChargeStatePolicy.identityStack(semantic);
                 } else if (Ic2ChargeStatePolicy.classify(semantic) != Ic2ChargeStatePolicy.State.EXACT) {
@@ -129,8 +131,10 @@ public final class PersistedResearchEntryResolver {
             BotaniaTransientStatePolicy.normalize(itemId, out);
             WearableTransientStatePolicy.normalize(itemId, out);
             ThaumcraftWandStatePolicy.normalizePersisted(itemId, meta, out);
+            ThaumcraftJarStatePolicy.normalize(itemId, out);
             KnownTransientItemStatePolicy.normalize(itemId, meta, out);
             EmbeddedInventoryPolicy.normalize(itemId, out);
+            GalaxySpaceChargeStatePolicy.normalizePersisted(itemId, meta, out);
             GalacticraftRocketFuelStatePolicy.normalize(itemId, out);
             if (isForestry(itemId)) ForestryGeneticsNbtPolicy.normalizeGeneticsTag(out);
         } catch (IllegalArgumentException ignored) {
