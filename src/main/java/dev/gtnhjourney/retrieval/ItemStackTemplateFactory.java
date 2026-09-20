@@ -6,6 +6,7 @@ import net.minecraft.nbt.NBTTagCompound;
 
 import cpw.mods.fml.common.registry.GameRegistry;
 import dev.gtnhjourney.minecraft.GtToolStatePolicy;
+import dev.gtnhjourney.minecraft.Ic2LegacyBatteryAliasPolicy;
 import dev.gtnhjourney.minecraft.MobSpawnerStatePolicy;
 import dev.gtnhjourney.research.ResearchKey;
 
@@ -25,11 +26,14 @@ public final class ItemStackTemplateFactory {
         String name = key.getItemId()
             .substring(colon + 1);
         try {
-            Item item = GameRegistry.findItem(modId, name);
-            if (item == null) return null;
-
-            ItemStack stack = new ItemStack(item, 1, key.getMeta());
-            if (originalTag != null) stack.setTagCompound((NBTTagCompound) originalTag.copy());
+            ItemStack stack = Ic2LegacyBatteryAliasPolicy
+                .nativeRetrievalStack(key.getItemId(), key.getMeta(), originalTag);
+            if (stack == null) {
+                Item item = GameRegistry.findItem(modId, name);
+                if (item == null) return null;
+                stack = new ItemStack(item, 1, key.getMeta());
+                if (originalTag != null) stack.setTagCompound((NBTTagCompound) originalTag.copy());
+            }
             MobSpawnerStatePolicy.ensurePlacementMarker(stack);
             if (GtToolStatePolicy.isKnownInvalidToolState(stack)) return null;
             // Some modded items derive their stack limit from NBT, so clamp only after restoring the exact tag.
