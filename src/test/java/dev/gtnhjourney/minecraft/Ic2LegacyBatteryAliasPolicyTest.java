@@ -10,67 +10,33 @@ import java.nio.file.Paths;
 
 import org.junit.jupiter.api.Test;
 
-import net.minecraft.nbt.NBTTagCompound;
-
 public class Ic2LegacyBatteryAliasPolicyTest {
 
     @Test
-    public void nativeDischargedRegistryIdentityIsNoLongerAliased() {
-        assertEquals(
-            "IC2:itemBatREDischarged",
-            Ic2LegacyBatteryAliasPolicy.canonicalItemId("IC2:itemBatREDischarged"));
+    public void onlyKnownDischargedReBatteryAliasChangesRegistryIdentity() {
+        assertEquals("IC2:itemBatRE", Ic2LegacyBatteryAliasPolicy.canonicalItemId("IC2:itemBatREDischarged"));
         assertEquals("IC2:itemBatRE", Ic2LegacyBatteryAliasPolicy.canonicalItemId("IC2:itemBatRE"));
         assertEquals("IC2:itemBatBox", Ic2LegacyBatteryAliasPolicy.canonicalItemId("IC2:itemBatBox"));
     }
 
     @Test
-    public void persistedBadEmptyBatteryMigratesBackToCraftedRegistryItem() {
-        assertEquals(
-            "IC2:itemBatREDischarged",
-            Ic2LegacyBatteryAliasPolicy.migratePersistedItemId("IC2:itemBatRE", 27, null));
-        assertEquals(0, Ic2LegacyBatteryAliasPolicy.migratePersistedMeta("IC2:itemBatRE", 27, null));
-    }
-
-    @Test
-    public void persistedChargedBatteryKeepsRechargeableRegistryItem() {
-        NBTTagCompound tag = new NBTTagCompound();
-        tag.setDouble("charge", 10000.0D);
-
-        assertEquals(
-            "IC2:itemBatRE",
-            Ic2LegacyBatteryAliasPolicy.migratePersistedItemId("IC2:itemBatRE", 1, tag));
-        assertEquals(1, Ic2LegacyBatteryAliasPolicy.migratePersistedMeta("IC2:itemBatRE", 1, tag));
-    }
-
-    @Test
-    public void itemStackKeyFactoryNormalizesSplitBatteryBeforeGenericChargeSemantics() throws IOException {
+    public void itemStackKeyFactoryCanonicalizesAliasBeforeChargeSemantics() throws IOException {
         String source = read("src/main/java/dev/gtnhjourney/minecraft/ItemStackKeyFactory.java");
         int option = source.indexOf("ResearchCompatibilityOptions.normalizeIc2ChargeEndpoints()");
-        int splitBattery = source.indexOf("Ic2LegacyBatteryAliasPolicy.identityStack(stack)");
+        int alias = source.indexOf("Ic2LegacyBatteryAliasPolicy.identityStack(stack)");
         int charge = source.indexOf("Ic2ChargeStatePolicy.classify(canonicalInput)");
         assertTrue(option >= 0);
-        assertTrue(splitBattery > option);
-        assertTrue(charge > splitBattery);
+        assertTrue(alias > option);
+        assertTrue(charge > alias);
     }
 
     @Test
-    public void stateExpanderHandlesSplitBatteryBeforeGenericIc2Expansion() throws IOException {
-        String source = read("src/main/java/dev/gtnhjourney/minecraft/ResearchStateExpander.java");
-        int splitBattery = source.indexOf("Ic2LegacyBatteryAliasPolicy.expand(exact)");
-        int charge = source.indexOf("Ic2ChargeStatePolicy.classify(exact)");
-        assertTrue(splitBattery >= 0);
-        assertTrue(charge > splitBattery);
-    }
-
-    @Test
-    public void persistedMigrationUsesSplitBatteryEndpointMigration() throws IOException {
+    public void persistedAliasMigrationAlsoHonorsIc2CompatibilityOption() throws IOException {
         String source = read("src/main/java/dev/gtnhjourney/minecraft/PersistedResearchEntryResolver.java");
         int option = source.indexOf("ResearchCompatibilityOptions.normalizeIc2ChargeEndpoints()");
-        int itemMigration = source.indexOf("Ic2LegacyBatteryAliasPolicy.migratePersistedItemId");
-        int metaMigration = source.indexOf("Ic2LegacyBatteryAliasPolicy.migratePersistedMeta");
+        int alias = source.indexOf("Ic2LegacyBatteryAliasPolicy.canonicalItemId(itemId)");
         assertTrue(option >= 0);
-        assertTrue(itemMigration > option);
-        assertTrue(metaMigration > itemMigration);
+        assertTrue(alias > option);
     }
 
     private static String read(String path) throws IOException {
