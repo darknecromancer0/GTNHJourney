@@ -21,6 +21,9 @@ public final class ResearchStateExpander {
         ItemStack fullFluidContainer = FluidContainerStatePolicy.fullEquivalent(exact);
         if (fullFluidContainer != null) return Collections.singletonList(fullFluidContainer);
 
+        List<ItemStack> reBatteryEndpoints = Ic2LegacyBatteryAliasPolicy.expand(exact);
+        if (!reBatteryEndpoints.isEmpty()) return reBatteryEndpoints;
+
         GtChargeStatePolicy.State chargeState = ResearchCompatibilityOptions.normalizeGtChargeEndpoints()
             ? GtChargeStatePolicy.classify(observed) : GtChargeStatePolicy.State.EXACT;
         if (chargeState == GtChargeStatePolicy.State.BASE) {
