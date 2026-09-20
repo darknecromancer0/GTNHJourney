@@ -10,6 +10,7 @@ import net.minecraftforge.common.DimensionManager;
 
 import dev.gtnhjourney.acquisition.ResearchObservationPolicy;
 import dev.gtnhjourney.minecraft.ItemStackKeyFactory;
+import dev.gtnhjourney.minecraft.UnstableIngotStatePolicy;
 import dev.gtnhjourney.recovery.ResearchEntrySnapshot;
 import dev.gtnhjourney.recovery.ResearchStateSnapshot;
 import dev.gtnhjourney.research.ResearchFingerprint;
@@ -66,14 +67,18 @@ public final class PlayerResearchService {
     public ItemStack retrieve(EntityPlayerMP player, ResearchKey key, int requestedAmount) {
         JourneyResearchData data = data(player);
         if (!data.registry(player.getUniqueID()).contains(key)) return null;
-        return dev.gtnhjourney.retrieval.ItemStackTemplateFactory.create(key, data.template(player.getUniqueID(), key), requestedAmount);
+        ItemStack stack = dev.gtnhjourney.retrieval.ItemStackTemplateFactory
+            .create(key, data.template(player.getUniqueID(), key), requestedAmount);
+        return UnstableIngotStatePolicy.refreshForRetrieval(stack, player);
     }
 
     public ItemStack retrieve(EntityPlayerMP player, ResearchFingerprint fingerprint, int requestedAmount) {
         JourneyResearchData data = data(player);
         ResearchKey key = data.registry(player.getUniqueID()).find(fingerprint);
         if (key == null) return null;
-        return dev.gtnhjourney.retrieval.ItemStackTemplateFactory.create(key, data.template(player.getUniqueID(), key), requestedAmount);
+        ItemStack stack = dev.gtnhjourney.retrieval.ItemStackTemplateFactory
+            .create(key, data.template(player.getUniqueID(), key), requestedAmount);
+        return UnstableIngotStatePolicy.refreshForRetrieval(stack, player);
     }
 
     public ResearchKey resolve(EntityPlayerMP player, ResearchFingerprint fingerprint) {

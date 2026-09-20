@@ -24,6 +24,7 @@ public final class ResearchNbtIdentity {
         ThaumcraftWandStatePolicy.normalize(stack, identityTag);
         TransientToolFluidPolicy.normalize(stack, identityTag);
         KnownTransientItemStatePolicy.normalize(stack, identityTag);
+        UnstableIngotStatePolicy.normalizeIdentity(stack, identityTag);
         EmbeddedInventoryPolicy.normalize(stack, identityTag);
         ForestryGeneticsNbtPolicy.normalize(stack, identityTag);
         if (canonicalItemId != null) {
