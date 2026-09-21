@@ -47,7 +47,7 @@ public class DuplicateStateNormalizationContractTest {
         assertTrue(source.contains("electricity") && source.contains("100000"),
             "jetplate charge identity must collapse to the verified 0/100% endpoints");
         String expander = read("src/main/java/dev/gtnhjourney/minecraft/ResearchStateExpander.java");
-        String keys = read("src/main/java/dev/gtnhjourney/minecraft/ItemStackKeyFactory.java");
+        String keys = compactWhitespace(read("src/main/java/dev/gtnhjourney/minecraft/ItemStackKeyFactory.java"));
         assertTrue(expander.contains("GalaxySpaceChargeStatePolicy.expand"),
             "positive jetplate charge must prove both endpoint states");
         assertTrue(keys.contains("GalaxySpaceChargeStatePolicy.identityStack"),
@@ -56,9 +56,12 @@ public class DuplicateStateNormalizationContractTest {
 
     @Test
     public void runtimeAndPersistedIdentityApplyNewSemanticPolicies() throws Exception {
-        String runtime = read("src/main/java/dev/gtnhjourney/minecraft/ResearchTemplateNormalizer.java");
-        String identity = read("src/main/java/dev/gtnhjourney/minecraft/ResearchNbtIdentity.java");
-        String persisted = read("src/main/java/dev/gtnhjourney/minecraft/PersistedResearchEntryResolver.java");
+        String runtime = compactWhitespace(
+            read("src/main/java/dev/gtnhjourney/minecraft/ResearchTemplateNormalizer.java"));
+        String identity = compactWhitespace(
+            read("src/main/java/dev/gtnhjourney/minecraft/ResearchNbtIdentity.java"));
+        String persisted = compactWhitespace(
+            read("src/main/java/dev/gtnhjourney/minecraft/PersistedResearchEntryResolver.java"));
         assertTrue(runtime.contains("ThaumcraftJarStatePolicy.normalize"),
             "new observations must normalize Thaumcraft jar amounts");
         assertTrue(identity.contains("ThaumcraftJarStatePolicy.normalize"),
@@ -79,6 +82,10 @@ public class DuplicateStateNormalizationContractTest {
             "new invalid BOP hive metadata must canonicalize before research storage");
         assertTrue(persisted.contains("KnownMetadataAliasPolicy.canonicalMeta"),
             "persisted invalid BOP hive metadata must migrate to the canonical block state");
+    }
+
+    private static String compactWhitespace(String value) {
+        return value.replaceAll("\\s+", "");
     }
 
     private static String read(String path) throws Exception {
