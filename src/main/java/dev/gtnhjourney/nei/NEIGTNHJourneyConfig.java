@@ -10,6 +10,7 @@ import dev.gtnhjourney.GTNHJourney;
 public final class NEIGTNHJourneyConfig implements IConfigureNEI {
 
     private static final RegistrationGate REGISTRATION = new RegistrationGate();
+    private static final JourneyNEIInputHandler ITEM_INPUT = new JourneyNEIInputHandler();
 
     @Override
     public void loadConfig() {
@@ -19,7 +20,7 @@ public final class NEIGTNHJourneyConfig implements IConfigureNEI {
         API.addItemFilter(new JourneyItemFilterProvider());
         API.registerNEIGuiHandler(new JourneyCreativeGuiHandler());
         // Must run before NEI LayoutManager, which otherwise consumes item-panel clicks first.
-        GuiContainerManager.inputHandlers.addFirst(new JourneyNEIInputHandler());
+        GuiContainerManager.inputHandlers.addFirst(ITEM_INPUT);
         GuiContainerManager.addTooltipHandler(new JourneyNEITooltipHandler());
         JourneyNEIToggleWidget toggle = new JourneyNEIToggleWidget();
         GuiContainerManager.addDrawHandler(toggle);
@@ -29,6 +30,10 @@ public final class NEIGTNHJourneyConfig implements IConfigureNEI {
         FMLCommonHandler.instance()
             .bus()
             .register(new JourneyNEIRefreshTracker());
+    }
+
+    static JourneyNEIInputHandler itemInputHandler() {
+        return ITEM_INPUT;
     }
 
     @Override
