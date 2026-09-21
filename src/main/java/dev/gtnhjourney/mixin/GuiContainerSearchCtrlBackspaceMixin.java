@@ -14,7 +14,7 @@ import codechicken.nei.guihook.GuiContainerManager;
  * Lets NEI's focused search field process Ctrl+Backspace through its normal TextField path, then consumes the event
  * before Minecraft's global key dispatcher can also treat Backspace as a GUI/keybind action.
  *
- * <p>The older Journey guard intercepted at HEAD and manually called manager.keyTyped(). That avoided the historical
+ * <p>The older Journey guard intercepted at HEAD and manually re-entered NEI's key handler. That avoided the historical
  * recipe-GUI crash, but bypassed part of NEI's normal keyboard-input lifecycle and could intermittently leave the
  * search field looking focused while subsequent typing was no longer accepted until focus was cycled with the mouse.</p>
  */
