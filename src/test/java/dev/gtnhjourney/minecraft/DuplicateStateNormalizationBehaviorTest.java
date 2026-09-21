@@ -192,6 +192,7 @@ public class DuplicateStateNormalizationBehaviorTest {
     public void vanillaEquipmentEnchantmentsCollapseButCustomDisplaySurvives() {
         NBTTagCompound tag = new NBTTagCompound();
         tag.setTag("ench", new NBTTagList());
+        tag.setInteger("RepairCost", 7);
         NBTTagCompound display = new NBTTagCompound();
         display.setString("Name", "Tempered Blade");
         tag.setTag("display", display);
@@ -199,6 +200,7 @@ public class DuplicateStateNormalizationBehaviorTest {
         VanillaEquipmentStatePolicy.normalize("minecraft:iron_sword", tag);
 
         assertFalse(tag.hasKey("ench"));
+        assertFalse(tag.hasKey("RepairCost"));
         assertEquals("Tempered Blade", tag.getCompoundTag("display").getString("Name"));
     }
 
