@@ -210,6 +210,37 @@ public class DuplicateStateNormalizationBehaviorTest {
     }
 
     @Test
+    public void enhancedLootBagVisualEnchantStateCollapses() {
+        NBTTagCompound tag = new NBTTagCompound();
+        tag.setTag("ench", new NBTTagList());
+        tag.setInteger("RepairCost", 2);
+
+        KnownTransientItemStatePolicy.normalize("enhancedlootbags:lootbag", 4, tag);
+
+        assertTrue(tag.func_150296_c().isEmpty());
+    }
+
+    @Test
+    public void defaultRailcraftTankColorDoesNotCreateDuplicate() {
+        NBTTagCompound tag = new NBTTagCompound();
+        tag.setInteger("color", 15);
+
+        KnownTransientItemStatePolicy.normalize("Railcraft:machine.zeta", 9, tag);
+
+        assertTrue(tag.func_150296_c().isEmpty());
+    }
+
+    @Test
+    public void disabledCleansingTalismanStateCollapsesToBase() {
+        NBTTagCompound tag = new NBTTagCompound();
+        tag.setLong("enabled", 0L);
+
+        KnownTransientItemStatePolicy.normalize("ThaumicTinkerer:cleansingTalisman", 0, tag);
+
+        assertTrue(tag.func_150296_c().isEmpty());
+    }
+
+    @Test
     public void thaumcraftJarAmountBecomesFullWithoutLosingAspectOrFilter() {
         NBTTagCompound tag = new NBTTagCompound();
         tag.setString("AspectFilter", "terra");
