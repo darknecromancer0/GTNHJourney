@@ -95,6 +95,121 @@ public class DuplicateStateNormalizationBehaviorTest {
     }
 
     @Test
+    public void portableScannerDropsCachedScanAndPollutionLinesButKeepsCharge() {
+        NBTTagCompound tag = new NBTTagCompound();
+        tag.setLong("GT.ItemCharge", 400000L);
+        tag.setInteger("dataLinesCount", 6);
+        tag.setTag("scanLine0", new NBTTagCompound());
+        tag.setTag("scanLine5", new NBTTagCompound());
+
+        KnownTransientItemStatePolicy.normalize("gregtech:gt.metaitem.01", 32762, tag);
+
+        assertEquals(400000L, tag.getLong("GT.ItemCharge"));
+        assertFalse(tag.hasKey("dataLinesCount"));
+        assertFalse(tag.hasKey("scanLine0"));
+        assertFalse(tag.hasKey("scanLine5"));
+    }
+
+    @Test
+    public void itemDislocatorProfilesCollapseToBase() {
+        NBTTagCompound tag = new NBTTagCompound();
+        NBTTagList profiles = new NBTTagList();
+        NBTTagCompound enabled = new NBTTagCompound();
+        enabled.setBoolean("Enabled", true);
+        profiles.appendTag(enabled);
+        tag.setTag("ConfigProfiles", profiles);
+
+        KnownTransientItemStatePolicy.normalize("DraconicEvolution:magnet", 0, tag);
+
+        assertTrue(tag.func_150296_c().isEmpty());
+    }
+
+    @Test
+    public void taintedVillagerSoulVialDropsQuotedEmptyNameAndPerEntityRuntime() {
+        NBTTagCompound tag = new NBTTagCompound();
+        tag.setString("id", "Thaumcraft.TaintedVillager");
+        tag.setString("CustomName", "\"\"");
+        tag.setLong("UUIDMost", 11L);
+        tag.setLong("UUIDLeast", 12L);
+        tag.setDouble("Health", 26.0D);
+        tag.setTag("Attributes", new NBTTagList());
+        tag.setTag("CreatureInfusion", new NBTTagCompound());
+        NBTTagCompound display = new NBTTagCompound();
+        display.setString("Name", "\"\"");
+        tag.setTag("display", display);
+
+        KnownTransientItemStatePolicy.normalize("EnderIO:itemSoulVessel", 0, tag);
+
+        assertEquals("Thaumcraft.TaintedVillager", tag.getString("id"));
+        assertEquals(1, tag.func_150296_c().size());
+        assertFalse(tag.hasKey("CustomName"));
+        assertFalse(tag.hasKey("display"));
+    }
+
+    @Test
+    public void gtToolboxRuntimeAndContentsCollapseToEmptyToolbox() {
+        NBTTagCompound tag = new NBTTagCompound();
+        NBTTagCompound contents = new NBTTagCompound();
+        contents.setInteger("Size", 14);
+        tag.setTag("gt5u.toolbox:Contents", contents);
+        tag.setBoolean("gt5u.toolbox:ToolboxOpen", true);
+
+        KnownTransientItemStatePolicy.normalize("gregtech:gt.Item_Toolbox", 0, tag);
+
+        assertTrue(tag.func_150296_c().isEmpty());
+    }
+
+    @Test
+    public void detravScannerModeIsRuntimeButCoreToolStatsSurvive() {
+        NBTTagCompound tag = new NBTTagCompound();
+        NBTTagCompound stats = new NBTTagCompound();
+        stats.setLong("DetravData", 3L);
+        stats.setLong("MaxCharge", 102400000L);
+        tag.setTag("GT.ToolStats", stats);
+
+        KnownTransientItemStatePolicy.normalize("gregtech:gt.detrav.metatool.01", 100, tag);
+
+        assertFalse(tag.getCompoundTag("GT.ToolStats").hasKey("DetravData"));
+        assertEquals(102400000L, tag.getCompoundTag("GT.ToolStats").getLong("MaxCharge"));
+    }
+
+    @Test
+    public void enderIoMachineEnergyDoesNotCreateResearchVariants() {
+        NBTTagCompound charger = new NBTTagCompound();
+        charger.setInteger("storedEnergyRF", 200000);
+        KnownTransientItemStatePolicy.normalize("EnderIO:blockWirelessCharger", 0, charger);
+        assertTrue(charger.func_150296_c().isEmpty());
+
+        NBTTagCompound capBank = new NBTTagCompound();
+        capBank.setInteger("storedEnergyRF", 25000000);
+        capBank.setString("type", "VIBRANT");
+        KnownTransientItemStatePolicy.normalize("EnderIO:blockCapBank", 3, capBank);
+        assertFalse(capBank.hasKey("storedEnergyRF"));
+        assertEquals("VIBRANT", capBank.getString("type"));
+    }
+
+    @Test
+    public void vanillaEquipmentEnchantmentsCollapseButCustomDisplaySurvives() {
+        NBTTagCompound tag = new NBTTagCompound();
+        tag.setTag("ench", new NBTTagList());
+        NBTTagCompound display = new NBTTagCompound();
+        display.setString("Name", "Tempered Blade");
+        tag.setTag("display", display);
+
+        VanillaEquipmentStatePolicy.normalize("minecraft:iron_sword", tag);
+
+        assertFalse(tag.hasKey("ench"));
+        assertEquals("Tempered Blade", tag.getCompoundTag("display").getString("Name"));
+    }
+
+    @Test
+    public void invalidBopHiveMetaCanonicalizesToHoneycomb() {
+        assertEquals(0, KnownMetadataAliasPolicy.canonicalMeta("BiomesOPlenty:hive", 9));
+        assertEquals(2, KnownMetadataAliasPolicy.canonicalMeta("BiomesOPlenty:hive", 2));
+        assertEquals(9, KnownMetadataAliasPolicy.canonicalMeta("minecraft:wool", 9));
+    }
+
+    @Test
     public void thaumcraftJarAmountBecomesFullWithoutLosingAspectOrFilter() {
         NBTTagCompound tag = new NBTTagCompound();
         tag.setString("AspectFilter", "terra");
