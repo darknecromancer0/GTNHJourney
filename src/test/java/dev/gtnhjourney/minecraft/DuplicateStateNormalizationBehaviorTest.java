@@ -125,15 +125,42 @@ public class DuplicateStateNormalizationBehaviorTest {
     }
 
     @Test
-    public void taintedVillagerSoulVialDropsQuotedEmptyNameAndPerEntityRuntime() {
+    public void soulVialDropsOnlyInstanceRuntimeAndPreservesUniqueMobPayload() {
         NBTTagCompound tag = new NBTTagCompound();
         tag.setString("id", "Thaumcraft.TaintedVillager");
         tag.setString("CustomName", "\"\"");
         tag.setLong("UUIDMost", 11L);
         tag.setLong("UUIDLeast", 12L);
         tag.setDouble("Health", 26.0D);
-        tag.setTag("Attributes", new NBTTagList());
-        tag.setTag("CreatureInfusion", new NBTTagCompound());
+        tag.setDouble("HealF", 26.0D);
+        tag.setTag("Pos", new NBTTagList());
+        tag.setTag("Rotation", new NBTTagList());
+
+        NBTTagList attributes = new NBTTagList();
+        NBTTagCompound attribute = new NBTTagCompound();
+        attribute.setString("Name", "tc.mobmod");
+        attribute.setDouble("Base", -2.0D);
+        attributes.appendTag(attribute);
+        tag.setTag("Attributes", attributes);
+
+        NBTTagCompound infusion = new NBTTagCompound();
+        infusion.setInteger("tumorWarp", 3);
+        tag.setTag("CreatureInfusion", infusion);
+
+        NBTTagCompound forgeData = new NBTTagCompound();
+        forgeData.setString("InfernalMobsMod", "Poisonous Blastoff");
+        tag.setTag("ForgeData", forgeData);
+
+        NBTTagList equipment = new NBTTagList();
+        NBTTagCompound held = new NBTTagCompound();
+        held.setShort("id", (short) 261);
+        equipment.appendTag(held);
+        tag.setTag("Equipment", equipment);
+
+        NBTTagCompound villagerInfo = new NBTTagCompound();
+        villagerInfo.setInteger("Profession", 3);
+        tag.setTag("VillagerInfo", villagerInfo);
+
         NBTTagCompound display = new NBTTagCompound();
         display.setString("Name", "\"\"");
         tag.setTag("display", display);
@@ -141,9 +168,19 @@ public class DuplicateStateNormalizationBehaviorTest {
         KnownTransientItemStatePolicy.normalize("EnderIO:itemSoulVessel", 0, tag);
 
         assertEquals("Thaumcraft.TaintedVillager", tag.getString("id"));
-        assertEquals(1, tag.func_150296_c().size());
+        assertFalse(tag.hasKey("UUIDMost"));
+        assertFalse(tag.hasKey("UUIDLeast"));
+        assertFalse(tag.hasKey("Health"));
+        assertFalse(tag.hasKey("HealF"));
+        assertFalse(tag.hasKey("Pos"));
+        assertFalse(tag.hasKey("Rotation"));
         assertFalse(tag.hasKey("CustomName"));
         assertFalse(tag.hasKey("display"));
+        assertTrue(tag.hasKey("Attributes", 9));
+        assertTrue(tag.hasKey("CreatureInfusion", 10));
+        assertTrue(tag.hasKey("ForgeData", 10));
+        assertTrue(tag.hasKey("Equipment", 9));
+        assertTrue(tag.hasKey("VillagerInfo", 10));
     }
 
     @Test
