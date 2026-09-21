@@ -21,6 +21,7 @@ public final class VanillaEquipmentStatePolicy {
     static void normalize(String itemId, NBTTagCompound tag) {
         if (tag == null || !isVanillaEquipment(itemId)) return;
         tag.removeTag("ench");
+        tag.removeTag("RepairCost");
     }
 
     static boolean isVanillaEquipment(String itemId) {
