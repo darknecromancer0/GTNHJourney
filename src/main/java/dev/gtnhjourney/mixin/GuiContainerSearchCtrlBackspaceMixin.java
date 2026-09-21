@@ -11,26 +11,32 @@ import codechicken.nei.NEIClientUtils;
 import codechicken.nei.guihook.GuiContainerManager;
 
 /**
- * NEI normally dispatches global Minecraft keybinds after forwarding a key to its focused search field. For
- * Ctrl+Backspace that can both delete a word and trigger an unrelated GUI/keybind action. Consume this one chord at the
- * NEI manager boundary after giving it to the focused search field, so the same event cannot leak into
- * Minecraft.dispatchKeypresses().
+ * Lets NEI's focused search field process Ctrl+Backspace through its normal TextField path, then consumes the event
+ * before Minecraft's global key dispatcher can also treat Backspace as a GUI/keybind action.
+ *
+ * <p>The older Journey guard intercepted at HEAD and manually re-entered NEI's key handler. That avoided the historical
+ * recipe-GUI crash, but bypassed part of NEI's normal keyboard-input lifecycle and could intermittently leave the
+ * search field looking focused while subsequent typing was no longer accepted until focus was cycled with the mouse.</p>
  */
 @Mixin(value = GuiContainerManager.class, remap = false)
 public abstract class GuiContainerSearchCtrlBackspaceMixin {
 
-    @Inject(method = "handleKeyboardInput", at = @At("HEAD"), cancellable = true, remap = false)
-    private void gtnhjourney$consumeSearchCtrlBackspace(CallbackInfo ci) {
+    @Inject(
+        method = "handleKeyboardInput",
+        at = @At(
+            value = "INVOKE",
+            target = "Lcodechicken/nei/guihook/GuiContainerManager;keyTyped(CI)V",
+            shift = At.Shift.AFTER,
+            remap = false),
+        cancellable = true,
+        remap = false)
+    private void gtnhjourney$consumeSearchCtrlBackspaceAfterNativeInput(CallbackInfo ci) {
         if (Keyboard.getEventKey() != Keyboard.KEY_BACK || !NEIClientUtils.controlKey()) return;
         if (LayoutManager.searchField == null || !LayoutManager.searchField.isVisible()
             || !LayoutManager.searchField.focused()) return;
 
-        int key = Keyboard.getEventKey();
-        char character = Keyboard.getEventCharacter();
-        if (Keyboard.getEventKeyState() || (key == 0 && Character.isDefined(character))) {
-            GuiContainerManager manager = (GuiContainerManager) (Object) this;
-            manager.keyTyped(character, key);
-        }
+        // NEI has already performed textboxKeyTyped() and onTextChange() at this point. Only suppress the later
+        // Minecraft.dispatchKeypresses() equivalent so focus/repeat ownership stays entirely native.
         ci.cancel();
     }
 }

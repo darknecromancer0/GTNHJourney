@@ -20,6 +20,7 @@ public final class ResearchTemplateNormalizer {
         BotaniaTransientStatePolicy.normalize(stack, out);
         DraconicTransientStatePolicy.normalize(stack, out);
         WearableTransientStatePolicy.normalize(stack, out);
+        VanillaEquipmentStatePolicy.normalize(stack, out);
         TransientToolFluidPolicy.normalize(stack, out);
         KnownTransientItemStatePolicy.normalize(stack, out);
         UnstableIngotStatePolicy.normalizeIdentity(stack, out);

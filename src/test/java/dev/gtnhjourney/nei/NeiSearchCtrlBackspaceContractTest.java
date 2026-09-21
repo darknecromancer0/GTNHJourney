@@ -12,16 +12,21 @@ import org.junit.jupiter.api.Test;
 class NeiSearchCtrlBackspaceContractTest {
 
     @Test
-    void focusedNeiSearchConsumesCtrlBackspaceBeforeGlobalKeyDispatch() throws IOException {
-        String mixin = read("src/main/java/dev/gtnhjourney/mixin/GuiContainerSearchCtrlBackspaceMixin.java");
+    void focusedNeiSearchUsesNativeTextInputThenConsumesCtrlBackspaceBeforeGlobalDispatch() throws IOException {
+        String mixin = compactWhitespace(
+            read("src/main/java/dev/gtnhjourney/mixin/GuiContainerSearchCtrlBackspaceMixin.java"));
         String config = read("src/main/resources/mixins.gtnhjourney.json");
 
-        assertTrue(mixin.contains("GuiContainerManager"));
-        assertTrue(mixin.contains("handleKeyboardInput"));
+        assertTrue(mixin.contains("@Mixin(value=GuiContainerManager.class,remap=false)"));
+        assertTrue(mixin.contains("method=\"handleKeyboardInput\""));
         assertTrue(mixin.contains("Keyboard.KEY_BACK"));
         assertTrue(mixin.contains("LayoutManager.searchField.focused()"));
-        assertTrue(mixin.contains("manager.keyTyped"));
-        assertTrue(mixin.contains("ci.cancel()"));
+        assertTrue(
+            mixin.contains(
+                "target=\"Lcodechicken/nei/guihook/GuiContainerManager;keyTyped(CI)V\",shift=At.Shift.AFTER,remap=false"),
+            "Journey must let NEI perform its native textboxKeyTyped/onTextChange lifecycle before consuming the chord");
+        assertTrue(mixin.contains("ci.cancel();"), "global Minecraft key dispatch must still be suppressed");
+        assertTrue(!mixin.contains("manager.keyTyped("), "Journey must not manually re-enter NEI keyTyped from HEAD");
         assertTrue(config.contains("GuiContainerSearchCtrlBackspaceMixin"));
     }
 

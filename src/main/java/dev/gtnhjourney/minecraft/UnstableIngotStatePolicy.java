@@ -33,6 +33,12 @@ public final class UnstableIngotStatePolicy {
         if (LEGACY_UNSTABLE_INGOT.equals(itemId)) {
             tag.removeTag(LEGACY_TIME);
             tag.removeTag(LEGACY_DIMENSION);
+            // Live 1.1.39 data still contains both BASE and {crafting:true} forms for the same ordinary unstable ingot.
+            // Preserve legacy creative safety as a distinct state, but canonicalize every ordinary meta-0 ingot to the
+            // real crafted/dangerous semantic form so retrieval cannot manufacture a permanent safe unstable ingot.
+            if (!tag.hasKey(LEGACY_CREATIVE, 1) || !tag.getBoolean(LEGACY_CREATIVE)) {
+                tag.setBoolean("crafting", true);
+            }
             return;
         }
 

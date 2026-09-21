@@ -19,6 +19,10 @@ public final class KnownTransientItemStatePolicy {
     private static final int OVEN_GLOVE_FULL_DURABILITY = 1000;
     private static final String GT_META_ITEM_01 = "gregtech:gt.metaitem.01";
     private static final String GT_BLOCK_MACHINES = "gregtech:gt.blockmachines";
+    private static final String GT_TOOLBOX = "gregtech:gt.Item_Toolbox";
+    private static final String GT_DETRAV_TOOL = "gregtech:gt.detrav.metatool.01";
+    private static final int GT_PORTABLE_SCANNER_META = 32762;
+    private static final int GT_DETRAV_SCANNER_META = 100;
     private static final int GT_UNIVERSAL_FLUID_CELL_META = 32405;
     private static final int GT_UNIVERSAL_FLUID_CELL_CAPACITY = 8000;
     private static final String RAILCRAFT_MACHINE_BETA = "Railcraft:machine.beta";
@@ -30,6 +34,15 @@ public final class KnownTransientItemStatePolicy {
     private static final String GRAVI_ADV_JETPACK = "GraviSuite:advJetpack";
     private static final String GRAVI_ADV_NANO_CHEST = "GraviSuite:advNanoChestPlate";
     private static final String BETTER_P2P_ADVANCED_MEMORY_CARD = "betterp2p:advanced_memory_card";
+    private static final String DRACONIC_ITEM_DISLOCATOR = "DraconicEvolution:magnet";
+    private static final String ENDERIO_SOUL_VIAL = "EnderIO:itemSoulVessel";
+    private static final String ENDERIO_WIRELESS_CHARGER = "EnderIO:blockWirelessCharger";
+    private static final String ENDERIO_CAP_BANK = "EnderIO:blockCapBank";
+    private static final String ENDERIO_EXPERIENCE_OBELISK = "EnderIO:blockExperienceObelisk";
+    private static final String ENDERIO_STIRLING_GENERATOR = "EnderIO:blockStirlingGenerator";
+    private static final String ENHANCED_LOOT_BAG = "enhancedlootbags:lootbag";
+    private static final String CLEANSING_TALISMAN = "ThaumicTinkerer:cleansingTalisman";
+    private static final String MATTER_MANIPULATOR_PREFIX = "matter-manipulator:itemMatterManipulator";
     private static final String VANILLA_WATER = "minecraft:water";
 
     private KnownTransientItemStatePolicy() {}
@@ -56,6 +69,9 @@ public final class KnownTransientItemStatePolicy {
         if (JABBA_MOVER.equals(registryId)) tag.removeTag("Container");
         if (OVEN_GLOVE.equals(registryId) || OVEN_GLOVE_ALT.equals(registryId)) normalizeOvenGlove(tag);
         if (GT_BLOCK_MACHINES.equals(registryId)) tag.removeTag("gt.covers");
+        if (GT_TOOLBOX.equals(registryId)) normalizeGtToolbox(tag);
+        if (GT_DETRAV_TOOL.equals(registryId) && meta == GT_DETRAV_SCANNER_META) normalizeDetravScanner(tag);
+        if (GT_META_ITEM_01.equals(registryId) && meta == GT_PORTABLE_SCANNER_META) normalizePortableScanner(tag);
         if (GT_META_ITEM_01.equals(registryId) && meta == GT_UNIVERSAL_FLUID_CELL_META) {
             normalizeUniversalFluidCell(tag);
         }
@@ -67,6 +83,16 @@ public final class KnownTransientItemStatePolicy {
             normalizeGraviFlightRuntime(tag);
         }
         if (BETTER_P2P_ADVANCED_MEMORY_CARD.equals(registryId)) normalizeBetterP2pAdvancedMemoryCard(tag);
+        if (DRACONIC_ITEM_DISLOCATOR.equals(registryId)) tag.removeTag("ConfigProfiles");
+        if (ENDERIO_SOUL_VIAL.equals(registryId)) normalizeSoulVial(tag);
+        if (ENDERIO_WIRELESS_CHARGER.equals(registryId) || ENDERIO_CAP_BANK.equals(registryId)) {
+            tag.removeTag("storedEnergyRF");
+        }
+        if (ENDERIO_EXPERIENCE_OBELISK.equals(registryId)) normalizeExperienceObelisk(tag);
+        if (ENDERIO_STIRLING_GENERATOR.equals(registryId)) normalizeStirlingGenerator(tag);
+        if (ENHANCED_LOOT_BAG.equals(registryId)) remove(tag, "ench", "RepairCost");
+        if (CLEANSING_TALISMAN.equals(registryId)) tag.removeTag("enabled");
+        if (registryId.startsWith(MATTER_MANIPULATOR_PREFIX)) normalizeMatterManipulator(tag);
         if (VANILLA_WATER.equals(registryId)) normalizeGeneratedWaterAmountName(tag);
     }
 
@@ -86,6 +112,28 @@ public final class KnownTransientItemStatePolicy {
         }
     }
 
+    private static void normalizeGtToolbox(NBTTagCompound tag) {
+        // Contents are instance inventory, not toolbox identity. Replaying them from Journey would duplicate tools.
+        tag.removeTag("gt5u.toolbox:Contents");
+        tag.removeTag("gt5u.toolbox:ToolboxOpen");
+    }
+
+    private static void normalizeDetravScanner(NBTTagCompound tag) {
+        NBTBase raw = tag.getTag("GT.ToolStats");
+        if (!(raw instanceof NBTTagCompound)) return;
+        NBTTagCompound stats = (NBTTagCompound) raw;
+        stats.removeTag("DetravData");
+    }
+
+    private static void normalizePortableScanner(NBTTagCompound tag) {
+        tag.removeTag("dataLinesCount");
+        Set<String> keys = tag.func_150296_c();
+        if (keys == null) return;
+        for (String key : new ArrayList<String>(keys)) {
+            if (isNumberedKey(key, "scanLine")) tag.removeTag(key);
+        }
+    }
+
     private static void normalizeUniversalFluidCell(NBTTagCompound tag) {
         NBTBase raw = tag.getTag("GT.FluidContent");
         if (!(raw instanceof NBTTagCompound)) return;
@@ -99,7 +147,9 @@ public final class KnownTransientItemStatePolicy {
         if (RAILCRAFT_MACHINE_BETA.equals(registryId)) {
             return meta == 0 || meta == 1 || meta == 2 || meta == 13 || meta == 14 || meta == 15;
         }
-        if (RAILCRAFT_MACHINE_ZETA.equals(registryId)) return meta == 3 || meta == 4 || meta == 5;
+        if (RAILCRAFT_MACHINE_ZETA.equals(registryId)) {
+            return meta == 3 || meta == 4 || meta == 5 || meta == 9 || meta == 10 || meta == 11;
+        }
         return false;
     }
 
@@ -126,13 +176,13 @@ public final class KnownTransientItemStatePolicy {
         Set<String> keys = tag.func_150296_c();
         if (keys == null) return;
         for (String key : new ArrayList<String>(keys)) {
-            if (isClipboardPageKey(key)) tag.removeTag(key);
+            if (isNumberedKey(key, "page")) tag.removeTag(key);
         }
     }
 
-    private static boolean isClipboardPageKey(String key) {
-        if (key == null || !key.startsWith("page") || key.length() <= 4) return false;
-        for (int i = 4; i < key.length(); i++) {
+    private static boolean isNumberedKey(String key, String prefix) {
+        if (key == null || prefix == null || !key.startsWith(prefix) || key.length() <= prefix.length()) return false;
+        for (int i = prefix.length(); i < key.length(); i++) {
             char c = key.charAt(i);
             if (c < '0' || c > '9') return false;
         }
@@ -145,6 +195,67 @@ public final class KnownTransientItemStatePolicy {
 
     private static void normalizeBetterP2pAdvancedMemoryCard(NBTTagCompound tag) {
         remove(tag, "frequency", "gui", "mode", "selectedIndex");
+    }
+
+    private static void normalizeSoulVial(NBTTagCompound tag) {
+        // Soul Vials can carry real mob identity/state from many mods: equipment, Thaumcraft infusions, SpecialMobs
+        // data, villager profession data, Infernal modifiers, and other ForgeData. Never whitelist by entity id here.
+        // Only discard fields that describe this captured entity instance at a moment in the world.
+        normalizeCapturedEntityRuntime(tag);
+        normalizeBogusEntityName(tag);
+    }
+
+    private static void normalizeBogusEntityName(NBTTagCompound tag) {
+        if (tag.hasKey("CustomName", 8) && isBlankEntityName(tag.getString("CustomName"))) {
+            tag.removeTag("CustomName");
+        }
+        if (!tag.hasKey("display", 10)) return;
+        NBTTagCompound display = tag.getCompoundTag("display");
+        if (display.hasKey("Name", 8) && isBlankEntityName(display.getString("Name"))) display.removeTag("Name");
+        if (display.func_150296_c().isEmpty()) tag.removeTag("display");
+    }
+
+    private static boolean isBlankEntityName(String value) {
+        if (value == null) return true;
+        String trimmed = value.trim();
+        return trimmed.isEmpty() || "\"\"".equals(trimmed);
+    }
+
+    private static void normalizeExperienceObelisk(NBTTagCompound tag) {
+        remove(tag,
+            "Items",
+            "eio.abstractMachine",
+            "experience",
+            "experienceLevel",
+            "experienceTotal",
+            "redstoneControlMode");
+        removeAutoConfiguredDisplay(tag, "Experience Obelisk (Configured)");
+    }
+
+    private static void normalizeStirlingGenerator(NBTTagCompound tag) {
+        remove(tag, "Items", "eio.abstractMachine", "redstoneControlMode", "storedEnergyRF");
+        if (tag.hasKey("capacitorType", 99) && tag.getInteger("capacitorType") == 0) tag.removeTag("capacitorType");
+        removeAutoConfiguredDisplay(tag, "Stirling Generator (Configured)");
+    }
+
+    private static void removeAutoConfiguredDisplay(NBTTagCompound tag, String expectedName) {
+        if (!tag.hasKey("display", 10)) return;
+        NBTTagCompound display = tag.getCompoundTag("display");
+        if (display.func_150296_c().size() != 1 || !display.hasKey("Name", 8)) return;
+        if (!expectedName.equals(display.getString("Name"))) return;
+        tag.removeTag("display");
+    }
+
+    private static void normalizeMatterManipulator(NBTTagCompound tag) {
+        // The manipulator stores its current selection, modes, AE/uplink bindings and upgrade/config serialization
+        // alongside charge. Those are mutable work-session state and would otherwise create a new Journey entry every
+        // time the player selects another region. Journey intentionally exposes only the clean empty/full endpoints.
+        Set<String> keys = tag.func_150296_c();
+        if (keys == null) return;
+        for (String key : new ArrayList<String>(keys)) {
+            if (!"charge".equals(key)) tag.removeTag(key);
+        }
+        if (tag.hasKey("charge", 99) && tag.getDouble("charge") <= 0.000001D) tag.removeTag("charge");
     }
 
     private static void normalizeGeneratedWaterAmountName(NBTTagCompound tag) {

@@ -51,9 +51,11 @@ public final class PersistedResearchEntryResolver {
         int migratedMeta = GalacticraftOxygenTankStatePolicy.migratePersistedMeta(aliasedItemId, meta);
         if (GalacticraftCanisterStatePolicy.isLegacyAmbiguousMeta(aliasedItemId, migratedMeta)) return null;
         String canonicalItemId = GalacticraftCanisterStatePolicy.canonicalItemId(aliasedItemId, migratedMeta);
-        int canonicalMeta = GalacticraftCanisterStatePolicy.canonicalMeta(
+        int canonicalMeta = KnownMetadataAliasPolicy.canonicalMeta(
             canonicalItemId,
-            VanillaMetadataPolicy.canonicalMeta(canonicalItemId, migratedMeta));
+            GalacticraftCanisterStatePolicy.canonicalMeta(
+                canonicalItemId,
+                VanillaMetadataPolicy.canonicalMeta(canonicalItemId, migratedMeta)));
         String persistedCanonical = persistedCanonicalNbt == null ? "" : persistedCanonicalNbt;
         if (persistedTemplate == null && !persistedCanonical.isEmpty()) return null;
 
@@ -130,6 +132,7 @@ public final class PersistedResearchEntryResolver {
         try {
             BotaniaTransientStatePolicy.normalize(itemId, out);
             WearableTransientStatePolicy.normalize(itemId, out);
+            VanillaEquipmentStatePolicy.normalize(itemId, out);
             ThaumcraftWandStatePolicy.normalizePersisted(itemId, meta, out);
             ThaumcraftJarStatePolicy.normalize(itemId, out);
             KnownTransientItemStatePolicy.normalize(itemId, meta, out);

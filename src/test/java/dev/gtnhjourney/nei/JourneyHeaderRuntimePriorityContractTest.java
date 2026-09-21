@@ -15,12 +15,19 @@ class JourneyHeaderRuntimePriorityContractTest {
     void headerReassertsDrawLastInputFirstAndTooltipLastAfterNeiFinishesRegisteringHandlers() throws IOException {
         String widget = compact(read("src/main/java/dev/gtnhjourney/nei/JourneyNEIToggleWidget.java"));
         String priority = compact(read("src/main/java/dev/gtnhjourney/nei/JourneyNeiHandlerPriority.java"));
+        String config = compact(read("src/main/java/dev/gtnhjourney/nei/NEIGTNHJourneyConfig.java"));
 
-        assertTrue(widget.contains("JourneyNeiHandlerPriority.ensure(gui,this)"));
+        assertTrue(widget.contains("JourneyNeiHandlerPriority.ensure(gui,this,NEIGTNHJourneyConfig.itemInputHandler())"));
+        assertTrue(config.contains("privatestaticfinalJourneyNEIInputHandlerITEM_INPUT=newJourneyNEIInputHandler()"));
+        assertTrue(config.contains("GuiContainerManager.inputHandlers.addFirst(ITEM_INPUT)"));
         assertTrue(priority.contains("GuiContainerManager.drawHandlers.remove(widget)"));
         assertTrue(priority.contains("GuiContainerManager.drawHandlers.addLast(widget)"));
         assertTrue(priority.contains("GuiContainerManager.inputHandlers.remove(widget)"));
+        assertTrue(priority.contains("GuiContainerManager.inputHandlers.remove(itemInput)"));
+        assertTrue(priority.contains("GuiContainerManager.inputHandlers.addFirst(itemInput)"));
         assertTrue(priority.contains("GuiContainerManager.inputHandlers.addFirst(widget)"));
+        assertTrue(priority.contains("GuiContainerManager.inputHandlers.get(0)!=widget"));
+        assertTrue(priority.contains("GuiContainerManager.inputHandlers.get(1)!=itemInput"));
         assertTrue(priority.contains("ensureTooltipLast(GuiContainerManager.tooltipHandlers,widget)"));
         assertTrue(priority.contains("GuiContainerManager.getManager(gui)"));
         assertTrue(priority.contains("manager.instanceTooltipHandlers"));

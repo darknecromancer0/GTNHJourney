@@ -30,7 +30,22 @@ public class UnstableIngotStatePolicyTest {
         assertFalse(tag.hasKey("time"));
         assertFalse(tag.hasKey("dimension"));
         assertTrue(tag.hasKey("creative"));
+        assertTrue(tag.getBoolean("crafting"));
         assertEquals("keep", tag.getString("marker"));
+    }
+
+    @Test
+    public void legacyBaseAndCraftingFormsCanonicalizeToSameDangerousState() {
+        NBTTagCompound base = new NBTTagCompound();
+        NBTTagCompound crafted = new NBTTagCompound();
+        crafted.setBoolean("crafting", true);
+
+        UnstableIngotStatePolicy.normalizeIdentity("ExtraUtilities:unstableingot", 0, base);
+        UnstableIngotStatePolicy.normalizeIdentity("ExtraUtilities:unstableingot", 0, crafted);
+
+        assertTrue(base.getBoolean("crafting"));
+        assertTrue(crafted.getBoolean("crafting"));
+        assertEquals(NbtCanonicalizer.canonicalize(base), NbtCanonicalizer.canonicalize(crafted));
     }
 
     @Test

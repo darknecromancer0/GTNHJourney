@@ -21,6 +21,7 @@ public final class ResearchNbtIdentity {
         BotaniaTransientStatePolicy.normalize(stack, identityTag);
         DraconicTransientStatePolicy.normalize(stack, identityTag);
         WearableTransientStatePolicy.normalize(stack, identityTag);
+        VanillaEquipmentStatePolicy.normalize(stack, identityTag);
         ThaumcraftWandStatePolicy.normalize(stack, identityTag);
         TransientToolFluidPolicy.normalize(stack, identityTag);
         KnownTransientItemStatePolicy.normalize(stack, identityTag);
