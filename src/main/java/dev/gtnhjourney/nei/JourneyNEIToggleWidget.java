@@ -175,7 +175,7 @@ public final class JourneyNEIToggleWidget
 
     @Override
     public void onPreDraw(GuiContainer gui) {
-        JourneyNeiHandlerPriority.ensure(gui, this);
+        JourneyNeiHandlerPriority.ensure(gui, this, NEIGTNHJourneyConfig.itemInputHandler());
         visible = ItemPanels.itemPanel.pagePrev != null;
         rightControlsVisible = false;
         scanVisible = false;
