@@ -214,7 +214,13 @@ public final class KnownTransientItemStatePolicy {
         if (display.func_150296_c().isEmpty()) tag.removeTag("display");
     }
 
-    private static boolean isBlankEntityName(String value) {\n        if (value == null) return true;\n        String trimmed = value.trim();\n        return trimmed.isEmpty() || "\\\"\\\"".equals(trimmed);\n    }\n\n    private static void normalizeGeneratedWaterAmountName(NBTTagCompound tag) {
+    private static boolean isBlankEntityName(String value) {
+        if (value == null) return true;
+        String trimmed = value.trim();
+        return trimmed.isEmpty() || "\"\"".equals(trimmed);
+    }
+
+    private static void normalizeGeneratedWaterAmountName(NBTTagCompound tag) {
         if (tag.func_150296_c().size() != 1 || !tag.hasKey("display", 10)) return;
         NBTTagCompound display = tag.getCompoundTag("display");
         if (display.func_150296_c().size() != 1 || !display.hasKey("Name", 8)) return;
