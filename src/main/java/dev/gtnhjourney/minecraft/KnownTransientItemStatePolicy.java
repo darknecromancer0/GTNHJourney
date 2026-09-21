@@ -84,6 +84,8 @@ public final class KnownTransientItemStatePolicy {
         if (ENDERIO_WIRELESS_CHARGER.equals(registryId) || ENDERIO_CAP_BANK.equals(registryId)) {
             tag.removeTag("storedEnergyRF");
         }
+        if (ENHANCED_LOOT_BAG.equals(registryId)) remove(tag, "ench", "RepairCost");
+        if (CLEANSING_TALISMAN.equals(registryId)) tag.removeTag("enabled");
         if (VANILLA_WATER.equals(registryId)) normalizeGeneratedWaterAmountName(tag);
     }
 
@@ -138,7 +140,7 @@ public final class KnownTransientItemStatePolicy {
         if (RAILCRAFT_MACHINE_BETA.equals(registryId)) {
             return meta == 0 || meta == 1 || meta == 2 || meta == 13 || meta == 14 || meta == 15;
         }
-        if (RAILCRAFT_MACHINE_ZETA.equals(registryId)) return meta == 3 || meta == 4 || meta == 5;
+        if (RAILCRAFT_MACHINE_ZETA.equals(registryId)) {\n            return meta == 3 || meta == 4 || meta == 5 || meta == 9 || meta == 10 || meta == 11;\n        }
         return false;
     }
 
