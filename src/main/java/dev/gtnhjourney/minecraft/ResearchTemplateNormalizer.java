@@ -22,6 +22,7 @@ public final class ResearchTemplateNormalizer {
         WearableTransientStatePolicy.normalize(stack, out);
         TransientToolFluidPolicy.normalize(stack, out);
         KnownTransientItemStatePolicy.normalize(stack, out);
+        UnstableIngotStatePolicy.normalizeIdentity(stack, out);
         EmbeddedInventoryPolicy.normalize(stack, out);
         GalacticraftRocketFuelStatePolicy.normalize(stack, out);
         if (ResearchCompatibilityOptions.resetGtToolTemplateState() && GtToolStatePolicy.isVerifiedTool(stack)) {

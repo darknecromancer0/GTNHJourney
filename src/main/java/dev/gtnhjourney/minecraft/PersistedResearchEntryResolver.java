@@ -133,6 +133,7 @@ public final class PersistedResearchEntryResolver {
             ThaumcraftWandStatePolicy.normalizePersisted(itemId, meta, out);
             ThaumcraftJarStatePolicy.normalize(itemId, out);
             KnownTransientItemStatePolicy.normalize(itemId, meta, out);
+            UnstableIngotStatePolicy.normalizeIdentity(itemId, meta, out);
             EmbeddedInventoryPolicy.normalize(itemId, out);
             GalaxySpaceChargeStatePolicy.normalizePersisted(itemId, meta, out);
             GalacticraftRocketFuelStatePolicy.normalize(itemId, out);
