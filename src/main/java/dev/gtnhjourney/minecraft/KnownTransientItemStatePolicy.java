@@ -140,7 +140,9 @@ public final class KnownTransientItemStatePolicy {
         if (RAILCRAFT_MACHINE_BETA.equals(registryId)) {
             return meta == 0 || meta == 1 || meta == 2 || meta == 13 || meta == 14 || meta == 15;
         }
-        if (RAILCRAFT_MACHINE_ZETA.equals(registryId)) {\n            return meta == 3 || meta == 4 || meta == 5 || meta == 9 || meta == 10 || meta == 11;\n        }
+        if (RAILCRAFT_MACHINE_ZETA.equals(registryId)) {
+            return meta == 3 || meta == 4 || meta == 5 || meta == 9 || meta == 10 || meta == 11;
+        }
         return false;
     }
 
