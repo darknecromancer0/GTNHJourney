@@ -42,6 +42,7 @@ public final class KnownTransientItemStatePolicy {
     private static final String ENDERIO_STIRLING_GENERATOR = "EnderIO:blockStirlingGenerator";
     private static final String ENHANCED_LOOT_BAG = "enhancedlootbags:lootbag";
     private static final String CLEANSING_TALISMAN = "ThaumicTinkerer:cleansingTalisman";
+    private static final String MATTER_MANIPULATOR_PREFIX = "matter-manipulator:itemMatterManipulator";
     private static final String VANILLA_WATER = "minecraft:water";
 
     private KnownTransientItemStatePolicy() {}
@@ -91,6 +92,7 @@ public final class KnownTransientItemStatePolicy {
         if (ENDERIO_STIRLING_GENERATOR.equals(registryId)) normalizeStirlingGenerator(tag);
         if (ENHANCED_LOOT_BAG.equals(registryId)) remove(tag, "ench", "RepairCost");
         if (CLEANSING_TALISMAN.equals(registryId)) tag.removeTag("enabled");
+        if (registryId.startsWith(MATTER_MANIPULATOR_PREFIX)) normalizeMatterManipulator(tag);
         if (VANILLA_WATER.equals(registryId)) normalizeGeneratedWaterAmountName(tag);
     }
 
@@ -242,6 +244,18 @@ public final class KnownTransientItemStatePolicy {
         if (display.func_150296_c().size() != 1 || !display.hasKey("Name", 8)) return;
         if (!expectedName.equals(display.getString("Name"))) return;
         tag.removeTag("display");
+    }
+
+    private static void normalizeMatterManipulator(NBTTagCompound tag) {
+        // The manipulator stores its current selection, modes, AE/uplink bindings and upgrade/config serialization
+        // alongside charge. Those are mutable work-session state and would otherwise create a new Journey entry every
+        // time the player selects another region. Journey intentionally exposes only the clean empty/full endpoints.
+        Set<String> keys = tag.func_150296_c();
+        if (keys == null) return;
+        for (String key : new ArrayList<String>(keys)) {
+            if (!"charge".equals(key)) tag.removeTag(key);
+        }
+        if (tag.hasKey("charge", 99) && tag.getDouble("charge") <= 0.000001D) tag.removeTag("charge");
     }
 
     private static void normalizeGeneratedWaterAmountName(NBTTagCompound tag) {
