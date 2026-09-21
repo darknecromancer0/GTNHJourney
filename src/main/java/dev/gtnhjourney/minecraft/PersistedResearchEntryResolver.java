@@ -130,6 +130,7 @@ public final class PersistedResearchEntryResolver {
         try {
             BotaniaTransientStatePolicy.normalize(itemId, out);
             WearableTransientStatePolicy.normalize(itemId, out);
+            VanillaEquipmentStatePolicy.normalize(itemId, out);
             ThaumcraftWandStatePolicy.normalizePersisted(itemId, meta, out);
             ThaumcraftJarStatePolicy.normalize(itemId, out);
             KnownTransientItemStatePolicy.normalize(itemId, meta, out);
