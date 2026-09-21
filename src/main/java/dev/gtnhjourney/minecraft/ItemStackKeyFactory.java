@@ -81,7 +81,7 @@ public final class ItemStackKeyFactory {
         String aliasedItemId = KnownResearchItemAliasPolicy.canonicalItemId(rawItemId);
         String itemId = GalacticraftCanisterStatePolicy.canonicalItemId(aliasedItemId, identityStack.getItemDamage());
         String nbt = ResearchNbtIdentity.canonicalize(identityStack, itemId);
-        int meta = VanillaMetadataPolicy.canonicalMeta(itemId, researchMeta(itemId, identityStack));
+        int meta = KnownMetadataAliasPolicy.canonicalMeta(\n            itemId,\n            VanillaMetadataPolicy.canonicalMeta(itemId, researchMeta(itemId, identityStack)));
         return new ResearchKey(itemId, meta, nbt);
     }
 
