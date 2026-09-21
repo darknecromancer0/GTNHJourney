@@ -5,6 +5,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+
 import org.junit.jupiter.api.Test;
 
 import net.minecraft.item.Item;
@@ -14,7 +18,7 @@ import net.minecraft.nbt.NBTTagCompound;
 public class UnstableIngotStatePolicyTest {
 
     @Test
-    public void tickingRuntimeFieldsDoNotParticipateInUnstableIngotIdentity() {
+    public void legacyExtraUtilitiesRuntimeFieldsDoNotParticipateInIdentity() {
         NBTTagCompound tag = new NBTTagCompound();
         tag.setLong("time", 123456L);
         tag.setInteger("dimension", -1);
@@ -30,54 +34,92 @@ public class UnstableIngotStatePolicyTest {
     }
 
     @Test
-    public void stableSiblingMetasRemainExact() {
-        NBTTagCompound nugget = timerTag();
-        NBTTagCompound mobius = timerTag();
+    public void currentUtilitiesInExcessCraftedAtDoesNotParticipateInIdentity() {
+        NBTTagCompound tag = new NBTTagCompound();
+        tag.setBoolean("Crafted", true);
+        tag.setLong("CraftedAt", 123456L);
+        tag.setString("marker", "keep");
 
-        UnstableIngotStatePolicy.normalizeIdentity("ExtraUtilities:unstableingot", 1, nugget);
-        UnstableIngotStatePolicy.normalizeIdentity("ExtraUtilities:unstableingot", 2, mobius);
+        UnstableIngotStatePolicy.normalizeIdentity("utilitiesinexcess:inverted_ingot", 0, tag);
 
-        assertTrue(nugget.hasKey("time"));
-        assertTrue(nugget.hasKey("dimension"));
-        assertTrue(mobius.hasKey("time"));
-        assertTrue(mobius.hasKey("dimension"));
+        assertTrue(tag.getBoolean("Crafted"));
+        assertFalse(tag.hasKey("CraftedAt"));
+        assertEquals("keep", tag.getString("marker"));
     }
 
     @Test
-    public void ordinaryRetrievalGetsFreshTimerWithoutLosingOtherState() {
+    public void expiredPersistedTimestampCannotBecomeSafeUntaggedIngot() {
+        NBTTagCompound tag = new NBTTagCompound();
+        tag.setLong("CraftedAt", 123456L);
+
+        UnstableIngotStatePolicy.normalizeIdentity("utilitiesinexcess:inverted_ingot", 0, tag);
+
+        assertTrue(tag.getBoolean("Crafted"));
+        assertFalse(tag.hasKey("CraftedAt"));
+    }
+
+    @Test
+    public void stableUtilitiesInExcessSiblingMetasRemainExact() {
+        NBTTagCompound stable = currentTimerTag();
+        NBTTagCompound quasiNormalized = currentTimerTag();
+
+        UnstableIngotStatePolicy.normalizeIdentity("utilitiesinexcess:inverted_ingot", 1, stable);
+        UnstableIngotStatePolicy.normalizeIdentity("utilitiesinexcess:inverted_ingot", 2, quasiNormalized);
+
+        assertTrue(stable.hasKey("CraftedAt"));
+        assertTrue(quasiNormalized.hasKey("CraftedAt"));
+    }
+
+    @Test
+    public void currentRetrievalUsesNativePreTimerRecipeForm() {
         ItemStack stack = new ItemStack(new Item(), 1, 0);
-        NBTTagCompound tag = timerTag();
+        NBTTagCompound tag = currentTimerTag();
         tag.setString("marker", "keep");
         stack.setTagCompound(tag);
 
         ItemStack refreshed = UnstableIngotStatePolicy
-            .refreshForRetrieval(stack, "ExtraUtilities:unstableingot", 0, 987654L, 7);
+            .refreshForRetrieval(stack, "utilitiesinexcess:inverted_ingot", 0, 987654L, 7);
 
         assertSame(stack, refreshed);
-        assertEquals(987654L, stack.getTagCompound().getLong("time"));
-        assertEquals(7, stack.getTagCompound().getInteger("dimension"));
+        assertTrue(stack.getTagCompound().getBoolean("Crafted"));
+        assertFalse(stack.getTagCompound().hasKey("CraftedAt"));
         assertEquals("keep", stack.getTagCompound().getString("marker"));
     }
 
     @Test
-    public void creativeUnstableIngotDoesNotGainExplosiveTimer() {
+    public void legacyRetrievalStillGetsFreshTimer() {
         ItemStack stack = new ItemStack(new Item(), 1, 0);
         NBTTagCompound tag = new NBTTagCompound();
-        tag.setBoolean("creative", true);
+        tag.setLong("time", 123456L);
+        tag.setInteger("dimension", -1);
         stack.setTagCompound(tag);
 
         UnstableIngotStatePolicy
             .refreshForRetrieval(stack, "ExtraUtilities:unstableingot", 0, 987654L, 7);
 
-        assertTrue(stack.getTagCompound().getBoolean("creative"));
-        assertFalse(stack.getTagCompound().hasKey("time"));
-        assertFalse(stack.getTagCompound().hasKey("dimension"));
+        assertEquals(987654L, stack.getTagCompound().getLong("time"));
+        assertEquals(7, stack.getTagCompound().getInteger("dimension"));
     }
 
-    private static NBTTagCompound timerTag() {
+    @Test
+    public void normalizationRunsForIdentityTemplateAndPersistedMigration() throws Exception {
+        String identity = read("src/main/java/dev/gtnhjourney/minecraft/ResearchNbtIdentity.java");
+        String template = read("src/main/java/dev/gtnhjourney/minecraft/ResearchTemplateNormalizer.java");
+        String persisted = read("src/main/java/dev/gtnhjourney/minecraft/PersistedResearchEntryResolver.java");
+
+        assertTrue(identity.contains("UnstableIngotStatePolicy.normalizeIdentity"));
+        assertTrue(template.contains("UnstableIngotStatePolicy.normalizeIdentity"));
+        assertTrue(persisted.contains("UnstableIngotStatePolicy.normalizeIdentity"));
+    }
+
+    private static NBTTagCompound currentTimerTag() {
         NBTTagCompound tag = new NBTTagCompound();
-        tag.setLong("time", 123456L);
-        tag.setInteger("dimension", -1);
+        tag.setBoolean("Crafted", true);
+        tag.setLong("CraftedAt", 123456L);
         return tag;
+    }
+
+    private static String read(String path) throws Exception {
+        return new String(Files.readAllBytes(Paths.get(path)), StandardCharsets.UTF_8);
     }
 }
