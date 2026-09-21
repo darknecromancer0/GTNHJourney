@@ -38,6 +38,8 @@ public final class KnownTransientItemStatePolicy {
     private static final String ENDERIO_SOUL_VIAL = "EnderIO:itemSoulVessel";
     private static final String ENDERIO_WIRELESS_CHARGER = "EnderIO:blockWirelessCharger";
     private static final String ENDERIO_CAP_BANK = "EnderIO:blockCapBank";
+    private static final String ENDERIO_EXPERIENCE_OBELISK = "EnderIO:blockExperienceObelisk";
+    private static final String ENDERIO_STIRLING_GENERATOR = "EnderIO:blockStirlingGenerator";
     private static final String TAINTED_VILLAGER = "Thaumcraft.TaintedVillager";
     private static final String VANILLA_WATER = "minecraft:water";
 
@@ -84,6 +86,8 @@ public final class KnownTransientItemStatePolicy {
         if (ENDERIO_WIRELESS_CHARGER.equals(registryId) || ENDERIO_CAP_BANK.equals(registryId)) {
             tag.removeTag("storedEnergyRF");
         }
+        if (ENDERIO_EXPERIENCE_OBELISK.equals(registryId)) normalizeExperienceObelisk(tag);
+        if (ENDERIO_STIRLING_GENERATOR.equals(registryId)) normalizeStirlingGenerator(tag);
         if (ENHANCED_LOOT_BAG.equals(registryId)) remove(tag, "ench", "RepairCost");
         if (CLEANSING_TALISMAN.equals(registryId)) tag.removeTag("enabled");
         if (VANILLA_WATER.equals(registryId)) normalizeGeneratedWaterAmountName(tag);
@@ -222,6 +226,31 @@ public final class KnownTransientItemStatePolicy {
         if (value == null) return true;
         String trimmed = value.trim();
         return trimmed.isEmpty() || "\"\"".equals(trimmed);
+    }
+
+    private static void normalizeExperienceObelisk(NBTTagCompound tag) {
+        remove(tag,
+            "Items",
+            "eio.abstractMachine",
+            "experience",
+            "experienceLevel",
+            "experienceTotal",
+            "redstoneControlMode");
+        removeAutoConfiguredDisplay(tag, "Experience Obelisk (Configured)");
+    }
+
+    private static void normalizeStirlingGenerator(NBTTagCompound tag) {
+        remove(tag, "Items", "eio.abstractMachine", "redstoneControlMode", "storedEnergyRF");
+        if (tag.hasKey("capacitorType", 99) && tag.getInteger("capacitorType") == 0) tag.removeTag("capacitorType");
+        removeAutoConfiguredDisplay(tag, "Stirling Generator (Configured)");
+    }
+
+    private static void removeAutoConfiguredDisplay(NBTTagCompound tag, String expectedName) {
+        if (!tag.hasKey("display", 10)) return;
+        NBTTagCompound display = tag.getCompoundTag("display");
+        if (display.func_150296_c().size() != 1 || !display.hasKey("Name", 8)) return;
+        if (!expectedName.equals(display.getString("Name"))) return;
+        tag.removeTag("display");
     }
 
     private static void normalizeGeneratedWaterAmountName(NBTTagCompound tag) {
