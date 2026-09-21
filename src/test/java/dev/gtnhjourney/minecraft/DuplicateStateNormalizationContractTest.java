@@ -77,7 +77,7 @@ public class DuplicateStateNormalizationContractTest {
         assertTrue(persisted.contains("VanillaEquipmentStatePolicy.normalize"),
             "old enchanted-equipment duplicate states must collapse on load");
 
-        String keys = read("src/main/java/dev/gtnhjourney/minecraft/ItemStackKeyFactory.java");
+        String keys = compactWhitespace(read("src/main/java/dev/gtnhjourney/minecraft/ItemStackKeyFactory.java"));
         assertTrue(keys.contains("KnownMetadataAliasPolicy.canonicalMeta"),
             "new invalid BOP hive metadata must canonicalize before research storage");
         assertTrue(persisted.contains("KnownMetadataAliasPolicy.canonicalMeta"),
