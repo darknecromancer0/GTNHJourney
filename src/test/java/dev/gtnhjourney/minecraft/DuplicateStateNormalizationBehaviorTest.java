@@ -210,6 +210,41 @@ public class DuplicateStateNormalizationBehaviorTest {
     }
 
     @Test
+    public void experienceObeliskXpSnapshotCollapsesToCleanItem() {
+        NBTTagCompound tag = new NBTTagCompound();
+        tag.setTag("Items", new NBTTagList());
+        tag.setBoolean("eio.abstractMachine", true);
+        tag.setFloat("experience", 0.8037808F);
+        tag.setInteger("experienceLevel", 142);
+        tag.setInteger("experienceTotal", 51961);
+        tag.setInteger("redstoneControlMode", 0);
+        NBTTagCompound display = new NBTTagCompound();
+        display.setString("Name", "Experience Obelisk (Configured)");
+        tag.setTag("display", display);
+
+        KnownTransientItemStatePolicy.normalize("EnderIO:blockExperienceObelisk", 0, tag);
+
+        assertTrue(tag.func_150296_c().isEmpty());
+    }
+
+    @Test
+    public void defaultConfiguredStirlingGeneratorCollapsesToBase() {
+        NBTTagCompound tag = new NBTTagCompound();
+        tag.setTag("Items", new NBTTagList());
+        tag.setShort("capacitorType", (short) 0);
+        tag.setBoolean("eio.abstractMachine", true);
+        tag.setInteger("redstoneControlMode", 0);
+        tag.setInteger("storedEnergyRF", 0);
+        NBTTagCompound display = new NBTTagCompound();
+        display.setString("Name", "Stirling Generator (Configured)");
+        tag.setTag("display", display);
+
+        KnownTransientItemStatePolicy.normalize("EnderIO:blockStirlingGenerator", 0, tag);
+
+        assertTrue(tag.func_150296_c().isEmpty());
+    }
+
+    @Test
     public void enhancedLootBagVisualEnchantStateCollapses() {
         NBTTagCompound tag = new NBTTagCompound();
         tag.setTag("ench", new NBTTagList());
