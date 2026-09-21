@@ -217,7 +217,7 @@ public final class KnownTransientItemStatePolicy {
     private static boolean isBlankEntityName(String value) {
         if (value == null) return true;
         String trimmed = value.trim();
-        return trimmed.isEmpty() || """".equals(trimmed);
+        return trimmed.isEmpty() || "\\"\\"".equals(trimmed);
     }
 
     private static void normalizeGeneratedWaterAmountName(NBTTagCompound tag) {
