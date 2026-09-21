@@ -40,7 +40,8 @@ public final class KnownTransientItemStatePolicy {
     private static final String ENDERIO_CAP_BANK = "EnderIO:blockCapBank";
     private static final String ENDERIO_EXPERIENCE_OBELISK = "EnderIO:blockExperienceObelisk";
     private static final String ENDERIO_STIRLING_GENERATOR = "EnderIO:blockStirlingGenerator";
-    private static final String TAINTED_VILLAGER = "Thaumcraft.TaintedVillager";
+    private static final String ENHANCED_LOOT_BAG = "enhancedlootbags:lootbag";
+    private static final String CLEANSING_TALISMAN = "ThaumicTinkerer:cleansingTalisman";
     private static final String VANILLA_WATER = "minecraft:water";
 
     private KnownTransientItemStatePolicy() {}
@@ -195,20 +196,10 @@ public final class KnownTransientItemStatePolicy {
     }
 
     private static void normalizeSoulVial(NBTTagCompound tag) {
+        // Soul Vials can carry real mob identity/state from many mods: equipment, Thaumcraft infusions, SpecialMobs
+        // data, villager profession data, Infernal modifiers, and other ForgeData. Never whitelist by entity id here.
+        // Only discard fields that describe this captured entity instance at a moment in the world.
         normalizeCapturedEntityRuntime(tag);
-        normalizeBogusEntityName(tag);
-
-        if (!tag.hasKey("id", 8) || !TAINTED_VILLAGER.equals(tag.getString("id"))) return;
-
-        // Live 1.1.39 data contains several Tainted Villagers that are semantically the same mob but differ in
-        // random/default entity attributes, legacy numeric NBT widths, empty infusion payloads and quoted-empty names.
-        // For this exact entity keep only the mob id and an actually meaningful custom display name.
-        Set<String> keys = tag.func_150296_c();
-        if (keys == null) return;
-        for (String key : new ArrayList<String>(keys)) {
-            if ("id".equals(key) || "CustomName".equals(key) || "display".equals(key)) continue;
-            tag.removeTag(key);
-        }
         normalizeBogusEntityName(tag);
     }
 
