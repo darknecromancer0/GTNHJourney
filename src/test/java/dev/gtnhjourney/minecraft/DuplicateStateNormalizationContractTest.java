@@ -67,6 +67,18 @@ public class DuplicateStateNormalizationContractTest {
             "old persisted jar amount variants must collapse on load");
         assertTrue(persisted.contains("GalaxySpaceChargeStatePolicy"),
             "old jetplate charge variants must recanonicalize on load");
+        assertTrue(runtime.contains("VanillaEquipmentStatePolicy.normalize"),
+            "new vanilla equipment observations must drop enchant-only duplicate state");
+        assertTrue(identity.contains("VanillaEquipmentStatePolicy.normalize"),
+            "vanilla equipment research identity must ignore enchant-only duplicate state");
+        assertTrue(persisted.contains("VanillaEquipmentStatePolicy.normalize"),
+            "old enchanted-equipment duplicate states must collapse on load");
+
+        String keys = read("src/main/java/dev/gtnhjourney/minecraft/ItemStackKeyFactory.java");
+        assertTrue(keys.contains("KnownMetadataAliasPolicy.canonicalMeta"),
+            "new invalid BOP hive metadata must canonicalize before research storage");
+        assertTrue(persisted.contains("KnownMetadataAliasPolicy.canonicalMeta"),
+            "persisted invalid BOP hive metadata must migrate to the canonical block state");
     }
 
     private static String read(String path) throws Exception {
