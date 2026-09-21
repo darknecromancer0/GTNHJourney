@@ -184,6 +184,42 @@ public class DuplicateStateNormalizationBehaviorTest {
     }
 
     @Test
+    public void matterManipulatorDropsSelectionAndKeepsOnlyChargeEndpoint() {
+        NBTTagCompound full = new NBTTagCompound();
+        full.setDouble("charge", 10_000_000D);
+        NBTTagCompound config = new NBTTagCompound();
+        NBTTagCompound coordA = new NBTTagCompound();
+        coordA.setInteger("x", 29);
+        coordA.setInteger("y", 18);
+        coordA.setInteger("z", -22);
+        config.setTag("coordA", coordA);
+        config.setString("placeMode", "GEOMETRY");
+        full.setTag("config", config);
+        full.setInteger("jv", 2);
+        full.setInteger("dv", 0);
+        full.setString("installedUpgrades", "");
+        full.setLong("encKey", 123L);
+        full.setString("uplinkAddress", "test");
+
+        KnownTransientItemStatePolicy.normalize("matter-manipulator:itemMatterManipulator0", 0, full);
+
+        assertEquals(1, full.func_150296_c().size());
+        assertEquals(10_000_000D, full.getDouble("charge"));
+        assertFalse(full.hasKey("config"));
+        assertFalse(full.hasKey("jv"));
+        assertFalse(full.hasKey("dv"));
+        assertFalse(full.hasKey("installedUpgrades"));
+        assertFalse(full.hasKey("encKey"));
+        assertFalse(full.hasKey("uplinkAddress"));
+
+        NBTTagCompound empty = new NBTTagCompound();
+        empty.setDouble("charge", 0D);
+        empty.setTag("config", config.copy());
+        KnownTransientItemStatePolicy.normalize("matter-manipulator:itemMatterManipulator3", 0, empty);
+        assertTrue(empty.func_150296_c().isEmpty());
+    }
+
+    @Test
     public void gtToolboxRuntimeAndContentsCollapseToEmptyToolbox() {
         NBTTagCompound tag = new NBTTagCompound();
         NBTTagCompound contents = new NBTTagCompound();
