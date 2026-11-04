@@ -1,10 +1,11 @@
 package dev.gtnhjourney.nei;
 
+import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 
-import net.minecraft.client.gui.Gui;
+import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.item.ItemStack;
 
 import org.lwjgl.opengl.GL11;
@@ -23,8 +24,8 @@ import dev.gtnhjourney.research.ResearchKey;
  */
 public final class JourneyFavouriteStarOverlay {
 
-    private static final int GOLD = 0xFFFFC43C;
-    private static final int SHADOW = 0xE0100A04;
+    private static final int GOLD = 0xFFC43C;
+    private static final int SHADOW = 0x100A04;
 
     private static final Map<ItemStack, Boolean> membership = new IdentityHashMap<ItemStack, Boolean>();
     private static List<ItemStack> observedPanel;
@@ -42,31 +43,48 @@ public final class JourneyFavouriteStarOverlay {
         List<ItemsPanelGridSlot> slots = grid.getMask();
         if (slots == null || slots.isEmpty()) return;
 
+        List<Rectangle4i> marked = new ArrayList<Rectangle4i>();
+        for (ItemsPanelGridSlot slot : slots) {
+            if (slot == null || slot.getItemStack() == null || !isFavourite(slot.getItemStack())) continue;
+            Rectangle4i rect = grid.getSlotRect(slot.slotIndex);
+            if (rect != null && rect.w >= 10 && rect.h >= 10) marked.add(rect);
+        }
+        if (marked.isEmpty()) return;
+
+        // One GL batch for every visible star instead of many thousand GUI rectangle draw calls per frame.
         GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
         try {
             GL11.glDisable(GL11.GL_DEPTH_TEST);
             GL11.glDepthMask(false);
+            GL11.glDisable(GL11.GL_LIGHTING);
+            GL11.glDisable(GL11.GL_TEXTURE_2D);
             GL11.glEnable(GL11.GL_BLEND);
-            for (ItemsPanelGridSlot slot : slots) {
-                if (slot == null || slot.getItemStack() == null || !isFavourite(slot.getItemStack())) continue;
-                Rectangle4i rect = grid.getSlotRect(slot.slotIndex);
-                if (rect == null || rect.w < 10 || rect.h < 10) continue;
+            GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+            Tessellator tessellator = Tessellator.instance;
+            tessellator.startDrawingQuads();
+            for (Rectangle4i rect : marked) {
                 int x = JourneyFavouriteStarShape.markerX(rect.x, rect.w);
                 int y = JourneyFavouriteStarShape.markerY(rect.y);
-                drawPixels(x + 1, y + 1, SHADOW);
-                drawPixels(x, y, GOLD);
+                appendPixels(tessellator, x + 1, y + 1, SHADOW, 220);
+                appendPixels(tessellator, x, y, GOLD, 255);
             }
+            tessellator.draw();
         } finally {
             GL11.glPopAttrib();
         }
     }
 
-    private static void drawPixels(int x, int y, int argb) {
+    private static void appendPixels(Tessellator tessellator, int x, int y, int rgb, int alpha) {
         for (int row = 0; row < JourneyFavouriteStarShape.SIZE; row++) {
             for (int col = 0; col < JourneyFavouriteStarShape.SIZE; col++) {
-                if (JourneyFavouriteStarShape.isPixel(col, row)) {
-                    Gui.drawRect(x + col, y + row, x + col + 1, y + row + 1, argb);
-                }
+                if (!JourneyFavouriteStarShape.isPixel(col, row)) continue;
+                tessellator.setColorRGBA_I(rgb, alpha);
+                double left = x + col;
+                double top = y + row;
+                tessellator.addVertex(left, top + 1, 0);
+                tessellator.addVertex(left + 1, top + 1, 0);
+                tessellator.addVertex(left + 1, top, 0);
+                tessellator.addVertex(left, top, 0);
             }
         }
     }
