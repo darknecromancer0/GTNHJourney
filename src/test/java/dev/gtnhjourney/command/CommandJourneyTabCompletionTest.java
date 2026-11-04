@@ -37,6 +37,7 @@ public class CommandJourneyTabCompletionTest {
         "clear",
         "backup",
         "explosions",
+        "endermen",
         "cleanse",
         "speed",
         "botania");
@@ -70,6 +71,9 @@ public class CommandJourneyTabCompletionTest {
         assertEquals(
             Arrays.asList("1", "2", "4", "8", "16", "32", "64", "128"),
             command.addTabCompletionOptions(null, new String[] { "speed", "world", "" }));
+        assertEquals(
+            Arrays.asList("status", "on", "off", "default"),
+            command.addTabCompletionOptions(null, new String[] { "endermen", "" }));
         assertEquals(
             Arrays.asList("debug"),
             command.addTabCompletionOptions(null, new String[] { "botania", "" }));
