@@ -29,6 +29,7 @@ public final class JourneyCommandSuggestions {
         "restore",
         "backup",
         "explosions",
+        "endermen",
         "cleanse",
         "speed",
         "botania",
@@ -61,6 +62,7 @@ public final class JourneyCommandSuggestions {
             if ("trace".equals(action)) return matching(args[1], Arrays.asList("on", "off"));
             if ("snapshot".equals(action)) return matching(args[1], Collections.singletonList("latest"));
             if ("backup".equals(action)) return matching(args[1], Arrays.asList("status", "now", "on", "off"));
+            if ("endermen".equals(action)) return matching(args[1], Arrays.asList("status", "on", "off", "default"));
             if ("explosions".equals(action)) {
                 return matching(args[1], Arrays.asList("status", "on", "off", "default", "undo", "redo", "machines"));
             }
