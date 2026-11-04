@@ -147,7 +147,7 @@ Explosions are enabled by default. `/journey explosions off` globally cancels Fo
 
 ### Cleanse
 
-`/journey cleanse` removes the caller's currently active potion effects whose registered `Potion` reports `isBadEffect()`. Positive effects are preserved. IC2 radiation is covered because it is registered as a harmful potion effect. The command does not rewrite player NBT or clear persistent non-potion systems such as Warp.
+`/journey cleanse` removes the caller's currently active potion effects whose registered `Potion` reports `isBadEffect()`. Positive effects are preserved. IC2 radiation is covered because it is registered as a harmful potion effect. For the integrated-server owner or a level-2 operator it also clears Thaumcraft 4 normal, temporary and permanent Warp through Thaumcraft's registered commands. Non-operators still cleanse negative potion effects, but cannot reset Warp. It does not remove Thaumcraft research or prevent equipment from adding new Warp.
 
 ## Debug Researcher Tool
 
@@ -192,7 +192,7 @@ The integration is optional and reflection-based, so Journey does not acquire a 
 - `/journey restore <id|name>` - restore a snapshot
 - `/journey backup status|now|on|off` - inspect, run or toggle world backups
 - `/journey explosions status|on|off` - inspect or toggle the global explosion guard
-- `/journey cleanse` - remove the caller's active negative potion effects
+- `/journey cleanse` - remove negative potion effects and (owner/operator) reset Thaumcraft Warp
 - `/journey speed <1|2|4|8|16|32|64|128|status>` - inspect or change session server speed
 - `/journey botania debug tool` - give the Botania Mana Debug Tool
 - `/journey debug` - show runtime compatibility diagnostics
