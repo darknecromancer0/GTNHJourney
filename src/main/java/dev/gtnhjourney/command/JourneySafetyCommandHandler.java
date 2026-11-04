@@ -7,6 +7,8 @@ import net.minecraft.util.ChatComponentText;
 import dev.gtnhjourney.GTNHJourney;
 import dev.gtnhjourney.backup.WorldBackupResult;
 import dev.gtnhjourney.config.JourneyConfig;
+import dev.gtnhjourney.safety.ThaumcraftWarpCleanser;
+import cpw.mods.fml.common.Loader;
 
 /** Command glue for backup, explosion and cleanse safety features. */
 final class JourneySafetyCommandHandler {
@@ -26,7 +28,17 @@ final class JourneySafetyCommandHandler {
         }
         if ("cleanse".equals(family)) {
             int removed = GTNHJourney.CLEANSE.cleanse(player);
-            tell(player, "Removed " + removed + " negative effect(s).");
+            tell(player, "Removed " + removed + " negative potion effect(s).");
+            if (Loader.isModLoaded("Thaumcraft")) {
+                if (!JourneyAdminPermissionPolicy.mayMutate(player)) {
+                    tell(player, "Thaumcraft Warp reset requires the integrated-server owner or operator permission.");
+                } else {
+                    int cleared = ThaumcraftWarpCleanser.clear(player);
+                    tell(player, cleared == 3
+                        ? "Thaumcraft Warp reset: normal, temporary and permanent (3/3)."
+                        : "Thaumcraft Warp reset incomplete (" + cleared + "/3). Check /tc warp permissions and runtime.");
+                }
+            }
             return true;
         }
         return false;

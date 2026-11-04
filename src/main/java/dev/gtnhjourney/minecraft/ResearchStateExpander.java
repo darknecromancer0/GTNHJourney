@@ -15,6 +15,10 @@ public final class ResearchStateExpander {
         ItemStack exact = observed.copy();
         exact.stackSize = 1;
 
+        // GT/GT++ volumetric flasks keep the exact amount and grant an additional 1000 mB state.
+        List<ItemStack> flaskEndpoints = VolumetricFlaskResearchPolicy.expand(exact);
+        if (!flaskEndpoints.isEmpty()) return flaskEndpoints;
+
         // A real Forge fluid container with any positive amount proves the full endpoint for that same fluid. Partial
         // fill amounts are runtime state, not separate Journey discoveries. Empty containers continue through normal
         // identity handling below.
