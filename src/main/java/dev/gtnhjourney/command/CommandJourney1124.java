@@ -308,7 +308,7 @@ public final class CommandJourney1124 extends CommandBase {
             || "research".equals(action) || "rescan".equals(action) || "list".equals(action) || "newest".equals(action)
             || "get".equals(action) || "forget".equals(action) || "undo".equals(action) || "redo".equals(action)
             || "restore-deleted".equals(action) || "snapshot".equals(action) || "snapshots".equals(action)
-            || "restore".equals(action) || "backup".equals(action) || "explosions".equals(action) || "cleanse".equals(action)
+            || "restore".equals(action) || "backup".equals(action) || "explosions".equals(action) || "endermen".equals(action) || "cleanse".equals(action)
             || "speed".equals(action) || "botania".equals(action) || "debug".equals(action) || "trace".equals(action)
             || "dump".equals(action) || "hotspots".equals(action) || "debugtool".equals(action)
             || "prune-missing".equals(action) || "clear".equals(action) || "return".equals(action) || "death".equals(action);

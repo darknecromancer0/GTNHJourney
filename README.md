@@ -145,6 +145,10 @@ Explosions are enabled by default. `/journey explosions off` globally cancels Fo
 
 `/journey explosions status` is read-only. `/journey explosions on|off` requires the integrated-server owner or a level-2 operator and persists the setting.
 
+### Enderman block movement
+
+Endermen may pick up and place blocks by default. `/journey endermen off` disables only Enderman block pickup and placement, without changing the Minecraft `mobGriefing` gamerule, mob aggression, teleportation or other mobs. `/journey endermen on` (or `default`) restores vanilla behavior. `/journey endermen status` is read-only, and changes require the integrated-world owner or a level-2 operator. The setting persists across restarts under `safety.endermenMoveBlocksEnabled` (default `true`). An Enderman already carrying a block retains it while movement is disabled.
+
 ### Cleanse
 
 `/journey cleanse` removes the caller's currently active potion effects whose registered `Potion` reports `isBadEffect()`. Positive effects are preserved. IC2 radiation is covered because it is registered as a harmful potion effect. For the integrated-server owner or a level-2 operator it also clears Thaumcraft 4 normal, temporary and permanent Warp through Thaumcraft's registered commands. Non-operators still cleanse negative potion effects, but cannot reset Warp. It does not remove Thaumcraft research or prevent equipment from adding new Warp.
@@ -192,6 +196,7 @@ The integration is optional and reflection-based, so Journey does not acquire a 
 - `/journey restore <id|name>` - restore a snapshot
 - `/journey backup status|now|on|off` - inspect, run or toggle world backups
 - `/journey explosions status|on|off` - inspect or toggle the global explosion guard
+- `/journey endermen status|on|off|default` - toggle Enderman block pickup and placement only
 - `/journey cleanse` - remove negative potion effects and (owner/operator) reset Thaumcraft Warp
 - `/journey speed <1|2|4|8|16|32|64|128|status>` - inspect or change session server speed
 - `/journey botania debug tool` - give the Botania Mana Debug Tool
@@ -220,6 +225,7 @@ The integration is optional and reflection-based, so Journey does not acquire a 
 - `backup.worldBackupIntervalSeconds`: default `300`, bounded to `60..86400`
 - `backup.worldBackupRetention`: default `3`, bounded to `1..32`
 - `safety.explosionsEnabled`: default `true`
+- `safety.endermenMoveBlocksEnabled`: default `true`
 
 Network/security hard limits and AREA_16 radius remain compile-time constants.
 

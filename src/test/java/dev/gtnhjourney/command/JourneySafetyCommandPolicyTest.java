@@ -34,6 +34,20 @@ class JourneySafetyCommandPolicyTest {
     }
 
     @Test
+    void endermenToggleRequiresAdminButStatusDoesNot() {
+        assertTrue(JourneySafetyCommandPolicy.isEndermenAction("status"));
+        assertTrue(JourneySafetyCommandPolicy.isEndermenAction("on"));
+        assertTrue(JourneySafetyCommandPolicy.isEndermenAction("off"));
+        assertTrue(JourneySafetyCommandPolicy.isEndermenAction("default"));
+        assertFalse(JourneySafetyCommandPolicy.isEndermenAction("invalid"));
+
+        assertFalse(JourneySafetyCommandPolicy.requiresAdmin("endermen", "status"));
+        assertTrue(JourneySafetyCommandPolicy.requiresAdmin("endermen", "off"));
+        assertTrue(JourneySafetyCommandPolicy.requiresAdmin("endermen", "on"));
+        assertTrue(JourneySafetyCommandPolicy.requiresAdmin("endermen", "default"));
+    }
+
+    @Test
     void cleanseTargetsCallerWithoutAdminMutationPermission() {
         assertFalse(JourneySafetyCommandPolicy.requiresAdmin("cleanse", ""));
     }

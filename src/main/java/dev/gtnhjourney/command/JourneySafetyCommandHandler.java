@@ -26,6 +26,10 @@ final class JourneySafetyCommandHandler {
             handleExplosions(player, args);
             return true;
         }
+        if ("endermen".equals(family)) {
+            handleEndermen(player, args);
+            return true;
+        }
         if ("cleanse".equals(family)) {
             int removed = GTNHJourney.CLEANSE.cleanse(player);
             tell(player, "Removed " + removed + " negative potion effect(s).");
@@ -115,6 +119,30 @@ final class JourneySafetyCommandHandler {
         boolean enabled = "on".equals(action);
         JourneyConfig.setExplosionsEnabled(enabled);
         tell(player, enabled ? "Explosions enabled." : "Explosions disabled globally.");
+    }
+
+    private static void handleEndermen(EntityPlayerMP player, String[] args) {
+        String action = args.length >= 2 ? args[1].toLowerCase(java.util.Locale.ROOT) : "status";
+        if (args.length > 2 || !JourneySafetyCommandPolicy.isEndermenAction(action)) {
+            tell(player, "Usage: /journey endermen status|on|off|default");
+            return;
+        }
+        if (JourneySafetyCommandPolicy.requiresAdmin("endermen", action)
+            && !JourneyAdminPermissionPolicy.mayMutate(player)) {
+            tell(player, "Enderman block movement changes require the integrated-server owner or operator permission.");
+            return;
+        }
+        if ("status".equals(action)) {
+            tell(player, "Enderman block movement is "
+                + (JourneyConfig.endermenMoveBlocksEnabled() ? "enabled" : "disabled")
+                + ". Vanilla mobGriefing remains unchanged.");
+            return;
+        }
+        boolean enabled = !"off".equals(action);
+        JourneyConfig.setEndermenMoveBlocksEnabled(enabled);
+        tell(player, "Enderman block pickup and placement "
+            + (enabled ? "enabled" : "disabled")
+            + ". Other mobs are unaffected.");
     }
 
     private static void tell(EntityPlayerMP player, String text) {

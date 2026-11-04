@@ -24,6 +24,8 @@ public class JourneyCommandSuggestionsTest {
         assertEquals(Arrays.asList("confirm"), JourneyCommandSuggestions.forChatText("/journey clear c"));
         assertEquals(Arrays.asList("debug"), JourneyCommandSuggestions.forChatText("/journey botania "));
         assertEquals(Arrays.asList("tool"), JourneyCommandSuggestions.forChatText("/journey botania debug "));
+        assertEquals(Arrays.asList("on", "off"), JourneyCommandSuggestions.forChatText("/journey endermen o"));
+        assertEquals(Arrays.asList("default"), JourneyCommandSuggestions.forChatText("/journey endermen d"));
         assertEquals(Arrays.asList("latest"), JourneyCommandSuggestions.forChatText("/journey snapshot l"));
         assertEquals(Arrays.asList("return"), JourneyCommandSuggestions.forChatText("/journey snapshot latest r"));
     }
@@ -39,6 +41,7 @@ public class JourneyCommandSuggestionsTest {
         assertTrue(suggestions.contains("return"));
         assertTrue(suggestions.contains("death"));
         assertTrue(suggestions.contains("explosions"));
+        assertTrue(suggestions.contains("endermen"));
     }
 
     @Test
