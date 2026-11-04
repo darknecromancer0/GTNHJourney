@@ -33,7 +33,7 @@ public final class JourneyHelpText {
             "/journey explosions default - Restore global and machine explosions to on.",
             "/journey explosions undo [n] - Undo explosion-setting changes.",
             "/journey explosions redo [n] - Redo explosion-setting changes.",
-            "/journey cleanse - Remove your active negative potion effects.",
+            "/journey cleanse - Remove harmful potion effects and (owner/operator) reset all Thaumcraft Warp.",
             "/journey speed machines <1|2|4|8|16> - Accelerate loaded TileEntities; capped at 16x for GT energy safety.",
             "/journey speed world <1|2|4|8|16|32|64|128> - Accelerate the complete server world.",
             "/journey speed status - Show the active speed mode and multiplier.",
