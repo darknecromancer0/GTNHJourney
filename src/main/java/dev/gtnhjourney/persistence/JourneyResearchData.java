@@ -3,9 +3,11 @@ package dev.gtnhjourney.persistence;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import net.minecraft.item.ItemStack;
@@ -21,6 +23,7 @@ import dev.gtnhjourney.minecraft.NbtCanonicalizer;
 import dev.gtnhjourney.minecraft.PersistedResearchEntryResolver;
 import dev.gtnhjourney.minecraft.ResearchStateExpander;
 import dev.gtnhjourney.minecraft.ResearchTemplateNormalizer;
+import dev.gtnhjourney.minecraft.VolumetricFlaskResearchPolicy;
 import dev.gtnhjourney.recovery.ResearchEntrySnapshot;
 import dev.gtnhjourney.recovery.ResearchStateSnapshot;
 import dev.gtnhjourney.research.ResearchKey;
@@ -320,6 +323,26 @@ public final class JourneyResearchData extends WorldSavedData {
                 if (key.getMeta() != persistedMeta || !key.getCanonicalNbt().equals(persistedCanonical)
                     || !sameTemplate(persistedTemplate, template)) migrated = true;
                 if (!accumulator.accept(key, template)) migrated = true;
+            }
+            // Backfill standard 1000 mB presets for fluids previously discovered in any GT/GT++ flask.
+            // Only new identities are appended. Existing NBT, templates and unlock chronology remain untouched.
+            Set<ResearchKey> knownKeys = new HashSet<ResearchKey>(accumulator.keys());
+            for (ResearchKey existingKey : accumulator.keys()) {
+                if (!VolumetricFlaskResearchPolicy.mayBeFlaskId(existingKey.getItemId())) continue;
+                try {
+                    ItemStack recorded = dev.gtnhjourney.retrieval.ItemStackTemplateFactory
+                        .create(existingKey, accumulator.template(existingKey), 1);
+                    for (ItemStack endpoint : VolumetricFlaskResearchPolicy.expand(recorded)) {
+                        if (endpoint == null || endpoint.getItem() == null) continue;
+                        ResearchKey derivedKey = ItemStackKeyFactory.from(endpoint);
+                        if (knownKeys.add(derivedKey)) {
+                            accumulator.accept(derivedKey, ResearchTemplateNormalizer.normalize(endpoint));
+                            migrated = true;
+                        }
+                    }
+                } catch (RuntimeException | LinkageError invalidOptionalFlask) {
+                    // One old or removed modded flask must not interrupt world data loading.
+                }
             }
             List<ResearchKey> keys = accumulator.keys();
             Map<ResearchKey, NBTTagCompound> playerTemplates = accumulator.templateCopies();
