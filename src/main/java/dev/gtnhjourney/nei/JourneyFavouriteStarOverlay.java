@@ -52,7 +52,7 @@ public final class JourneyFavouriteStarOverlay {
         if (marked.isEmpty()) return;
 
         // One GL batch for every visible star instead of many thousand GUI rectangle draw calls per frame.
-        GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
+        GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_CURRENT_BIT);
         try {
             GL11.glDisable(GL11.GL_DEPTH_TEST);
             GL11.glDepthMask(false);
@@ -99,6 +99,8 @@ public final class JourneyFavouriteStarOverlay {
         } catch (RuntimeException | LinkageError optionalModFailure) {
             // An incompatible optional item should not break drawing the rest of the NEI item panel.
         }
+        // Bounded even if someone flips through thousands of native NEI pages without rebuilding the panel.
+        if (membership.size() >= 4096) membership.clear();
         membership.put(stack, Boolean.valueOf(favourite));
         return favourite;
     }
