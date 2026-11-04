@@ -100,6 +100,12 @@ Recovery features include:
 - snapshot restore as one undoable transaction;
 - automatic reconciliation of active/inactive deletion records against restored snapshots.
 
+## Favourite markers and search focus
+
+In every Journey/NEI item-panel view (ALL, researched, favourite, creative and delete), the client paints a tiny golden star in the upper-right corner of each exact favourite item state. Markers render over NEI's cached item grid, update immediately after favourite synchronization and do not affect item NBT, count text, sorting, click actions or native NEI bookmarks.
+
+Focused NEI search retains its keyboard focus after Ctrl+Backspace even when the search-filter worker or Journey panel layout rebuilds the visible item list. A later intentional mouse click, screen change or new key input releases the temporary focus lease; normal Backspace recipe navigation remains available when search is not focused.
+
 ## World safety
 
 GTNH Journey keeps the world-protection features independent of Journey research state and hardens world backups for large saves.

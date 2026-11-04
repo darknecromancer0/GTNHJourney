@@ -15,6 +15,7 @@
     "GuiChatCommandHintMixin",
     "GuiContainerSearchCtrlBackspaceMixin",
     "GuiRecipeCtrlBackspaceMixin",
+    "LayoutManagerSearchFocusMixin",
     "ItemPanelJourneyFilterMixin",
     "ItemsPanelGridJourneyMixin",
     "TessellatorStateAccessor",

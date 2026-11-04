@@ -12,22 +12,33 @@ import org.junit.jupiter.api.Test;
 class NeiSearchCtrlBackspaceContractTest {
 
     @Test
-    void focusedNeiSearchUsesNativeTextInputThenConsumesCtrlBackspaceBeforeGlobalDispatch() throws IOException {
+    void focusedNeiSearchIsCapturedBeforeNativeInputAndRestoredAfterLayout() throws IOException {
         String mixin = compactWhitespace(
             read("src/main/java/dev/gtnhjourney/mixin/GuiContainerSearchCtrlBackspaceMixin.java"));
+        String focus = compactWhitespace(read("src/main/java/dev/gtnhjourney/nei/JourneySearchFocusKeeper.java"));
+        String layout = compactWhitespace(
+            read("src/main/java/dev/gtnhjourney/mixin/LayoutManagerSearchFocusMixin.java"));
         String config = read("src/main/resources/mixins.gtnhjourney.json");
 
         assertTrue(mixin.contains("@Mixin(value=GuiContainerManager.class,remap=false)"));
-        assertTrue(mixin.contains("method=\"handleKeyboardInput\""));
-        assertTrue(mixin.contains("Keyboard.KEY_BACK"));
-        assertTrue(mixin.contains("LayoutManager.searchField.focused()"));
+        assertTrue(mixin.contains("method=\"handleKeyboardInput\",at=@At(\"HEAD\")"));
+        assertTrue(mixin.contains("JourneySearchFocusKeeper.beforeKeyEvent()"),
+            "focused search ownership must be captured before native NEI can reset it");
+        assertTrue(focus.contains("Keyboard.KEY_BACK"));
+        assertTrue(focus.contains("field.focused()"));
         assertTrue(
             mixin.contains(
                 "target=\"Lcodechicken/nei/guihook/GuiContainerManager;keyTyped(CI)V\",shift=At.Shift.AFTER,remap=false"),
-            "Journey must let NEI perform its native textboxKeyTyped/onTextChange lifecycle before consuming the chord");
-        assertTrue(mixin.contains("ci.cancel();"), "global Minecraft key dispatch must still be suppressed");
-        assertTrue(!mixin.contains("manager.keyTyped("), "Journey must not manually re-enter NEI keyTyped from HEAD");
+            "Journey must let native NEI textboxKeyTyped/onTextChange run before consuming global dispatch");
+        assertTrue(mixin.contains("JourneySearchFocusKeeper.afterNativeCtrlBackspace()"));
+        assertTrue(mixin.contains("ci.cancel();"));
+        assertTrue(!mixin.contains("manager.keyTyped("));
+        assertTrue(layout.contains("JourneySearchFocusKeeper.afterLayout()"),
+            "delayed panel/layout refresh must retain search focus without another click");
+        assertTrue(mixin.contains("JourneySearchFocusKeeper.onMouseClick()"),
+            "deliberate new mouse interactions must stop focus restoration");
         assertTrue(config.contains("GuiContainerSearchCtrlBackspaceMixin"));
+        assertTrue(config.contains("LayoutManagerSearchFocusMixin"));
     }
 
     @Test
