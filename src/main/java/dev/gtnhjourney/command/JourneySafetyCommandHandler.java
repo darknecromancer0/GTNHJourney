@@ -7,6 +7,7 @@ import net.minecraft.util.ChatComponentText;
 import dev.gtnhjourney.GTNHJourney;
 import dev.gtnhjourney.backup.WorldBackupResult;
 import dev.gtnhjourney.config.JourneyConfig;
+import dev.gtnhjourney.safety.ThaumcraftWarpCleanser;
 import cpw.mods.fml.common.Loader;
 
 /** Command glue for backup, explosion and cleanse safety features. */
