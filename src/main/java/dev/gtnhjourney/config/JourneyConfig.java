@@ -28,6 +28,7 @@ public final class JourneyConfig {
     private static volatile int worldBackupIntervalSeconds = DEFAULT_WORLD_BACKUP_INTERVAL_SECONDS;
     private static volatile int worldBackupRetention = DEFAULT_WORLD_BACKUP_RETENTION;
     private static volatile boolean explosionsEnabled = true;
+    private static volatile boolean endermenMoveBlocksEnabled = true;
 
     private JourneyConfig() {}
 
@@ -114,6 +115,11 @@ public final class JourneyConfig {
                 "safety",
                 true,
                 "Whether explosions are allowed. Set false or use /journey explosions off to cancel Forge explosions globally.");
+            endermenMoveBlocksEnabled = config.getBoolean(
+                "endermenMoveBlocksEnabled",
+                "safety",
+                true,
+                "Allow Endermen to pick up and place blocks. Set false or use /journey endermen off to prevent only Enderman block movement.");
             ResearchCompatibilityOptions.configure(
                 normalizeGtTransientIdentity,
                 resetGtToolTemplateState,
@@ -192,6 +198,10 @@ public final class JourneyConfig {
         return explosionsEnabled;
     }
 
+    public static boolean endermenMoveBlocksEnabled() {
+        return endermenMoveBlocksEnabled;
+    }
+
     public static synchronized void setWorldBackupsEnabled(boolean enabled) {
         worldBackupsEnabled = enabled;
         persistBoolean("backup", "worldBackupsEnabled", enabled);
@@ -200,6 +210,11 @@ public final class JourneyConfig {
     public static synchronized void setExplosionsEnabled(boolean enabled) {
         explosionsEnabled = enabled;
         persistBoolean("safety", "explosionsEnabled", enabled);
+    }
+
+    public static synchronized void setEndermenMoveBlocksEnabled(boolean enabled) {
+        endermenMoveBlocksEnabled = enabled;
+        persistBoolean("safety", "endermenMoveBlocksEnabled", enabled);
     }
 
     private static void persistBoolean(String category, String key, boolean value) {
