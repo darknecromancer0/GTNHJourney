@@ -24,7 +24,7 @@ public final class CommandJourney extends CommandBase {
 
     private static final String[] SUBCOMMANDS = { "help", "count", "stats", "inspect", "research", "rescan", "list",
         "newest", "get", "forget", "undo", "redo", "restore-deleted", "snapshot", "snapshots", "restore", "debug",
-        "trace", "dump", "hotspots", "debugtool", "prune-missing", "clear", "backup", "explosions", "cleanse",
+        "trace", "dump", "hotspots", "debugtool", "prune-missing", "clear", "backup", "explosions", "endermen", "cleanse",
         "speed", "botania" };
 
     @Override
@@ -51,6 +51,7 @@ public final class CommandJourney extends CommandBase {
             if ("trace".equals(action)) return getListOfStringsMatchingLastWord(args, "on", "off");
             if ("backup".equals(action)) return getListOfStringsMatchingLastWord(args, "status", "now", "on", "off");
             if ("explosions".equals(action)) return getListOfStringsMatchingLastWord(args, "status", "on", "off");
+            if ("endermen".equals(action)) return getListOfStringsMatchingLastWord(args, "status", "on", "off", "default");
             if ("speed".equals(action)) {
                 return getListOfStringsMatchingLastWord(
                     args,
