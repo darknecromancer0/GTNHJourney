@@ -3,6 +3,7 @@ package dev.gtnhjourney.minecraft;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fluids.FluidStack;
@@ -19,6 +20,13 @@ public final class VolumetricFlaskResearchPolicy {
     private static final int STANDARD_AMOUNT_MB = 1000;
 
     private VolumetricFlaskResearchPolicy() {}
+
+    /** Cheap identity prefilter for old research entries: avoid deserializing every stored item on load. */
+    public static boolean mayBeFlaskId(String itemId) {
+        if (itemId == null) return false;
+        String id = itemId.toLowerCase(Locale.ROOT);
+        return id.contains("volumetric_flask") || id.contains("klein_bottle");
+    }
 
     static int standardAmount(int observedAmount, int maxCapacity) {
         return observedAmount > 0 && maxCapacity >= STANDARD_AMOUNT_MB ? STANDARD_AMOUNT_MB : 0;
