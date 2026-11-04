@@ -6,18 +6,19 @@ import java.util.List;
 import java.util.Locale;
 
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.fluids.FluidStack;
-
-import gregtech.common.items.ItemVolumetricFlask;
+import net.minecraftforge.fluids.IFluidContainerItem;
 
 /**
- * The four GT/GT++ volumetric flask types share ItemVolumetricFlask. Observing a filled flask proves the exact
- * amount actually held and also grants a separate 1000 mB preset of the same fluid in the same flask type.
- * No liquid is created in the player's inventory; only Journey's retrievable research templates are expanded.
+ * GT and GT++ volumetric flasks use the same runtime item implementation. A real filled flask proves both the
+ * exact held amount and a separate 1000 mB preset, with the same fluid and same flask type. Forge fluid API and
+ * guarded reflection avoid introducing a hard GregTech class-loading dependency into Journey.
  */
 public final class VolumetricFlaskResearchPolicy {
 
     private static final int STANDARD_AMOUNT_MB = 1000;
+    private static final String GT_FLASK_CLASS = "gregtech.common.items.ItemVolumetricFlask";
 
     private VolumetricFlaskResearchPolicy() {}
 
@@ -33,41 +34,48 @@ public final class VolumetricFlaskResearchPolicy {
     }
 
     public static List<ItemStack> expand(ItemStack observed) {
-        if (observed == null || !(observed.getItem() instanceof ItemVolumetricFlask)) {
+        if (observed == null || observed.getItem() == null
+            || !(observed.getItem() instanceof IFluidContainerItem)
+            || !GT_FLASK_CLASS.equals(observed.getItem().getClass().getName())) {
             return Collections.emptyList();
         }
         ItemStack exact = observed.copy();
         exact.stackSize = 1;
         try {
-            ItemVolumetricFlask flask = (ItemVolumetricFlask) exact.getItem();
-            FluidStack original = flask.getFluid(exact);
-            int capacity = flask.getCapacity(exact);
+            IFluidContainerItem container = (IFluidContainerItem) exact.getItem();
+            FluidStack original = container.getFluid(exact);
+            int capacity = container.getCapacity(exact);
             if (original == null || original.getFluid() == null || original.amount <= 0 || capacity <= 0
                 || original.amount > capacity) return Collections.emptyList();
 
-            int standard = standardAmount(original.amount, flask.getMaxCapacity());
+            // The full configurable flask capacity is different from the player's current Capacity NBT setting.
+            Object maxValue = exact.getItem().getClass().getMethod("getMaxCapacity").invoke(exact.getItem());
+            if (!(maxValue instanceof Number)) return Collections.singletonList(exact);
+            int standard = standardAmount(original.amount, ((Number) maxValue).intValue());
             if (standard == 0 || (capacity == standard && original.amount == standard)) {
                 return Collections.singletonList(exact);
             }
 
             ItemStack fullLitre = exact.copy();
-            flask.setCapacity(fullLitre, standard);
             FluidStack litre = original.copy();
             litre.amount = standard;
-            flask.setFluid(fullLitre, litre);
+            NBTTagCompound tag = fullLitre.hasTagCompound()
+                ? (NBTTagCompound) fullLitre.getTagCompound().copy() : new NBTTagCompound();
+            tag.setInteger("Capacity", standard);
+            tag.setTag("Fluid", litre.writeToNBT(new NBTTagCompound()));
+            fullLitre.setTagCompound(tag);
 
-            // Fail closed if a runtime flask implementation cannot actually represent the new preset.
-            FluidStack verified = flask.getFluid(fullLitre);
-            if (flask.getCapacity(fullLitre) != standard || verified == null
+            // Accept only a preset the real container implementation recognizes, with the exact original fluid.
+            FluidStack verified = container.getFluid(fullLitre);
+            if (container.getCapacity(fullLitre) != standard || verified == null
                 || !verified.isFluidEqual(original) || verified.amount != standard) {
                 return Collections.singletonList(exact);
             }
-
             List<ItemStack> endpoints = new ArrayList<ItemStack>(2);
             endpoints.add(exact);
             endpoints.add(fullLitre);
             return Collections.unmodifiableList(endpoints);
-        } catch (RuntimeException | LinkageError optionalModFailure) {
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError incompatibleRuntime) {
             return Collections.singletonList(exact);
         }
     }
